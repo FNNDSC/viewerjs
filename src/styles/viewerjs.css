@@ -1,0 +1,118 @@
+@import url("../js/components/jquery-ui/themes/smoothness/jquery-ui.min.css");
+
+/*renderers window*/
+div.view-renders{
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  margin: 0;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  height: 100%;
+  width: 100%;
+  /*border: 1px solid green;*/
+  background-color: black;
+}
+
+/*individual renderers*/
+.view-render{
+  border: 1px solid green;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  position: absolute;
+}
+
+/*individual renderers's text info*/
+.view-render-info{
+  position: absolute;
+  z-index: 9999;
+  color: silver;
+  font-size: small;
+}
+.view-render-info-topleft{
+  top: 2px;
+  left: 10px;
+}
+.view-render-info-topright{
+  top: 2px;
+  right: 10px;
+  text-align:right;
+}
+.view-render-info-bottomright{
+  bottom: 2px;
+  right: 10px;
+  text-align:right;
+}
+.view-render-info-bottomleft{
+  bottom: 2px;
+  left: 10px;
+}
+
+/*tool bar*/
+div.view-toolbar{
+  position: absolute;
+  top: 5px;
+  right: 0;
+  margin: 0;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  height: 30px;
+  width: 100%;
+  text-align:center;
+}
+
+/*tool bar button*/
+.view-toolbar-button{
+  cursor: pointer;
+  margin: 0;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  height: 100%;
+  width: 150px;
+  background-color: black;
+  color: silver;
+}
+
+/*thumbnail bar*/
+div.view-thumbnailbar{
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  margin: 0;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  height: 100%;
+  width: 115px;
+  overflow: auto;
+}
+
+/*thumbnail image frames (divs) within the thumbnail bar*/
+.view-thumbnail{
+    border-style: solid;
+    border-width: 1px;
+    width: 96px;
+    margin-bottom: 2px;
+}
+.view-thumbnail:hover{
+  border-color: red;
+}
+
+/*image within a thumbnail frame*/
+.view-thumbnail-img{
+    display: block;
+    height: 96px;
+    width: 96px;
+}
+
+/*text info within a thumbnail frame*/
+.view-thumbnail-info{
+  font-size: small;
+  text-align:center;
+  background-color: black;
+  color: silver;
+}

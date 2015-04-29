@@ -1,0 +1,38 @@
+<!DOCTYPE html >
+<html>
+  <head>
+  	<meta charset="utf-8" >
+    <title>mi2b2</title>
+
+    <!--Include viewer styles -->
+    <link rel="stylesheet"  href="styles/viewerjs.css">
+
+    <!--Application styles -->
+    <style>
+      div#inputcontainer{
+        margin-bottom: 5px;
+      }
+      div#viewercontainer{
+        background-color: #353535;
+        border: 6px solid #353535;
+        height: -webkit-calc(100vh - 60px);
+        height: -moz-calc(100vh - 60px);
+        height: calc(100vh - 60px);
+        margin: 0;
+      }
+    </style>
+  </head>
+
+  <body>
+
+    <div id="inputcontainer">
+      <input id="dirbtn" type="file"  webkitdirectory="" mozdirectory="" directory="" multiple>
+    </div>
+
+    <div id="viewercontainer"></div>
+
+    <!-- Load viewer scripts -->
+    <script data-main="config" src="js/components/requirejs/require.js"></script>
+
+  </body>
+</html>

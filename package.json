@@ -1,0 +1,35 @@
+{
+  "name": "viewerjs",
+  "version": "0.1.0",
+  "description": "Reusable medical image viewer",
+  "keywords": [
+    "DICOM",
+    "visualization",
+    "medical",
+    "imaging"
+  ],
+  "author": "Jorge Bernal Rusiel ",
+  "homepage": "https://github.com/FNNDSC/viewerjs",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/FNNDSC/viewerjs.git"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {},
+  "engines": {
+    "node": ">= 0.10.0"
+  },
+  "devDependencies": {
+    "grunt": "^0.4.5",
+    "grunt-contrib-concat": "^0.5.1",
+    "grunt-contrib-copy": "^0.8.0",
+    "grunt-contrib-jasmine": "^0.8.2",
+    "grunt-contrib-jshint": "^0.11.2",
+    "grunt-contrib-uglify": "^0.9.1",
+    "grunt-contrib-watch": "^0.6.1",
+    "grunt-template-jasmine-requirejs": "^0.2.3"
+  }
+}
