@@ -35,7 +35,7 @@ module.exports = function(grunt) {
         browser: true,
         globals: {
           jQuery: true, $: true, viewerjs: true, X: true, dicomParser: true, console: true,
-          alert: true, require: true, describe: true, it: true, expect: true
+          alert: true, require: true, describe: true, it: true, expect: true, define: true
         }
       },
       source: {
@@ -51,39 +51,33 @@ module.exports = function(grunt) {
 
     jasmine: {
       test: {
-        src: '<%= jshint.source.src %>',
+        //src: '<%= jshint.source.src %>', this line must beommented when using the define function within the specs files
         options: {
           specs: '<%= jshint.test.src %>',
           template: require('grunt-template-jasmine-requirejs'),
           templateOptions: {
             version: '<%= componentsDir %>/requirejs/require.js',
-            requireConfigFile: 'src/config.js', // requireJS's config file
+            requireConfigFile: 'src/main.js', // requireJS's config file
             requireConfig: {
-              baseUrl: 'src/js'  // change base url to execute tests from local FS
+              baseUrl: 'src/js/components' // change base url to execute tests from local FS
             }
           }
         }
       }
     },
 
-    concat: {
-      options: {
-        banner: '<%= banner %>',
-        stripBanners: true
-      },
-      dist: {
-        src: ['<%= libDir %>/**/*.js', '<%= jshint.source.src %>'], // no bower component is concatenated
-        dest: 'dist/js/<%= pkg.name %>.js'
-      }
-    },
-
-    uglify: {
-      options: {
-        banner: '<%= banner %>'
-      },
-      dist: {
-        src: '<%= concat.dist.dest %>',
-        dest: 'dist/js/<%= pkg.name %>.min.js'
+    requirejs: {
+      compile: {
+        options: {
+          baseUrl: 'src/js/components',
+          paths: {
+            jquery: 'empty:',
+            jquery_ui: 'empty:'
+          },
+          name: 'viewerjs',
+          mainConfigFile: 'src/main.js',
+          out: 'dist/js/<%= pkg.name %>.min.js'
+        }
       }
     },
 
@@ -95,16 +89,16 @@ module.exports = function(grunt) {
       styles: {
         files: [{expand: true, cwd: 'src/', src: ['styles/**'], dest: 'dist/'}]
       },
-      images: {
+    /*  images: {
         files: [{expand: true, cwd: 'src/', src: ['images/**'], dest: 'dist/'}]
-      },
-      config: {
+      },*/
+    /*  config: {
         src: 'src/config_built.js',
-        dest: 'dist/config.js',
-      },
-      libs: { // copy requiered libs which were not concatenated
+        dest: 'dist/main.js',
+      },*/
+  /*    libs: { // copy requiered libs which were not concatenated
 
-      },
+  },*/
       components: { // copy requiered bower components which were not concatenated
         files: [
           { expand: true,
@@ -133,17 +127,16 @@ module.exports = function(grunt) {
   });
 
   // These plugins provide necessary tasks.
-  grunt.loadNpmTasks('grunt-contrib-concat');
-  grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-contrib-copy');
   grunt.loadNpmTasks('grunt-contrib-jasmine');
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-watch');
+  grunt.loadNpmTasks('grunt-contrib-requirejs');
 
   // Test task.
   grunt.registerTask('test', ['jshint', 'jasmine']);
   // Build task.
-  grunt.registerTask('build', ['jshint', 'jasmine', 'concat', 'uglify', 'copy']);
+  grunt.registerTask('build', ['jshint', 'jasmine', 'requirejs', 'copy']);
   // Default task.
   grunt.registerTask('default', ['build']);
 
