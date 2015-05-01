@@ -13,8 +13,8 @@ module.exports = function(grunt) {
       ' Licensed <%= _.pluck(pkg.licenses, "type").join(", ") %> */\n',
 
     // Custome Paths
-    srcFiles: ['src/js/viewerjs.js'], // source files (order here is important for dependencies)
-    testFiles: ['spec/*.spec.js'], // test files (jasmin' specs)
+    srcFiles: ['src/js/viewerjs.js'], // source files
+    testFiles: ['spec/*.spec.js'], // test files (jasmine specs)
     libDir: 'src/js/lib', // libraries that cannot be installed through bower
     componentsDir: 'src/js/components', // bower components
 
@@ -51,7 +51,7 @@ module.exports = function(grunt) {
 
     jasmine: {
       test: {
-        //src: '<%= jshint.source.src %>', this line must beommented when using the define function within the specs files
+        //src: '<%= jshint.source.src %>', this line must be commented when using the define function within the specs files
         options: {
           specs: '<%= jshint.test.src %>',
           template: require('grunt-template-jasmine-requirejs'),
@@ -59,7 +59,7 @@ module.exports = function(grunt) {
             version: '<%= componentsDir %>/requirejs/require.js',
             requireConfigFile: 'src/main.js', // requireJS's config file
             requireConfig: {
-              baseUrl: 'src/js/components' // change base url to execute tests from local FS
+              baseUrl: '<%= componentsDir %>' // change base url to execute tests from local FS
             }
           }
         }
@@ -69,10 +69,10 @@ module.exports = function(grunt) {
     requirejs: {
       compile: {
         options: {
-          baseUrl: 'src/js/components',
+          baseUrl: '<%= componentsDir %>',
           paths: {
-            jquery: 'empty:',
-            jquery_ui: 'empty:'
+            jquery: 'empty:', // does not include jquery in the output
+            jquery_ui: 'empty:' // does not include jquery_ui in the output
           },
           name: 'viewerjs',
           mainConfigFile: 'src/main.js',
@@ -82,23 +82,9 @@ module.exports = function(grunt) {
     },
 
     copy: {
-      /*html: {
-        src: 'src/index.html',
-        dest: 'dist/index.html',
-      },*/
       styles: {
         files: [{expand: true, cwd: 'src/', src: ['styles/**'], dest: 'dist/'}]
       },
-    /*  images: {
-        files: [{expand: true, cwd: 'src/', src: ['images/**'], dest: 'dist/'}]
-      },*/
-    /*  config: {
-        src: 'src/config_built.js',
-        dest: 'dist/main.js',
-      },*/
-  /*    libs: { // copy requiered libs which were not concatenated
-
-  },*/
       components: { // copy requiered bower components which were not concatenated
         files: [
           { expand: true,

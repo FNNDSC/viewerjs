@@ -1,19 +1,20 @@
 require.config({
-    baseUrl: 'js/components',
-    paths: {
-        // the left side is the module ID, the right side is the path to
-        // the file, relative to baseUrl (relative to the directory of this config script).
-        // Also, the path should NOT include the '.js' file extension.
-        // This example is using jQuery located at
-        // components/jquery/dist/jquery.min.js relative to the baseUrl.
-        // It tries to load jQuery from Google's CDN first and falls back
-        // to load locally
-        jquery: ['https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min', 'jquery/dist/jquery.min'],
-        jquery_ui: ['https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min', 'jquery-ui/jquery-ui.min'],
-        dicomParser: 'dicomParser/dist/dicomParser.min',
-        xtk: '../lib/xtk',
-        viewerjs: '../viewerjs'
-    }
+  baseUrl: 'js/components',
+  paths: {
+    // The left side is the module ID, the right side is the path to the file relative
+    // to baseUrl (which is in turn relative to the directory of this config script).
+    // Also, the path should NOT include the '.js' file extension.
+    // This example tries to load jQuery from Google's CDN first and if failure then falls
+    // back to the local jQuery at jquery/dist/jquery.min.js relative to the baseUrl.
+    //
+    // Modules dicomParser, xtk and viewerjs are only needed in development mode. They are
+    // no longer needed after building viewerjs.min.js. jquery and jquery_ui are always required.
+    jquery: ['https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min', 'jquery/dist/jquery.min'],
+    jquery_ui: ['https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min', 'jquery-ui/jquery-ui.min'],
+    dicomParser: 'dicomParser/dist/dicomParser.min',
+    xtk: '../lib/xtk',
+    viewerjs: '../viewerjs'
+  }
 });
 
 
