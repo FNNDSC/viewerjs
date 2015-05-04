@@ -76,6 +76,14 @@ div.view-toolbar{
   color: silver;
 }
 
+/*tool bar label*/
+label.view-toolbar-label{
+  position: absolute;
+  right: 10px;
+  height: 100%;
+  color: #E4AD00;
+}
+
 /*thumbnail bar*/
 div.view-thumbnailbar{
   position: absolute;
