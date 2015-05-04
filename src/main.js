@@ -20,6 +20,17 @@ require.config({
 
 require(['viewerjs'], function(viewerjs) {
 
+  // Event handler for the collab button
+  $('#collabbutton').click( function() {
+    $('.collab > .collab-input').slideToggle("fast");
+    if ($(this).text()==='Hide collab window'){
+      $(this).text('Enter existing collab room');
+    } else {
+      $(this).text('Hide collab window');
+      $('#roomId').focus();
+    }
+  });
+
   // Event handler for the directory loader button
   var dirBtn = document.getElementById('dirbtn');
 
@@ -43,7 +54,8 @@ require(['viewerjs'], function(viewerjs) {
     }
 
     // Create a new viewerjs.Viewer object
-    var view = new viewerjs.Viewer(imgFileArr, 'viewercontainer');
+    var view = new viewerjs.Viewer('viewercontainer');
+    view.init(imgFileArr);
     view.addThumbnailBar();
     view.addToolBar();
   };

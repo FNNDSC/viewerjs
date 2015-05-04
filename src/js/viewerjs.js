@@ -14,7 +14,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
   // Provide a namespace
   var viewerjs = viewerjs || {};
 
-    viewerjs.Viewer = function(fObjArr, containerID) {
+    viewerjs.Viewer = function(containerID) {
 
       this.version = 0.0;
       // viewer container's ID
@@ -44,7 +44,9 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
       //  -thumbnail: HTML5 File object (for a thumbnail image)
       //  -json: HTML5 File object (an optional json file with the mri info for imgType different from 'dicom')
       this.imgFileArr = [];
-      this.init(fObjArr);
+
+      // collaboration object
+      this.collab = null;
 
     };
 
@@ -603,6 +605,8 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
       $('#' + this.wholeContID).append(
         '<div id="' + this.toolbarContID + '" class="view-toolbar">' +
           '<button id="' + this.toolbarContID + '_buttonlink" class="view-toolbar-button" type="button" title="Link views">Link views</button>' +
+          '<button id="' + this.toolbarContID + '_buttoncollab" class="view-toolbar-button" type="button" title="Start collaboration">Start collab</button>' +
+          '<label id="' + this.toolbarContID + '_labelcollab" class="view-toolbar-label"></label>' +
         '<div>'
       );
 
@@ -624,11 +628,25 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
         if (self.rendersLinked) {
           self.rendersLinked = false;
           $(this).text("Link views");
+          $(this).attr("title", "Link views");
         } else {
           self.rendersLinked = true;
           $(this).text("Unlink views");
+          $(this).attr("title", "Unlink views");
         }
       });
+
+      $('#' + this.toolbarContID + '_buttoncollab').click(function() {
+       if (self.rendersLinked) {
+         $(this).text("Start collab");
+         $(this).attr("title", "Start collaboration");
+         $('#' + self.toolbarContID + '_labelcollab').text("");
+       } else {
+         $(this).text("End collab");
+         $(this).attr("title", "End collaboration");
+         $('#' + self.toolbarContID + '_labelcollab').text("roomId");
+       }
+     });
 
     };
 

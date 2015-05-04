@@ -10,15 +10,39 @@
 
     <!--Application styles -->
     <style>
+      /*collaboration section*/
+      .collab{
+        position: relative;
+        z-index: 9999;
+      }
+      .collab-input{
+        display: none;
+        border: 1px solid;
+        margin-top: 2px;
+        padding: 2px;
+        background-color: #DDD;
+        width: 230px;
+      }
+      #gobutton{
+        display: block;
+        margin: 2px auto 0;
+      }
+      div#directoryselection{
+        position: relative;
+        margin-top: 10px;
+      }
       div#inputcontainer{
+        position: relative;
+        top: 5px;
+        left: 2px;
         margin-bottom: 5px;
       }
       div#viewercontainer{
         background-color: #353535;
         border: 6px solid #353535;
-        height: -webkit-calc(100vh - 60px);
-        height: -moz-calc(100vh - 60px);
-        height: calc(100vh - 60px);
+        height: -webkit-calc(100vh - 90px);
+        height: -moz-calc(100vh - 90px);
+        height: calc(100vh - 90px);
         margin: 0;
       }
     </style>
@@ -27,7 +51,18 @@
   <body>
 
     <div id="inputcontainer">
-      <input id="dirbtn" type="file"  webkitdirectory="" mozdirectory="" directory="" multiple>
+      <div class="collab">
+        <button id="collabbutton" type="button">Enter existing collab room!</button>
+        <div class="collab-input">
+          <label for="roomId">room id:</label>
+          <input id="roomId" type="text">
+          <button id="gobutton" type="button">Go!</button>
+        </div>
+      </div>
+
+      <div id="directoryselection">
+        <input id="dirbtn" type="file"  webkitdirectory="" mozdirectory="" directory="" multiple>
+      </div>
     </div>
 
     <div id="viewercontainer"></div>
