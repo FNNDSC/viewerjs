@@ -19,6 +19,27 @@ module.exports = function(grunt) {
     componentsDir: 'src/js/components', // bower components
 
     // Task configuration.
+    watch: {
+        files: ['src/**/*.js','src/**/*.css', 'src/**/*.html'],
+        tasks: ['jshint:source', 'jasmine:test']
+    },
+    browserSync: {
+        dev: {
+            bsFiles: {
+                src : [
+                    'src/**/*.js',
+                    'src/**/*.css',
+                    'src/**/*.html'
+                ]
+            },
+            options: {
+                watchTask: true,
+                // test to move bower_components out...
+                // bower_components not used yet...
+                server: ['src', 'bower_components']
+            }
+        }
+    },
     jshint: {
       options: {
         curly: true,
@@ -93,22 +114,23 @@ module.exports = function(grunt) {
               'jquery-ui/jquery-ui.min.js', 'jquery-ui/themes/smoothness/**'],
             dest: 'dist/js/components' }]
       },
-    },
-
-    watch: {
-      source: {
-        files: '<%= jshint.source.src %>',
-        tasks: ['jshint:source']
-      },
-      gruntfile: {
-        files: '<%= jshint.gruntfile.src %>',
-        tasks: ['jshint:gruntfile']
-      },
-      test: {
-        files: '<%= jshint.test.src %>',
-        tasks: ['jshint:test', 'jasmine']
-      }
     }
+    // ,
+
+    // watch: {
+    //   source: {
+    //     files: '<%= jshint.source.src %>',
+    //     tasks: ['jshint:source']
+    //   },
+    //   gruntfile: {
+    //     files: '<%= jshint.gruntfile.src %>',
+    //     tasks: ['jshint:gruntfile']
+    //   },
+    //   test: {
+    //     files: '<%= jshint.test.src %>',
+    //     tasks: ['jshint:test', 'jasmine']
+    //   }
+    // }
 
   });
 
@@ -117,7 +139,23 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-jasmine');
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-watch');
+  grunt.loadNpmTasks('grunt-browser-sync');
   grunt.loadNpmTasks('grunt-contrib-requirejs');
+
+  // Serve task.
+  grunt.registerTask('serve', function (target) {
+    // grunt server:dist not implemented yet...
+
+    // if (target === 'dist') {
+    //   return grunt.task.run(['build', 'browserSync:dist',
+    //   'watch']);
+    // }
+
+    grunt.task.run([
+      'browserSync:dev',
+      'watch'
+    ]);
+  });
 
   // Test task.
   grunt.registerTask('test', ['jshint', 'jasmine']);
