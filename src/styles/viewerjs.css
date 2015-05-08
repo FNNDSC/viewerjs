@@ -1,5 +1,5 @@
 
-/*renderers window*/
+/*================================================= RENDERER DIV ================================================== */
 div.view-renders{
   position: absolute;
   bottom: 0;
@@ -10,46 +10,49 @@ div.view-renders{
   box-sizing: border-box;
   height: 100%;
   width: 100%;
-  /*border: 1px solid green;*/
-  background-color: black;
+  border: 1px solid #DDE8BB; 
+  background-color: rgb(51,51,51);
 }
 
-/*individual renderers*/
-.view-render{
-  border: 1px solid green;
-  -webkit-box-sizing: border-box;
-  -moz-box-sizing: border-box;
-  box-sizing: border-box;
-  position: absolute;
-}
+/*================================================= single renderer ================================================== */
 
-/*individual renderers's text info*/
-.view-render-info{
-  position: absolute;
-  z-index: 9999;
-  color: silver;
-  font-size: small;
-}
-.view-render-info-topleft{
-  top: 2px;
-  left: 10px;
-}
-.view-render-info-topright{
-  top: 2px;
-  right: 10px;
-  text-align:right;
-}
-.view-render-info-bottomright{
-  bottom: 2px;
-  right: 10px;
-  text-align:right;
-}
-.view-render-info-bottomleft{
-  bottom: 2px;
-  left: 10px;
-}
+    /*individual renderers*/
+    .view-render{
+      border: 1px solid #DDE8BB; 
+      -webkit-box-sizing: border-box;
+      -moz-box-sizing: border-box;
+      box-sizing: border-box;
+      position: absolute;
+      background-color: rgb(51,51,51);
+    }
 
-/*tool bar*/
+/*================================================= PATIENT INFO ================================================== */
+      .view-render-info{
+        position: absolute;
+        z-index: 9999;
+        color: white;
+        font-size: small;
+      }
+      .view-render-info-topleft{
+        top: 2px;
+        left: 10px;
+      }
+      .view-render-info-topright{
+        top: 2px;
+        right: 10px;
+        text-align:right;
+      }
+      .view-render-info-bottomright{
+        bottom: 2px;
+        right: 10px;
+        text-align:right;
+      }
+      .view-render-info-bottomleft{
+        bottom: 2px;
+        left: 10px;
+      }
+
+/*================================================= TOOL BAR ================================================== */
 div.view-toolbar{
   position: absolute;
   top: 5px;
@@ -61,9 +64,11 @@ div.view-toolbar{
   height: 30px;
   width: 100%;
   text-align:center;
+  background-color: rgb(51,51,51);
 }
 
 /*tool bar button*/
+/*================================================= link views button ================================================== */
 .view-toolbar-button{
   cursor: pointer;
   margin: 0;
@@ -72,10 +77,11 @@ div.view-toolbar{
   box-sizing: border-box;
   height: 100%;
   width: 150px;
-  background-color: black;
-  color: silver;
+  background-color: #DDE8BB; 
+  color: black;
+  font-size: small;
 }
-
+/*================================================= THUMBNAILS ================================================== */
 /*thumbnail bar*/
 div.view-thumbnailbar{
   position: absolute;
@@ -88,6 +94,7 @@ div.view-thumbnailbar{
   height: 100%;
   width: 115px;
   overflow: auto;
+  background-color: rgb(51,51,51);
 }
 
 /*thumbnail image frames (divs) within the thumbnail bar*/
@@ -98,7 +105,7 @@ div.view-thumbnailbar{
     margin-bottom: 2px;
 }
 .view-thumbnail:hover{
-  border-color: red;
+  border: 1px solid #D9E2D4; 
 }
 
 /*image within a thumbnail frame*/
@@ -110,8 +117,8 @@ div.view-thumbnailbar{
 
 /*text info within a thumbnail frame*/
 .view-thumbnail-info{
-  font-size: small;
+  font-size: 12px;
   text-align:center;
-  background-color: black;
-  color: silver;
+  background-color: rgb(51,51,51);
+  color: white;
 }
