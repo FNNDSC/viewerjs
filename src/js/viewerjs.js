@@ -10,7 +10,7 @@
  */
 
 // define a new module
-define(['gcjs','jquery_ui', 'dicomParser', 'xtk'], function() {
+define(['gcjs','jquery_ui', 'dicomParser', 'xtk'], function(gcjs) {
 
   // Provide a namespace
   var viewerjs = viewerjs || {};
@@ -864,6 +864,12 @@ define(['gcjs','jquery_ui', 'dicomParser', 'xtk'], function() {
     viewerjs.Viewer.prototype.getImgFileObject = function(id) {
       return this.imgFileArr[id];
     };
+
+
+    viewerjs.Viewer.prototype.startCollaboration = function(clientId) {
+
+      this.collab = new gcjs.GDriveCollab(clientId);
+    }
 
     /**
      * Static method to determine if a File object is a supported neuroimage type.

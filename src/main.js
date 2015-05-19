@@ -61,6 +61,8 @@ require(['viewerjs'], function(viewerjs) {
     view.init(imgFileArr);
     view.addThumbnailBar();
     view.addToolBar();
+    var CLIENT_ID = '358010366372-o8clkqjol0j533tp6jlnpjr2u2cdmks6.apps.googleusercontent.com';
+    view.startCollaboration(CLIENT_ID);
   };
 
 });
