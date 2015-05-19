@@ -1,5 +1,6 @@
 /**
- * This module takes care of all image visualization and user interface.
+ * This module takes care of all image visualization, user interface and collaboration
+ * through the collaboration module.
  *
  * An object of the Viewer class expects an array of file objects where
  * each object contains the following properties:
@@ -9,7 +10,7 @@
  */
 
 // define a new module
-define(['jquery_ui', 'dicomParser', 'xtk'], function() {
+define(['gcjs','jquery_ui', 'dicomParser', 'xtk'], function() {
 
   // Provide a namespace
   var viewerjs = viewerjs || {};
@@ -420,30 +421,13 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
           ++numFiles;
 
           if (numFiles===imgFileObj.files.length) {
-
             if (imgFileObj.imgType === 'dicom') {
-              // Here we use Chafey's dicomParser: https://github.com/chafey/dicomParser.
-              // dicomParser requires as input a Uint8Array so we create it here
-              var byteArray = new Uint8Array(filedata[0]);
-              // Invoke the parseDicom function and get back a DataSet object with the contents
               try {
-                var dataSet = dicomParser.parseDicom(byteArray);
-                // Access any desire property using its tag
-                imgFileObj.dicomInfo = {
-                  patientName: dataSet.string('x00100010'),
-                  patientId: dataSet.string('x00100020'),
-                  patientBirthDate: dataSet.string('x00100030'),
-                  patientAge: dataSet.string('x00101010'),
-                  patientSex: dataSet.string('x00100040'),
-                  seriesDescription: dataSet.string('x0008103e'),
-                  manufacturer: dataSet.string('x00080070'),
-                  studyDate: dataSet.string('x00080020')
-                };
+                imgFileObj.dicomInfo = viewerjs.Viewer.parseDicom(filedata[0]);
               } catch(err) {
                 console.log('Could not parse dicom ' + imgFileObj.baseUrl + ' Error - ' + err);
               }
             }
-
             vol.filedata = filedata;
             render.add(vol);
             // start the rendering
@@ -923,6 +907,32 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
       }
 
       return type;
+    };
+
+    /**
+     * Static method to parse a dicom file. Raises an exception the parsing fails
+     *
+     * @param {Object} ArrayBuffer object containing the dicom data
+     */
+    viewerjs.Viewer.parseDicom = function(dicomFileData) {
+
+      // Here we use Chafey's dicomParser: https://github.com/chafey/dicomParser.
+      // dicomParser requires as input a Uint8Array so we create it here
+      var byteArray = new Uint8Array(dicomFileData);
+      // Invoke the parseDicom function and get back a DataSet object with the contents
+      var dataSet = dicomParser.parseDicom(byteArray);
+
+      // Access any desire property using its tag
+      return {
+        patientName: dataSet.string('x00100010'),
+        patientId: dataSet.string('x00100020'),
+        patientBirthDate: dataSet.string('x00100030'),
+        patientAge: dataSet.string('x00101010'),
+        patientSex: dataSet.string('x00100040'),
+        seriesDescription: dataSet.string('x0008103e'),
+        manufacturer: dataSet.string('x00080070'),
+        studyDate: dataSet.string('x00080020')
+      };
     };
 
     /**
