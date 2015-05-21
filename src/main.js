@@ -12,6 +12,7 @@ require.config({
     // jquery and jquery_ui are always required.
     jquery: ['https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min', 'jquery/dist/jquery.min'],
     jquery_ui: ['https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min', 'jquery-ui/jquery-ui.min'],
+    gapi: 'https://apis.google.com/js/api',
     dicomParser: 'dicomParser/dist/dicomParser.min',
     fmjs: 'fmjs/src/js/fmjs',
     gcjs: 'gcjs/src/js/gcjs',
@@ -19,7 +20,6 @@ require.config({
     viewerjs: '../viewerjs'
   }
 });
-
 
 require(['viewerjs'], function(viewerjs) {
 
@@ -57,12 +57,12 @@ require(['viewerjs'], function(viewerjs) {
     }
 
     // Create a new viewerjs.Viewer object
-    var view = new viewerjs.Viewer('viewercontainer');
+    // client ID is only required if we want to enable realtime collaboration.
+    var CLIENT_ID = '358010366372-o8clkqjol0j533tp6jlnpjr2u2cdmks6.apps.googleusercontent.com';
+    var view = new viewerjs.Viewer('viewercontainer', CLIENT_ID);
     view.init(imgFileArr);
     view.addThumbnailBar();
     view.addToolBar();
-    var CLIENT_ID = '358010366372-o8clkqjol0j533tp6jlnpjr2u2cdmks6.apps.googleusercontent.com';
-    view.startCollaboration(CLIENT_ID);
   };
 
 });

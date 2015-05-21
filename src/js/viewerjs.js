@@ -1,21 +1,27 @@
 /**
  * This module takes care of all image visualization, user interface and collaboration
  * through the collaboration module.
- *
- * An object of the Viewer class expects an array of file objects where
- * each object contains the following properties:
- * -url: String representing the file url
- * -file: HTML5 File object (optional but neccesary when the files are gotten through a
- *        local filepicker or dropzone)
  */
 
 // define a new module
-define(['gcjs','jquery_ui', 'dicomParser', 'xtk'], function(gcjs) {
+define(['gcjs', 'jquery_ui', 'dicomParser', 'xtk'], function(gcjs) {
 
-  // Provide a namespace
-  var viewerjs = viewerjs || {};
+  /**
+   * Provide a namespace for the viewer module
+   *
+   * @namespace
+   */
+   var viewerjs = viewerjs || {};
 
-    viewerjs.Viewer = function(containerID) {
+   /**
+    * Class implementing the medical image viewer
+    *
+    * @constructor
+    * @param {String} HTML container's id.
+    * @param {String} Optional client ID from the Google's developer console to enable
+    * realtime collaboration.
+    */
+    viewerjs.Viewer = function(containerID, clientId) {
 
       this.version = 0.0;
       // viewer container's ID
@@ -48,13 +54,22 @@ define(['gcjs','jquery_ui', 'dicomParser', 'xtk'], function(gcjs) {
 
       // collaboration object
       this.collab = null;
+      if (clientId) {
+        this.collab = new gcjs.GDriveCollab(clientId);
+      }
+      // scene object
+      this.scene = null;
 
     };
 
     /**
      * Build viewer's main data structure and initiliaze the UI's html.
      *
-     * @param {Array} array of file objects.
+     * @param {Array} array of file objects. Each object contains the following properties:
+     * -url: String representing the file url
+     * -file: HTML5 File object (optional but neccesary when the files are gotten through a
+     *        local filepicker or dropzone)
+
      */
     viewerjs.Viewer.prototype.init = function(fObjArr) {
       var thumbnails = {}; // associative array of thumbnail image files
@@ -107,7 +122,7 @@ define(['gcjs','jquery_ui', 'dicomParser', 'xtk'], function(gcjs) {
             }
           }
         }
-        // temporal demo code to add json files
+        // add json files
         for (var jsn in jsons) {
           // Search for a neuroimage file with the same name as the current json
           for (i=0; i<self.imgFileArr.length; i++) {
@@ -142,13 +157,14 @@ define(['gcjs','jquery_ui', 'dicomParser', 'xtk'], function(gcjs) {
                 url: path,
                 remote: true};
        }
+
        imgType = viewerjs.Viewer.imgType(file);
 
        if (imgType === 'dicom') {
          if (!dicoms[baseUrl]) {
            dicoms[baseUrl] = [];
          }
-         dicoms[baseUrl].push(file); // all dicoms with the same urls belong to the same volume
+         dicoms[baseUrl].push(file); // all dicoms with the same base url belong to the same volume
        } else if (imgType === 'thumbnail') {
          // save thumbnail file in an associative array
          // array keys are the full path up to the first dash in the file name or the last period
@@ -159,13 +175,12 @@ define(['gcjs','jquery_ui', 'dicomParser', 'xtk'], function(gcjs) {
            thumbnails[path.substring(0, dashIndex)] = file;
          }
        } else if (imgType === 'json') {
-         // temporal demo code
          // array keys are the full path with the extension trimmed
          jsons[path.substring(0, path.lastIndexOf('.'))] = file;
        } else if (imgType !== 'unsupported') {
          // push fibers, meshes and volumes into nonDcmData
          nonDcmData.push({
-           'baseUrl': path.substring(0, path.lastIndexOf('/') + 1),
+           'baseUrl': baseUrl,
            'imgType': imgType,
            'files': [file]
          });
@@ -188,6 +203,9 @@ define(['gcjs','jquery_ui', 'dicomParser', 'xtk'], function(gcjs) {
           break;
         }
       }
+
+      // temporal code
+      this.scene = {data: 0};
 
     };
 
@@ -353,7 +371,6 @@ define(['gcjs','jquery_ui', 'dicomParser', 'xtk'], function(gcjs) {
             'slice: ' + (vol.indexZ + 1) + '/' + vol.range[2]);
         }
 
-        //temporal demo code
         // define function to read the json file
         function readJson(file, callback) {
           var reader = new FileReader();
@@ -590,9 +607,12 @@ define(['gcjs','jquery_ui', 'dicomParser', 'xtk'], function(gcjs) {
         '<div id="' + this.toolbarContID + '" class="view-toolbar">' +
           '<button id="' + this.toolbarContID + '_buttonlink" class="view-toolbar-button" type="button" title="Link views">Link views</button>' +
           '<button id="' + this.toolbarContID + '_buttoncollab" class="view-toolbar-button" type="button" title="Start collaboration">Start collab</button>' +
+          '<button id="' + this.toolbarContID + '_buttonauth" class="view-toolbar-button" type="button" title="Authorize">Authorize</button>' +
           '<label id="' + this.toolbarContID + '_labelcollab" class="view-toolbar-label"></label>' +
         '<div>'
       );
+      // hide the authorize button
+      $('#' + this.toolbarContID + '_buttonauth').css({display: "none" });
 
       // make space for the toolbar
       var jqToolCont = $('#' + this.toolbarContID);
@@ -621,16 +641,12 @@ define(['gcjs','jquery_ui', 'dicomParser', 'xtk'], function(gcjs) {
       });
 
       $('#' + this.toolbarContID + '_buttoncollab').click(function() {
-       if (self.rendersLinked) {
-         $(this).text("Start collab");
-         $(this).attr("title", "Start collaboration");
-         $('#' + self.toolbarContID + '_labelcollab').text("");
-       } else {
-         $(this).text("End collab");
-         $(this).attr("title", "End collaboration");
-         $('#' + self.toolbarContID + '_labelcollab').text("roomId");
-       }
-     });
+        if (self.collaborationIsOn) {
+          self.leaveCollaboration();
+        } else {
+          self.startCollaboration();
+        }
+      });
 
     };
 
@@ -865,11 +881,77 @@ define(['gcjs','jquery_ui', 'dicomParser', 'xtk'], function(gcjs) {
       return this.imgFileArr[id];
     };
 
+    /**
+     * Start the realtime collaboration.
+     *
+     * @param {String} Client ID from the Google's developer console.
+     * @param {String} Collaboration room id. This id must be passed if there is no data
+     * in the viewer (current viewer is not the collaboration owner) otherwise it is
+     * ignored if passed and a new room id is created to share these data (current viewer
+     * becomes a collaboration owner).
+     */
+    viewerjs.Viewer.prototype.startCollaboration = function(roomId) {
+      var self = this;
+      var collabButton = document.getElementById(this.toolbarContID + '_buttoncollab');
+      var authButton = document.getElementById(this.toolbarContID + '_buttonauth');
 
-    viewerjs.Viewer.prototype.startCollaboration = function(clientId) {
+      // function to start collaboration
+      var startCollaboration = function() {
+        if (self.scene) {
+          self.collab.startRealtimeCollaboration("", self.scene);
+        } else {
+          self.collab.startRealtimeCollaboration(roomId);
+        }
+      };
 
-      this.collab = new gcjs.GDriveCollab(clientId);
-    }
+      this.collab.authorizeAndLoadApi(true, function(granted) {
+        if (granted) {
+          // realtime API ready.
+          startCollaboration();
+        } else {
+          // show the auth button to start the authorization flow
+          collabButton.style.display = 'none';
+          authButton.style.display = '';
+
+          authButton.onclick = function() {
+            self.collab.authorizeAndLoadApi(false, function(granted) {
+              if (granted) {
+                // realtime API ready.
+                startCollaboration();
+              }
+            });
+          };
+        }
+      });
+
+      // This method is called when the collaboration has successfully started and is ready
+      this.collab.onConnect = function(fileId) {
+        var roomIdLabel = document.getElementById(self.toolbarContID + '_labelcollab');
+
+        self.collaborationIsOn = true;
+        authButton.style.display = 'none';
+        collabButton.style.display = '';
+        collabButton.innerHTML = "End collab";
+        collabButton.title = "End collaboration";
+        roomIdLabel.innerHTML = fileId;
+        console.log('collaborationIsOn = ', self.collaborationIsOn);
+      };
+    };
+
+    /**
+     * Leave the realtime collaboration.
+     */
+    viewerjs.Viewer.prototype.leaveCollaboration = function() {
+      var collabButton = document.getElementById(this.toolbarContID + '_buttoncollab');
+      var roomIdLabel = document.getElementById(this.toolbarContID + '_labelcollab');
+
+      this.collab.leaveRealtimeCollaboration();
+      this.collaborationIsOn = false;
+      collabButton.innerHTML = "Start collab";
+      collabButton.title = "Start collaboration";
+      roomIdLabel.innerHTML = "";
+      console.log('collaborationIsOn = ', this.collaborationIsOn);
+    };
 
     /**
      * Static method to determine if a File object is a supported neuroimage type.
@@ -906,7 +988,6 @@ define(['gcjs','jquery_ui', 'dicomParser', 'xtk'], function(gcjs) {
       } else if (viewerjs.strEndsWith(file.name, ext.THUMBNAIL)) {
         type = 'thumbnail';
       } else if (viewerjs.strEndsWith(file.name, ext.JSON)) {
-        // temporal demo code
         type = 'json';
       } else {
         type = 'unsupported';
@@ -916,7 +997,7 @@ define(['gcjs','jquery_ui', 'dicomParser', 'xtk'], function(gcjs) {
     };
 
     /**
-     * Static method to parse a dicom file. Raises an exception the parsing fails
+     * Static method to parse a dicom file. Raises an exception if the parsing fails
      *
      * @param {Object} ArrayBuffer object containing the dicom data
      */
