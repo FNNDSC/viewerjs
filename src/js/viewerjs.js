@@ -973,19 +973,21 @@ define(['gcjs', 'jquery_ui', 'dicomParser', 'xtk'], function(gcjs) {
       console.log('collaborationIsOn = ', this.collaborationIsOn);
 
       // Asyncronously load all files to GDrive
-      for (var i=0; i<this.imgFileArr.length; i++) {
-        var imgFileObj = this.imgFileArr[i];
-        var url;
+      this.collab.driveFm.createPath(this.collab.dataFilesBaseDir, function() {
+        for (var i=0; i<self.imgFileArr.length; i++) {
+          var imgFileObj = self.imgFileArr[i];
+          var url;
 
-        if (imgFileObj.json) {
-          url = imgFileObj.baseUrl + imgFileObj.json.name;
-          loadFile(imgFileObj.json, url, 'readAsText');
+          if (imgFileObj.json) {
+            url = imgFileObj.baseUrl + imgFileObj.json.name;
+            loadFile(imgFileObj.json, url, 'readAsText');
+          }
+          for (var j=0; j<imgFileObj.files.length; j++) {
+            url = imgFileObj.baseUrl + imgFileObj.files[j].name;
+            loadFile(imgFileObj.files[j], url, 'readAsArrayBuffer');
+          }
         }
-        for (var j=0; j<imgFileObj.files.length; j++) {
-          url = imgFileObj.baseUrl + imgFileObj.files[j].name;
-          loadFile(imgFileObj.files[j], url, 'readAsArrayBuffer');
-        }
-      }
+      });
     };
 
     /**
