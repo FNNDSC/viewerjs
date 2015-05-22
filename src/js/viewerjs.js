@@ -891,66 +891,119 @@ define(['gcjs', 'jquery_ui', 'dicomParser', 'xtk'], function(gcjs) {
      * becomes a collaboration owner).
      */
     viewerjs.Viewer.prototype.startCollaboration = function(roomId) {
-      var self = this;
+
+      if (this.collab) {
+        var self = this;
+        var collabButton = document.getElementById(this.toolbarContID + '_buttoncollab');
+        var authButton = document.getElementById(this.toolbarContID + '_buttonauth');
+
+        // function to start collaboration
+        var startCollaboration = function() {
+          if (self.scene) {
+            self.collab.startRealtimeCollaboration("", self.scene);
+          } else {
+            self.collab.startRealtimeCollaboration(roomId);
+          }
+        };
+
+        this.collab.authorizeAndLoadApi(true, function(granted) {
+          if (granted) {
+            // realtime API ready.
+            startCollaboration();
+          } else {
+            // show the auth button to start the authorization flow
+            collabButton.style.display = 'none';
+            authButton.style.display = '';
+
+            authButton.onclick = function() {
+              self.collab.authorizeAndLoadApi(false, function(granted) {
+                if (granted) {
+                  // realtime API ready.
+                  startCollaboration();
+                }
+              });
+            };
+          }
+        });
+
+        // This method is called when the collaboration has successfully started and is ready
+        this.collab.onConnect = function(fileId) {
+          self.onCollabConnectHandle(fileId);
+        };
+      } else {
+        console.error("No collab instance was created. Please check your Google's client id");
+      }
+    };
+
+    /**
+     * Handle the onConnect event when the collaboration has successfully started and is ready.
+     */
+    viewerjs.Viewer.prototype.onCollabConnectHandle = function(fileId) {
       var collabButton = document.getElementById(this.toolbarContID + '_buttoncollab');
       var authButton = document.getElementById(this.toolbarContID + '_buttonauth');
+      var roomIdLabel = document.getElementById(this.toolbarContID + '_labelcollab');
+      var self = this;
 
-      // function to start collaboration
-      var startCollaboration = function() {
-        if (self.scene) {
-          self.collab.startRealtimeCollaboration("", self.scene);
+      // function to load a file into GDrive
+      function loadFile(file, url, readingMethodName) {
+        var reader = new FileReader();
+
+        reader.onload = function() {
+          self.collab.driveFm.writeFile(self.collab.dataFilesBaseDir + '/' + file.name, reader.result, function(fileResp) {
+            self.collab.collabDataFileListPush({id: fileResp.id, url: url});
+          });
+        };
+
+        if (file.remote) {
+          viewerjs.urlToBlob(file.url, function(blob) {
+            reader[readingMethodName](blob);
+          });
         } else {
-          self.collab.startRealtimeCollaboration(roomId);
+          reader[readingMethodName](file);
         }
-      };
+      }
 
-      this.collab.authorizeAndLoadApi(true, function(granted) {
-        if (granted) {
-          // realtime API ready.
-          startCollaboration();
-        } else {
-          // show the auth button to start the authorization flow
-          collabButton.style.display = 'none';
-          authButton.style.display = '';
+      // update the UI
+      authButton.style.display = 'none';
+      collabButton.style.display = '';
+      collabButton.innerHTML = "End collab";
+      collabButton.title = "End collaboration";
+      roomIdLabel.innerHTML = fileId;
+      this.collaborationIsOn = true;
+      console.log('collaborationIsOn = ', this.collaborationIsOn);
 
-          authButton.onclick = function() {
-            self.collab.authorizeAndLoadApi(false, function(granted) {
-              if (granted) {
-                // realtime API ready.
-                startCollaboration();
-              }
-            });
-          };
+      // Asyncronously load all files to GDrive
+      for (var i=0; i<this.imgFileArr.length; i++) {
+        var imgFileObj = this.imgFileArr[i];
+        var url;
+
+        if (imgFileObj.json) {
+          url = imgFileObj.baseUrl + imgFileObj.json.name;
+          loadFile(imgFileObj.json, url, 'readAsText');
         }
-      });
-
-      // This method is called when the collaboration has successfully started and is ready
-      this.collab.onConnect = function(fileId) {
-        var roomIdLabel = document.getElementById(self.toolbarContID + '_labelcollab');
-
-        self.collaborationIsOn = true;
-        authButton.style.display = 'none';
-        collabButton.style.display = '';
-        collabButton.innerHTML = "End collab";
-        collabButton.title = "End collaboration";
-        roomIdLabel.innerHTML = fileId;
-        console.log('collaborationIsOn = ', self.collaborationIsOn);
-      };
+        for (var j=0; j<imgFileObj.files.length; j++) {
+          url = imgFileObj.baseUrl + imgFileObj.files[j].name;
+          loadFile(imgFileObj.files[j], url, 'readAsArrayBuffer');
+        }
+      }
     };
 
     /**
      * Leave the realtime collaboration.
      */
     viewerjs.Viewer.prototype.leaveCollaboration = function() {
-      var collabButton = document.getElementById(this.toolbarContID + '_buttoncollab');
-      var roomIdLabel = document.getElementById(this.toolbarContID + '_labelcollab');
 
-      this.collab.leaveRealtimeCollaboration();
-      this.collaborationIsOn = false;
-      collabButton.innerHTML = "Start collab";
-      collabButton.title = "Start collaboration";
-      roomIdLabel.innerHTML = "";
-      console.log('collaborationIsOn = ', this.collaborationIsOn);
+      if (this.collaborationIsOn) {
+        var collabButton = document.getElementById(this.toolbarContID + '_buttoncollab');
+        var roomIdLabel = document.getElementById(this.toolbarContID + '_labelcollab');
+
+        this.collab.leaveRealtimeCollaboration();
+        this.collaborationIsOn = false;
+        collabButton.innerHTML = "Start collab";
+        collabButton.title = "Start collaboration";
+        roomIdLabel.innerHTML = "";
+        console.log('collaborationIsOn = ', this.collaborationIsOn);
+      }
     };
 
     /**
