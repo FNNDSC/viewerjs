@@ -21,7 +21,12 @@ require.config({
   }
 });
 
-require(['viewerjs'], function(viewerjs) {
+require(['gcjs', 'viewerjs'], function(cjs, viewerjs) {
+
+  // Client ID from the Google's developer console
+  var CLIENT_ID = '358010366372-o8clkqjol0j533tp6jlnpjr2u2cdmks6.apps.googleusercontent.com';
+  var collaborator = new cjs.GDriveCollab(CLIENT_ID);
+
 
   // Event handler for the collab button
   $('#collabbutton').click( function() {
@@ -33,6 +38,23 @@ require(['viewerjs'], function(viewerjs) {
       $('#roomId').focus();
     }
   });
+
+
+  // Event handler for the go! button
+  var goButton = document.getElementById('gobutton');
+
+  goButton.onclick = function() {
+    var roomIdInput = document.getElementById('roomId');
+
+    // update UI
+    document.getElementById('inputcontainer').style.display = 'none';
+
+    // Create a new viewerjs.Viewer object
+    // A collaborator object is only required if we want to enable realtime collaboration.
+    var view = new viewerjs.Viewer('viewercontainer', collaborator);
+    view.startCollaboration(roomIdInput.value);
+  };
+
 
   // Event handler for the directory loader button
   var dirBtn = document.getElementById('dirbtn');
@@ -56,10 +78,13 @@ require(['viewerjs'], function(viewerjs) {
       });
     }
 
+    // update UI
+    $('div.collab').css('display', 'none');
+    dirBtn.disabled = true;
+
     // Create a new viewerjs.Viewer object
-    // client ID is only required if we want to enable realtime collaboration.
-    var CLIENT_ID = '358010366372-o8clkqjol0j533tp6jlnpjr2u2cdmks6.apps.googleusercontent.com';
-    var view = new viewerjs.Viewer('viewercontainer', CLIENT_ID);
+    // A collaborator object is only required if we want to enable realtime collaboration.
+    var view = new viewerjs.Viewer('viewercontainer', collaborator);
     view.init(imgFileArr);
     view.addThumbnailBar();
     view.addToolBar();

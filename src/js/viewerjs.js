@@ -1,10 +1,10 @@
 /**
- * This module takes care of all image visualization, user interface and collaboration
- * through the collaboration module.
+ * This module takes care of all image visualization and user interface as well as
+ * collaboration through the passed collaborator object.
  */
 
 // define a new module
-define(['gcjs', 'jquery_ui', 'dicomParser', 'xtk'], function(gcjs) {
+define(['jquery_ui', 'dicomParser', 'xtk'], function() {
 
   /**
    * Provide a namespace for the viewer module
@@ -18,10 +18,9 @@ define(['gcjs', 'jquery_ui', 'dicomParser', 'xtk'], function(gcjs) {
     *
     * @constructor
     * @param {String} HTML container's id.
-    * @param {String} Optional client ID from the Google's developer console to enable
-    * realtime collaboration.
+    * @param {Object} Optional collaborator object to enable realtime collaboration.
     */
-    viewerjs.Viewer = function(containerID, clientId) {
+    viewerjs.Viewer = function(containerID, collab) {
 
       this.version = 0.0;
       // viewer container's ID
@@ -52,11 +51,8 @@ define(['gcjs', 'jquery_ui', 'dicomParser', 'xtk'], function(gcjs) {
       //  -json: HTML5 File object (an optional json file with the mri info for imgType different from 'dicom')
       this.imgFileArr = [];
 
-      // collaboration object
-      this.collab = null;
-      if (clientId) {
-        this.collab = new gcjs.GDriveCollab(clientId);
-      }
+      // collaborator object
+      this.collab = collab;
       // scene object
       this.scene = null;
 
@@ -884,7 +880,6 @@ define(['gcjs', 'jquery_ui', 'dicomParser', 'xtk'], function(gcjs) {
     /**
      * Start the realtime collaboration.
      *
-     * @param {String} Client ID from the Google's developer console.
      * @param {String} Collaboration room id. This id must be passed if there is no data
      * in the viewer (current viewer is not the collaboration owner) otherwise it is
      * ignored if passed and a new room id is created to share these data (current viewer
@@ -926,23 +921,54 @@ define(['gcjs', 'jquery_ui', 'dicomParser', 'xtk'], function(gcjs) {
           }
         });
 
-        // This method is called when the collaboration has successfully started and is ready
-        this.collab.onConnect = function(fileId) {
-          self.onCollabConnectHandle(fileId);
+        // Collaboration event listeners
+
+        // This is called when the collaboration has successfully started and is ready
+        this.collab.onConnect = function(roomId) {
+          self.handleOnConnect(roomId);
         };
+
+        // This is called everytime the collaboration owner has shared data files with a collaborator
+        this.collab.onDataFilesShare = function(collaboratorInfo, fObjArr) {
+          self.handleOnDataFilesShare(collaboratorInfo, fObjArr);
+        };
+
+        // This is called everytime the collaboration owner uploads and shares new data files
+        this.collab.onCollabDataFileListPush = function(collaboratorInfo, fObjArr) {
+          self.handleOnCollabDataFileListPush(collaboratorInfo, fObjArr);
+        };
+
+        // This is called everytime the scene object is updated
+        this.collab.onCollabObjChange = function(newScene) {
+          self.handleOnCollabObjChange(roomId);
+        };
+
       } else {
-        console.error("No collab instance was created. Please check your Google's client id");
+        console.error("Collaboration was not enabled for this viewer instance");
       }
     };
 
     /**
      * Handle the onConnect event when the collaboration has successfully started and is ready.
      */
-    viewerjs.Viewer.prototype.onCollabConnectHandle = function(fileId) {
-      var collabButton = document.getElementById(this.toolbarContID + '_buttoncollab');
-      var authButton = document.getElementById(this.toolbarContID + '_buttonauth');
-      var roomIdLabel = document.getElementById(this.toolbarContID + '_labelcollab');
+    viewerjs.Viewer.prototype.handleOnConnect = function(roomId) {
       var self = this;
+
+      // function to update the UI
+      function updateUI() {
+        var collabButton = document.getElementById(self.toolbarContID + '_buttoncollab');
+        var authButton = document.getElementById(self.toolbarContID + '_buttonauth');
+        var roomIdLabel = document.getElementById(self.toolbarContID + '_labelcollab');
+
+        // update the UI
+        authButton.style.display = 'none';
+        collabButton.style.display = '';
+        collabButton.innerHTML = "End collab";
+        collabButton.title = "End collaboration";
+        roomIdLabel.innerHTML = roomId;
+        self.collaborationIsOn = true;
+        console.log('collaborationIsOn = ', self.collaborationIsOn);
+      }
 
       // function to load a file into GDrive
       function loadFile(file, url, readingMethodName) {
@@ -963,31 +989,30 @@ define(['gcjs', 'jquery_ui', 'dicomParser', 'xtk'], function(gcjs) {
         }
       }
 
-      // update the UI
-      authButton.style.display = 'none';
-      collabButton.style.display = '';
-      collabButton.innerHTML = "End collab";
-      collabButton.title = "End collaboration";
-      roomIdLabel.innerHTML = fileId;
-      this.collaborationIsOn = true;
-      console.log('collaborationIsOn = ', this.collaborationIsOn);
+      // Update the UI
+      updateUI();
 
-      // Asyncronously load all files to GDrive
-      this.collab.driveFm.createPath(this.collab.dataFilesBaseDir, function() {
-        for (var i=0; i<self.imgFileArr.length; i++) {
-          var imgFileObj = self.imgFileArr[i];
-          var url;
+      if (this.collab.collabOwner) {
+        // Asyncronously load all files to GDrive
+        this.collab.driveFm.createPath(this.collab.dataFilesBaseDir, function() {
+          for (var i=0; i<self.imgFileArr.length; i++) {
+            var imgFileObj = self.imgFileArr[i];
+            var url;
 
-          if (imgFileObj.json) {
-            url = imgFileObj.baseUrl + imgFileObj.json.name;
-            loadFile(imgFileObj.json, url, 'readAsText');
+            if (imgFileObj.json) {
+              url = imgFileObj.baseUrl + imgFileObj.json.name;
+              loadFile(imgFileObj.json, url, 'readAsText');
+            }
+            for (var j=0; j<imgFileObj.files.length; j++) {
+              url = imgFileObj.baseUrl + imgFileObj.files[j].name;
+              loadFile(imgFileObj.files[j], url, 'readAsArrayBuffer');
+            }
           }
-          for (var j=0; j<imgFileObj.files.length; j++) {
-            url = imgFileObj.baseUrl + imgFileObj.files[j].name;
-            loadFile(imgFileObj.files[j], url, 'readAsArrayBuffer');
-          }
-        }
-      });
+        });
+      } else {
+        // a new object must be created and passed to setCollabObj because the collaboration object is immutable
+        this.collab.setCollabObj({data: ++this.getCollabObj().data});
+      }
     };
 
     /**
