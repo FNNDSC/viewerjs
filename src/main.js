@@ -26,34 +26,50 @@ require(['gcjs', 'viewerjs'], function(cjs, viewerjs) {
   // Client ID from the Google's developer console
   var CLIENT_ID = '358010366372-o8clkqjol0j533tp6jlnpjr2u2cdmks6.apps.googleusercontent.com';
   var collaborator = new cjs.GDriveCollab(CLIENT_ID);
+  // Create a new viewerjs.Viewer object
+  // A collaborator object is only required if we want to enable realtime collaboration.
+  var view = new viewerjs.Viewer('viewercontainer', collaborator);
 
 
   // Event handler for the collab button
   $('#collabbutton').click( function() {
+
     $('.collab > .collab-input').slideToggle("fast");
-    if ($(this).text()==='Hide collab window'){
+
+    if ($(this).text()==='Hide collab window') {
       $(this).text('Enter existing collab room');
     } else {
       $(this).text('Hide collab window');
       $('#roomId').focus();
+
+      // Request GDrive authorization and load the realtime Api, hide the input section and
+      // start the collaboration as an additional collaborator
+      view.collab.authorizeAndLoadApi(true, function(granted) {
+        var goButton = document.getElementById('gobutton');
+        var roomIdInput = document.getElementById('roomId');
+
+        if (granted && roomIdInput.value) {
+          // realtime API ready.
+          goButton.onclick = function() {
+            document.getElementById('inputcontainer').style.display = 'none';
+            view.collab.joinRealtimeCollaboration(roomIdInput.value);
+          };
+        } else {
+          // show the button to start the authorization flow.
+          goButton.onclick = function() {
+            view.collab.authorizeAndLoadApi(false, function(granted) {
+              if (granted && roomIdInput.value) {
+                // realtime API ready.
+                document.getElementById('inputcontainer').style.display = 'none';
+                view.collab.joinRealtimeCollaboration(roomIdInput.value);
+              }
+            });
+          }
+        }
+      });
     }
+
   });
-
-
-  // Event handler for the go! button
-  var goButton = document.getElementById('gobutton');
-
-  goButton.onclick = function() {
-    var roomIdInput = document.getElementById('roomId');
-
-    // update UI
-    document.getElementById('inputcontainer').style.display = 'none';
-
-    // Create a new viewerjs.Viewer object
-    // A collaborator object is only required if we want to enable realtime collaboration.
-    var view = new viewerjs.Viewer('viewercontainer', collaborator);
-    view.startCollaboration(roomIdInput.value);
-  };
 
 
   // Event handler for the directory loader button
@@ -82,9 +98,7 @@ require(['gcjs', 'viewerjs'], function(cjs, viewerjs) {
     $('div.collab').css('display', 'none');
     dirBtn.disabled = true;
 
-    // Create a new viewerjs.Viewer object
-    // A collaborator object is only required if we want to enable realtime collaboration.
-    var view = new viewerjs.Viewer('viewercontainer', collaborator);
+    // start the viewer
     view.init(imgFileArr);
     view.addThumbnailBar();
     view.addToolBar();

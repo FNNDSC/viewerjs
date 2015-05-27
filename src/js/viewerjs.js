@@ -203,6 +203,25 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
       // temporal code
       this.scene = {data: 0};
 
+      if (this.collab) {
+        // Collaboration event listeners
+
+        // This is called when the collaboration has successfully started and is ready
+        this.collab.onConnect = function(roomId) {
+          self.handleOnConnect(roomId);
+        };
+
+        // This is called everytime the collaboration owner has shared data files with a new collaborator
+        this.collab.onDataFilesShared = function(collaboratorInfo, fObjArr) {
+          self.handleOnDataFilesShared(collaboratorInfo, fObjArr);
+        };
+
+        // This is called everytime the scene object is updated
+        /*this.collab.onCollabObjChanged = function(newScene) {
+          self.handleOnCollabObjChanged(roomId);
+        };*/
+      }
+
     };
 
     /**
@@ -878,33 +897,19 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
     };
 
     /**
-     * Start the realtime collaboration.
-     *
-     * @param {String} Collaboration room id. This id must be passed if there is no data
-     * in the viewer (current viewer is not the collaboration owner) otherwise it is
-     * ignored if passed and a new room id is created to share these data (current viewer
-     * becomes a collaboration owner).
+     * Start the realtime collaboration as a collaboration/scene owner.
      */
-    viewerjs.Viewer.prototype.startCollaboration = function(roomId) {
+    viewerjs.Viewer.prototype.startCollaboration = function() {
 
       if (this.collab) {
         var self = this;
         var collabButton = document.getElementById(this.toolbarContID + '_buttoncollab');
         var authButton = document.getElementById(this.toolbarContID + '_buttonauth');
 
-        // function to start collaboration
-        var startCollaboration = function() {
-          if (self.scene) {
-            self.collab.startRealtimeCollaboration("", self.scene);
-          } else {
-            self.collab.startRealtimeCollaboration(roomId);
-          }
-        };
-
         this.collab.authorizeAndLoadApi(true, function(granted) {
-          if (granted) {
+          if (granted && self.scene) {
             // realtime API ready.
-            startCollaboration();
+            self.collab.startRealtimeCollaboration(self.scene);
           } else {
             // show the auth button to start the authorization flow
             collabButton.style.display = 'none';
@@ -912,36 +917,14 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
 
             authButton.onclick = function() {
               self.collab.authorizeAndLoadApi(false, function(granted) {
-                if (granted) {
+                if (granted && self.scene) {
                   // realtime API ready.
-                  startCollaboration();
+                  self.collab.startRealtimeCollaboration(self.scene);
                 }
               });
             };
           }
         });
-
-        // Collaboration event listeners
-
-        // This is called when the collaboration has successfully started and is ready
-        this.collab.onConnect = function(roomId) {
-          self.handleOnConnect(roomId);
-        };
-
-        // This is called everytime the collaboration owner has shared data files with a collaborator
-        this.collab.onDataFilesShare = function(collaboratorInfo, fObjArr) {
-          self.handleOnDataFilesShare(collaboratorInfo, fObjArr);
-        };
-
-        // This is called everytime the collaboration owner uploads and shares new data files
-        this.collab.onCollabDataFileListPush = function(collaboratorInfo, fObjArr) {
-          self.handleOnCollabDataFileListPush(collaboratorInfo, fObjArr);
-        };
-
-        // This is called everytime the scene object is updated
-        this.collab.onCollabObjChange = function(newScene) {
-          self.handleOnCollabObjChange(roomId);
-        };
 
       } else {
         console.error("Collaboration was not enabled for this viewer instance");
@@ -970,13 +953,31 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
         console.log('collaborationIsOn = ', self.collaborationIsOn);
       }
 
+      // function to determine the total number of files to be uploaded to GDrive
+      function getTotalNumFiles() {
+        var nFiles = 0;
+
+        for (var i=0; i<self.imgFileArr.length; i++) {
+          if (self.imgFileArr[i].json) {
+            ++nFiles;
+          }
+          nFiles += self.imgFileArr[i].files.length;
+        }
+        return nFiles;
+      }
+
       // function to load a file into GDrive
+      var fObjArr = [];
+      var totalNumFiles = getTotalNumFiles();
       function loadFile(file, url, readingMethodName) {
         var reader = new FileReader();
 
         reader.onload = function() {
           self.collab.driveFm.writeFile(self.collab.dataFilesBaseDir + '/' + file.name, reader.result, function(fileResp) {
-            self.collab.collabDataFileListPush({id: fileResp.id, url: url});
+            fObjArr.push({id: fileResp.id, url: url});
+            if (fObjArr.length===totalNumFiles) {
+              self.collab.setDataFileList(fObjArr);
+            }
           });
         };
 
@@ -1012,6 +1013,35 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
       } else {
         // a new object must be created and passed to setCollabObj because the collaboration object is immutable
         this.collab.setCollabObj({data: ++this.getCollabObj().data});
+      }
+    };
+
+    /**
+     * Start the realtime collaboration as a collaboration/scene owner.
+     */
+     viewerjs.Viewer.prototype.handleOnDataFilesShared = function(collaboratorInfo, fObjArr) {
+
+       var logFileData = function(url, fileData) {
+
+         console.log('File meta:  ', fileData.meta);
+         console.log('File url:  ', url);
+         if (viewerjs.strEndsWith(fileData.meta.title, ['json'])) {
+           console.log('File data:  ', JSON.parse(fileData.data));
+         } else {
+           console.log('File data:  ', viewerjs.str2ab(fileData.data));
+         }
+      };
+
+      console.log('this.collab.collaboratorInfo.mail: ', this.collab.collaboratorInfo.mail);
+      console.log('collaboratorInfo.mail: ', collaboratorInfo.mail);
+
+      if (this.collab.collaboratorInfo.mail === collaboratorInfo.mail) {
+        for (var i=0; i<fObjArr.length; i++) {
+          var url = fObjArr[i].url;
+          // logFileData.bind(null, url)); allows to bind first arg of logFileData to fixed url
+          // effectively becoming a new callback with a single fileData argument
+          this.collab.driveFm.readFileByID(fObjArr[i].id, logFileData.bind(null, url));
+        }
       }
     };
 
@@ -1135,6 +1165,24 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
           array.push(binary.charCodeAt(i));
       }
       return new Blob([new Uint8Array(array)], {type: 'image/jpeg'});
+    };
+
+    /**
+     *  Module utility function. Convert String to ArrayBuffer
+     *
+     * @function
+     * @param {String} input string.
+     * @return {Array} the resulting array.
+     */
+     viewerjs.str2ab = function(str) {
+      // 1 byte for each char
+      var buf = new ArrayBuffer(str.length);
+      var bufView = new Uint8Array(buf);
+
+      for (var i=0, strLen=str.length; i<strLen; i++) {
+        bufView[i] = str.charCodeAt(i);
+      }
+      return buf;
     };
 
     /**
