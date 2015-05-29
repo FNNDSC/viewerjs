@@ -1,20 +1,26 @@
 /**
- * This module takes care of all image visualization and user interface.
- *
- * An object of the Viewer class expects an array of file objects where
- * each object contains the following properties:
- * -url: String representing the file url
- * -file: HTML5 File object (optional but neccesary when the files are gotten through a
- *        local filepicker or dropzone)
+ * This module takes care of all image visualization and user interface as well as
+ * collaboration through the passed collaborator object.
  */
 
 // define a new module
 define(['jquery_ui', 'dicomParser', 'xtk'], function() {
 
-  // Provide a namespace
-  var viewerjs = viewerjs || {};
+  /**
+   * Provide a namespace for the viewer module
+   *
+   * @namespace
+   */
+   var viewerjs = viewerjs || {};
 
-    viewerjs.Viewer = function(fObjArr, containerID) {
+   /**
+    * Class implementing the medical image viewer
+    *
+    * @constructor
+    * @param {String} HTML container's id.
+    * @param {Object} Optional collaborator object to enable realtime collaboration.
+    */
+    viewerjs.Viewer = function(containerID, collab) {
 
       this.version = 0.0;
       // viewer container's ID
@@ -44,14 +50,44 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
       //  -thumbnail: HTML5 File object (for a thumbnail image)
       //  -json: HTML5 File object (an optional json file with the mri info for imgType different from 'dicom')
       this.imgFileArr = [];
-      this.init(fObjArr);
+
+      // scene object
+      this.scene = null;
+
+      if (collab) {
+        // collaborator object
+        this.collab = collab;
+
+        // Collaboration event listeners
+        var self = this;
+        // This is called when the collaboration has successfully started and is ready
+        this.collab.onConnect = function(roomId) {
+          self.handleOnConnect(roomId);
+        };
+
+        // This is called everytime the collaboration owner has shared data files with a new collaborator
+        this.collab.onDataFilesShared = function(collaboratorInfo, fObjArr) {
+          self.handleOnDataFilesShared(collaboratorInfo, fObjArr);
+        };
+
+        // This is called everytime the scene object is updated
+        /*this.collab.onCollabObjChanged = function(newScene) {
+          self.handleOnCollabObjChanged(roomId);
+        };*/
+      }
 
     };
 
     /**
      * Build viewer's main data structure and initiliaze the UI's html.
      *
-     * @param {Array} array of file objects.
+     * @param {Array} array of file objects. Each object contains the following properties:
+     * -url:     String representing the file url
+     * -file:    HTML5 File object (optional but neccesary when the files are gotten through a
+     *           local filepicker or dropzone)
+     * -cloudId: String representing the file cloud id (optional but neccesary when the files
+     *           are gotten from a cloud storage like GDrive)
+     *
      */
     viewerjs.Viewer.prototype.init = function(fObjArr) {
       var thumbnails = {}; // associative array of thumbnail image files
@@ -104,7 +140,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
             }
           }
         }
-        // temporal demo code to add json files
+        // add json files
         for (var jsn in jsons) {
           // Search for a neuroimage file with the same name as the current json
           for (i=0; i<self.imgFileArr.length; i++) {
@@ -138,14 +174,18 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
          file = {name: path.substring(path.lastIndexOf('/')+1),
                 url: path,
                 remote: true};
+          if (fileObj.cloudId) {
+            file.cloudId = fileObj.cloudId;
+          }
        }
+
        imgType = viewerjs.Viewer.imgType(file);
 
        if (imgType === 'dicom') {
          if (!dicoms[baseUrl]) {
            dicoms[baseUrl] = [];
          }
-         dicoms[baseUrl].push(file); // all dicoms with the same urls belong to the same volume
+         dicoms[baseUrl].push(file); // all dicoms with the same base url belong to the same volume
        } else if (imgType === 'thumbnail') {
          // save thumbnail file in an associative array
          // array keys are the full path up to the first dash in the file name or the last period
@@ -156,13 +196,12 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
            thumbnails[path.substring(0, dashIndex)] = file;
          }
        } else if (imgType === 'json') {
-         // temporal demo code
          // array keys are the full path with the extension trimmed
          jsons[path.substring(0, path.lastIndexOf('.'))] = file;
        } else if (imgType !== 'unsupported') {
          // push fibers, meshes and volumes into nonDcmData
          nonDcmData.push({
-           'baseUrl': path.substring(0, path.lastIndexOf('/') + 1),
+           'baseUrl': baseUrl,
            'imgType': imgType,
            'files': [file]
          });
@@ -185,6 +224,9 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
           break;
         }
       }
+
+      // temporal code
+      this.scene = {data: 0};
 
     };
 
@@ -350,7 +392,6 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
             'slice: ' + (vol.indexZ + 1) + '/' + vol.range[2]);
         }
 
-        //temporal demo code
         // define function to read the json file
         function readJson(file, callback) {
           var reader = new FileReader();
@@ -360,9 +401,15 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
           };
 
           if (file.remote) {
-            viewerjs.urlToBlob(file.url, function(blob) {
-              reader.readAsText(blob);
-            });
+            if (file.cloudId) {
+              self.collab.driveFm.getFileBlob(file.cloudId, function(blob) {
+                reader.readAsText(blob);
+              });
+            } else {
+              viewerjs.urlToBlob(file.url, function(blob) {
+                reader.readAsText(blob);
+              });
+            }
           } else {
             reader.readAsText(file);
           }
@@ -413,35 +460,18 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
       function readMriFile(file, pos) {
         var reader = new FileReader();
 
-        reader.onload = function() {
-          filedata[pos] = reader.result;
+        var onload = function(data) {
+          filedata[pos] = data;
           ++numFiles;
 
           if (numFiles===imgFileObj.files.length) {
-
             if (imgFileObj.imgType === 'dicom') {
-              // Here we use Chafey's dicomParser: https://github.com/chafey/dicomParser.
-              // dicomParser requires as input a Uint8Array so we create it here
-              var byteArray = new Uint8Array(filedata[0]);
-              // Invoke the parseDicom function and get back a DataSet object with the contents
               try {
-                var dataSet = dicomParser.parseDicom(byteArray);
-                // Access any desire property using its tag
-                imgFileObj.dicomInfo = {
-                  patientName: dataSet.string('x00100010'),
-                  patientId: dataSet.string('x00100020'),
-                  patientBirthDate: dataSet.string('x00100030'),
-                  patientAge: dataSet.string('x00101010'),
-                  patientSex: dataSet.string('x00100040'),
-                  seriesDescription: dataSet.string('x0008103e'),
-                  manufacturer: dataSet.string('x00080070'),
-                  studyDate: dataSet.string('x00080020')
-                };
+                imgFileObj.dicomInfo = viewerjs.Viewer.parseDicom(filedata[0]);
               } catch(err) {
                 console.log('Could not parse dicom ' + imgFileObj.baseUrl + ' Error - ' + err);
               }
             }
-
             vol.filedata = filedata;
             render.add(vol);
             // start the rendering
@@ -450,10 +480,20 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
           }
         };
 
+        reader.onload = function() {
+          onload(reader.result);
+        };
+
         if (file.remote) {
-          viewerjs.urlToBlob(file.url, function(blob) {
-            reader.readAsArrayBuffer(blob);
-          });
+          if (file.cloudId) {
+            self.collab.driveFm.getFileBlob(file.cloudId, function(blob){
+              reader.readAsArrayBuffer(blob);
+            });
+          } else {
+            viewerjs.urlToBlob(file.url, function(blob) {
+              reader.readAsArrayBuffer(blob);
+            });
+          }
         } else {
           reader.readAsArrayBuffer(file);
         }
@@ -603,8 +643,13 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
       $('#' + this.wholeContID).append(
         '<div id="' + this.toolbarContID + '" class="view-toolbar">' +
           '<button id="' + this.toolbarContID + '_buttonlink" class="view-toolbar-button" type="button" title="Link views">Link views</button>' +
+          '<button id="' + this.toolbarContID + '_buttoncollab" class="view-toolbar-button" type="button" title="Start collaboration">Start collab</button>' +
+          '<button id="' + this.toolbarContID + '_buttonauth" class="view-toolbar-button" type="button" title="Authorize">Authorize</button>' +
+          '<label id="' + this.toolbarContID + '_labelcollab" class="view-toolbar-label"></label>' +
         '<div>'
       );
+      // hide the authorize button
+      $('#' + this.toolbarContID + '_buttonauth').css({display: "none" });
 
       // make space for the toolbar
       var jqToolCont = $('#' + this.toolbarContID);
@@ -624,9 +669,19 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
         if (self.rendersLinked) {
           self.rendersLinked = false;
           $(this).text("Link views");
+          $(this).attr("title", "Link views");
         } else {
           self.rendersLinked = true;
           $(this).text("Unlink views");
+          $(this).attr("title", "Unlink views");
+        }
+      });
+
+      $('#' + this.toolbarContID + '_buttoncollab').click(function() {
+        if (self.collaborationIsOn) {
+          self.leaveCollaboration();
+        } else {
+          self.startCollaboration();
         }
       });
 
@@ -738,9 +793,15 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
           };
 
           if (imgFileObj.thumbnail.remote) {
-            viewerjs.urlToBlob(imgFileObj.thumbnail.url, function(blob) {
-              reader.readAsDataURL(blob);
-            });
+            if (imgFileObj.thumbnail.cloudId) {
+              self.collab.driveFm.getFileBlob(imgFileObj.thumbnail.cloudId, function(blob){
+                reader.readAsDataURL(blob);
+              });
+            } else {
+              viewerjs.urlToBlob(imgFileObj.thumbnail.url, function(blob) {
+                reader.readAsDataURL(blob);
+              });
+            }
           } else {
             reader.readAsDataURL(imgFileObj.thumbnail);
           }
@@ -813,9 +874,15 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
             };
 
             if (file.remote) {
-              viewerjs.urlToBlob(file.url, function(blob) {
-                reader.readAsArrayBuffer(blob);
-              });
+              if (file.cloudId) {
+                self.collab.driveFm.getFileBlob(file.cloudId, function(blob){
+                  reader.readAsArrayBuffer(blob);
+                });
+              } else {
+                viewerjs.urlToBlob(file.url, function(blob) {
+                  reader.readAsArrayBuffer(blob);
+                });
+              }
             } else {
               reader.readAsArrayBuffer(file);
             }
@@ -864,6 +931,165 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
     };
 
     /**
+     * Start the realtime collaboration as a collaboration/scene owner.
+     */
+    viewerjs.Viewer.prototype.startCollaboration = function() {
+
+      if (this.collab) {
+        var self = this;
+        var collabButton = document.getElementById(this.toolbarContID + '_buttoncollab');
+        var authButton = document.getElementById(this.toolbarContID + '_buttonauth');
+
+        this.collab.authorizeAndLoadApi(true, function(granted) {
+          if (granted && self.scene) {
+            // realtime API ready.
+            self.collab.startRealtimeCollaboration(self.scene);
+          } else {
+            // show the auth button to start the authorization flow
+            collabButton.style.display = 'none';
+            authButton.style.display = '';
+
+            authButton.onclick = function() {
+              self.collab.authorizeAndLoadApi(false, function(granted) {
+                if (granted && self.scene) {
+                  // realtime API ready.
+                  self.collab.startRealtimeCollaboration(self.scene);
+                }
+              });
+            };
+          }
+        });
+
+      } else {
+        console.error("Collaboration was not enabled for this viewer instance");
+      }
+    };
+
+    /**
+     * Handle the onConnect event when the collaboration has successfully started and is ready.
+     */
+    viewerjs.Viewer.prototype.handleOnConnect = function(roomId) {
+      var self = this;
+
+      // determine the total number of files to be uploaded to GDrive
+      var totalNumFiles = (function() {
+        var nFiles = 0;
+
+        for (var i=0; i<self.imgFileArr.length; i++) {
+          if (self.imgFileArr[i].json) {
+            ++nFiles;
+          }
+          nFiles += self.imgFileArr[i].files.length;
+        }
+        return nFiles;
+      }());
+
+      // function to load a file into GDrive
+      var fObjArr = [];
+      function loadFile(file, url) {
+        var reader = new FileReader();
+
+        reader.onload = function() {
+          self.collab.driveFm.writeFile(self.collab.dataFilesBaseDir + '/' + file.name, reader.result, function(fileResp) {
+            fObjArr.push({id: fileResp.id, url: url});
+            if (fObjArr.length===totalNumFiles) {
+              // all data files have been uploaded to GDrive
+              self.collab.setDataFileList(fObjArr);
+            }
+          });
+        };
+
+        if (file.remote) {
+          viewerjs.urlToBlob(file.url, function(blob) {
+            reader.readAsArrayBuffer(blob);
+          });
+        } else {
+          reader.readAsArrayBuffer(file);
+        }
+      }
+
+      if (this.collab.collabOwner) {
+
+        // Update the UI
+        var collabButton = document.getElementById(self.toolbarContID + '_buttoncollab');
+        var authButton = document.getElementById(self.toolbarContID + '_buttonauth');
+        var roomIdLabel = document.getElementById(self.toolbarContID + '_labelcollab');
+        authButton.style.display = 'none';
+        collabButton.style.display = '';
+        collabButton.innerHTML = "End collab";
+        collabButton.title = "End collaboration";
+        roomIdLabel.innerHTML = roomId;
+        self.collaborationIsOn = true;
+        console.log('collaborationIsOn = ', self.collaborationIsOn);
+
+        // Asyncronously load all files to GDrive
+        this.collab.driveFm.createPath(this.collab.dataFilesBaseDir, function() {
+          for (var i=0; i<self.imgFileArr.length; i++) {
+            var imgFileObj = self.imgFileArr[i];
+            var url;
+
+            if (imgFileObj.json) {
+              url = imgFileObj.baseUrl + imgFileObj.json.name;
+              loadFile(imgFileObj.json, url);
+            }
+            for (var j=0; j<imgFileObj.files.length; j++) {
+              url = imgFileObj.baseUrl + imgFileObj.files[j].name;
+              loadFile(imgFileObj.files[j], url);
+            }
+          }
+        });
+      } else {
+        // a new object must be created and passed to setCollabObj because the collaboration object is immutable
+        this.collab.setCollabObj({data: ++this.collab.getCollabObj().data});
+      }
+    };
+
+    /**
+     * Handle the onDataFilesShared event when the collaboration owner has shared all data files with this collaborator
+     */
+     viewerjs.Viewer.prototype.handleOnDataFilesShared = function(collaboratorInfo, fObjArr) {
+
+      if (!this.collab.collabOwner && (this.collab.collaboratorInfo.mail === collaboratorInfo.mail)) {
+        var fileArr = [];
+
+        for (var i=0; i<fObjArr.length; i++){
+          fileArr.push({url: fObjArr[i].url, cloudId: fObjArr[i].id});
+        }
+        // start the viewer
+        this.init(fileArr);
+        this.addThumbnailBar();
+        this.addToolBar();
+
+        // Update the UI
+        var collabButton = document.getElementById(this.toolbarContID + '_buttoncollab');
+        var roomIdLabel = document.getElementById(this.toolbarContID + '_labelcollab');
+        collabButton.innerHTML = "End collab";
+        collabButton.title = "End collaboration";
+        roomIdLabel.innerHTML = this.collab.realtimeFileId;
+        this.collaborationIsOn = true;
+        console.log('collaborationIsOn = ', this.collaborationIsOn);
+      }
+    };
+
+    /**
+     * Leave the realtime collaboration.
+     */
+    viewerjs.Viewer.prototype.leaveCollaboration = function() {
+
+      if (this.collaborationIsOn) {
+        var collabButton = document.getElementById(this.toolbarContID + '_buttoncollab');
+        var roomIdLabel = document.getElementById(this.toolbarContID + '_labelcollab');
+
+        this.collab.leaveRealtimeCollaboration();
+        this.collaborationIsOn = false;
+        collabButton.innerHTML = "Start collab";
+        collabButton.title = "Start collaboration";
+        roomIdLabel.innerHTML = "";
+        console.log('collaborationIsOn = ', this.collaborationIsOn);
+      }
+    };
+
+    /**
      * Static method to determine if a File object is a supported neuroimage type.
      * Return the type of the image: 'dicom', 'vol', 'fibers', 'mesh', 'thumbnail'
      * or 'unsupported'
@@ -898,13 +1124,38 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
       } else if (viewerjs.strEndsWith(file.name, ext.THUMBNAIL)) {
         type = 'thumbnail';
       } else if (viewerjs.strEndsWith(file.name, ext.JSON)) {
-        // temporal demo code
         type = 'json';
       } else {
         type = 'unsupported';
       }
 
       return type;
+    };
+
+    /**
+     * Static method to parse a dicom file. Raises an exception if the parsing fails
+     *
+     * @param {Object} ArrayBuffer object containing the dicom data
+     */
+    viewerjs.Viewer.parseDicom = function(dicomFileData) {
+
+      // Here we use Chafey's dicomParser: https://github.com/chafey/dicomParser.
+      // dicomParser requires as input a Uint8Array so we create it here
+      var byteArray = new Uint8Array(dicomFileData);
+      // Invoke the parseDicom function and get back a DataSet object with the contents
+      var dataSet = dicomParser.parseDicom(byteArray);
+
+      // Access any desire property using its tag
+      return {
+        patientName: dataSet.string('x00100010'),
+        patientId: dataSet.string('x00100020'),
+        patientBirthDate: dataSet.string('x00100030'),
+        patientAge: dataSet.string('x00101010'),
+        patientSex: dataSet.string('x00100040'),
+        seriesDescription: dataSet.string('x0008103e'),
+        manufacturer: dataSet.string('x00080070'),
+        studyDate: dataSet.string('x00080020')
+      };
     };
 
     /**
