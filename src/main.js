@@ -24,7 +24,7 @@ require.config({
 require(['gcjs', 'viewerjs'], function(cjs, viewerjs) {
 
   // Client ID from the Google's developer console
-  var CLIENT_ID = '358010366372-o8clkqjol0j533tp6jlnpjr2u2cdmks6.apps.googleusercontent.com';
+  var CLIENT_ID = '1050768372633-ap5v43nedv10gagid9l70a2vae8p9nah.apps.googleusercontent.com';
   var collaborator = new cjs.GDriveCollab(CLIENT_ID);
   // Create a new viewerjs.Viewer object
   // A collaborator object is only required if we want to enable realtime collaboration.

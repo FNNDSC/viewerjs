@@ -143,7 +143,7 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-requirejs');
 
   // Serve task.
-  grunt.registerTask('serve', function (target) {
+  grunt.registerTask('serve', function (/*target*/) {
     // grunt server:dist not implemented yet...
 
     // if (target === 'dist') {
