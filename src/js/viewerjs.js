@@ -89,135 +89,12 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
      *           are gotten from a cloud storage like GDrive)
      */
     viewerjs.Viewer.prototype.init = function(fObjArr) {
-      var thumbnails = {}; // associative array of thumbnail image files
-      var jsons = {}; // associative array of json files
-      var dicoms = {}; // associative array of arrays with ordered DICOM files
-      var nonDcmData = []; // array of non-DICOM data
-      var self = this;
-
-      // function to build the image file array
-      function buildImgFileArr() {
-        var path, name, i, j;
-
-        // push ordered DICOMs into self.imgFileArr
-        for (var baseUrl in dicoms) {
-          self.imgFileArr.push({
-          'baseUrl': baseUrl,
-          'imgType': 'dicom',
-          'files': dicoms[baseUrl].sort(function(f1, f2) {
-            var fnames = [f1.name, f2.name].sort();
-
-            if (fnames[0] === fnames[1]) {
-              return 0;
-            } else if (fnames[0] === f1.name) {
-              return -1;
-            } else {
-              return 1;
-            }
-          })});
-        }
-        // push non-DICOM data into self.imgFileArr
-        for (i=0; i<nonDcmData.length; i++) {
-          self.imgFileArr.push(nonDcmData[i]);
-        }
-        // assign an id to each array elem
-        for (i=0; i<self.imgFileArr.length; i++) {
-          self.imgFileArr[i].id = i;
-        }
-        // add thumbnail images
-        for (var th in thumbnails) {
-          // Search for a neuroimage file with the same name as the current thumbnail
-          for (i=0; i<self.imgFileArr.length; i++) {
-            j = 0;
-            do {
-              path = self.imgFileArr[i].baseUrl + self.imgFileArr[i].files[j].name;
-              name = path.substring(0, path.lastIndexOf('.'));
-            } while ((++j<self.imgFileArr[i].files.length)  && (th!==name));
-            if (th === name) {
-              self.imgFileArr[i].thumbnail = thumbnails[th];
-              break;
-            }
-          }
-        }
-        // add json files
-        for (var jsn in jsons) {
-          // Search for a neuroimage file with the same name as the current json
-          for (i=0; i<self.imgFileArr.length; i++) {
-            j = 0;
-            do {
-              path = self.imgFileArr[i].baseUrl + self.imgFileArr[i].files[j].name;
-              name = path.substring(0, path.lastIndexOf('.'));
-            } while ((++j<self.imgFileArr[i].files.length)  && (jsn!==name));
-            if (jsn === name) {
-              self.imgFileArr[i].json = jsons[jsn];
-              break;
-            }
-          }
-        }
-
-      }
-
-      // function to add a file object into internal data structures
-      function addFile(fileObj) {
-       var path = fileObj.url;
-       var baseUrl = path.substring(0, path.lastIndexOf('/') + 1);
-       var file;
-       var imgType;
-       var dashIndex;
-
-       if (fileObj.file) {
-         // get the HTML5 File object
-         file = fileObj.file;
-       } else {
-         // build a dummy File object with a property remote
-         file = {name: path.substring(path.lastIndexOf('/')+1),
-                url: path,
-                remote: true};
-          if (fileObj.cloudId) {
-            file.cloudId = fileObj.cloudId;
-          }
-       }
-
-       imgType = viewerjs.Viewer.imgType(file);
-
-       if (imgType === 'dicom') {
-         if (!dicoms[baseUrl]) {
-           dicoms[baseUrl] = [];
-         }
-         dicoms[baseUrl].push(file); // all dicoms with the same base url belong to the same volume
-       } else if (imgType === 'thumbnail') {
-         // save thumbnail file in an associative array
-         // array keys are the full path up to the first dash in the file name or the last period
-         dashIndex = path.indexOf('-', path.lastIndexOf('/'));
-         if (dashIndex === -1) {
-           thumbnails[path.substring(0, path.lastIndexOf('.'))] = file;
-         } else {
-           thumbnails[path.substring(0, dashIndex)] = file;
-         }
-       } else if (imgType === 'json') {
-         // array keys are the full path with the extension trimmed
-         jsons[path.substring(0, path.lastIndexOf('.'))] = file;
-       } else if (imgType !== 'unsupported') {
-         // push fibers, meshes and volumes into nonDcmData
-         nonDcmData.push({
-           'baseUrl': baseUrl,
-           'imgType': imgType,
-           'files': [file]
-         });
-       }
-
-     }
-
       // insert initial html
       this._initInterface();
-      // add files
-      for (var i=0; i<fObjArr.length; i++) {
-        addFile(fObjArr[i]);
-      }
-      // build viewer's main data structure
-      buildImgFileArr();
+      // build viewer's main data structure (this.imgFileArr)
+      this._buildImgFileArr(fObjArr);
       // load and render the first volume
-      for (i=0; i<this.imgFileArr.length; i++) {
+      for (var i=0; i<this.imgFileArr.length; i++) {
         if (this.imgFileArr[i].imgType==='vol' || this.imgFileArr[i].imgType==='dicom') {
           this.add2DRender(this.imgFileArr[i], 'Z');
           break;
@@ -295,6 +172,135 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
       // make the renderers container sortable
       $('#' + this.rendersContID).sortable(sort_opts);
 
+    };
+
+    /**
+     * Build viewer's main data structure (the model).
+     *
+     * @param {Array} array of file objects. Same as the one passed to the init method
+     */
+    viewerjs.Viewer.prototype._buildImgFileArr = function(fObjArr) {
+      var thumbnails = {}; // associative array of thumbnail image files
+      var jsons = {}; // associative array of json files
+      var dicoms = {}; // associative array of arrays with ordered DICOM files
+      var nonDcmData = []; // array of non-DICOM data
+      var path, name, i, j;
+      var self = this;
+
+      // function to add a file object into the proper internal data structure
+      function addFile(fileObj) {
+       var path = fileObj.url;
+       var baseUrl = path.substring(0, path.lastIndexOf('/') + 1);
+       var file;
+       var imgType;
+       var dashIndex;
+
+       if (fileObj.file) {
+         // get the HTML5 File object
+         file = fileObj.file;
+       } else {
+         // build a dummy File object with a property remote
+         file = {name: path.substring(path.lastIndexOf('/')+1),
+                url: path,
+                remote: true};
+          if (fileObj.cloudId) {
+            file.cloudId = fileObj.cloudId;
+          }
+       }
+
+       imgType = viewerjs.Viewer.imgType(file);
+
+       if (imgType === 'dicom') {
+         if (!dicoms[baseUrl]) {
+           dicoms[baseUrl] = [];
+         }
+         dicoms[baseUrl].push(file); // all dicoms with the same base url belong to the same volume
+       } else if (imgType === 'thumbnail') {
+         // save thumbnail file in an associative array
+         // array keys are the full path up to the first dash in the file name or the last period
+         dashIndex = path.indexOf('-', path.lastIndexOf('/'));
+         if (dashIndex === -1) {
+           thumbnails[path.substring(0, path.lastIndexOf('.'))] = file;
+         } else {
+           thumbnails[path.substring(0, dashIndex)] = file;
+         }
+       } else if (imgType === 'json') {
+         // array keys are the full path with the extension trimmed
+         jsons[path.substring(0, path.lastIndexOf('.'))] = file;
+       } else if (imgType !== 'unsupported') {
+         // push fibers, meshes and volumes into nonDcmData
+         nonDcmData.push({
+           'baseUrl': baseUrl,
+           'imgType': imgType,
+           'files': [file]
+         });
+       }
+     }
+
+      // add files
+      for (i=0; i<fObjArr.length; i++) {
+        addFile(fObjArr[i]);
+      }
+
+      //
+      // now build self.imgFileArr from the internal data structures
+      //
+
+      // push ordered DICOMs into self.imgFileArr
+      for (var baseUrl in dicoms) {
+        self.imgFileArr.push({
+        'baseUrl': baseUrl,
+        'imgType': 'dicom',
+        'files': dicoms[baseUrl].sort(function(f1, f2) {
+          var fnames = [f1.name, f2.name].sort();
+
+          if (fnames[0] === fnames[1]) {
+            return 0;
+          } else if (fnames[0] === f1.name) {
+            return -1;
+          } else {
+            return 1;
+          }
+        })});
+      }
+      // push non-DICOM data into self.imgFileArr
+      for (i=0; i<nonDcmData.length; i++) {
+        self.imgFileArr.push(nonDcmData[i]);
+      }
+      // assign an id to each array elem
+      for (i=0; i<self.imgFileArr.length; i++) {
+        self.imgFileArr[i].id = i;
+      }
+      // add thumbnail images
+      for (var th in thumbnails) {
+        // Search for a neuroimage file with the same name as the current thumbnail
+        for (i=0; i<self.imgFileArr.length; i++) {
+          j = 0;
+          do {
+            path = self.imgFileArr[i].baseUrl + self.imgFileArr[i].files[j].name;
+            name = path.substring(0, path.lastIndexOf('.'));
+          } while ((++j<self.imgFileArr[i].files.length)  && (th!==name));
+          if (th === name) {
+            self.imgFileArr[i].thumbnail = thumbnails[th];
+            break;
+          }
+        }
+      }
+      // add json files
+      for (var jsn in jsons) {
+        // Search for a neuroimage file with the same name as the current json
+        for (i=0; i<self.imgFileArr.length; i++) {
+          j = 0;
+          do {
+            path = self.imgFileArr[i].baseUrl + self.imgFileArr[i].files[j].name;
+            name = path.substring(0, path.lastIndexOf('.'));
+          } while ((++j<self.imgFileArr[i].files.length)  && (jsn!==name));
+          if (jsn === name) {
+            self.imgFileArr[i].json = jsons[jsn];
+            break;
+          }
+        }
+      }
     };
 
     /**
