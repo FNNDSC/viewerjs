@@ -72,7 +72,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
 
         // This is called everytime the scene object is updated
         /*this.collab.onCollabObjChanged = function(newScene) {
-          self.handleOnCollabObjChanged(roomId);
+          self.handleOnCollabObjChanged(newScene);
         };*/
       }
 
@@ -87,7 +87,6 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
      *           local filepicker or dropzone)
      * -cloudId: String representing the file cloud id (optional but neccesary when the files
      *           are gotten from a cloud storage like GDrive)
-     *
      */
     viewerjs.Viewer.prototype.init = function(fObjArr) {
       var thumbnails = {}; // associative array of thumbnail image files
@@ -394,25 +393,9 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
 
         // define function to read the json file
         function readJson(file, callback) {
-          var reader = new FileReader();
-
-          reader.onload = function() {
-            callback(JSON.parse(reader.result));
-          };
-
-          if (file.remote) {
-            if (file.cloudId) {
-              self.collab.driveFm.getFileBlob(file.cloudId, function(blob) {
-                reader.readAsText(blob);
-              });
-            } else {
-              viewerjs.urlToBlob(file.url, function(blob) {
-                reader.readAsText(blob);
-              });
-            }
-          } else {
-            reader.readAsText(file);
-          }
+          self.readFile(file, 'readAsText', function(data) {
+            callback(JSON.parse(data));
+          });
         }
 
         if (imgFileObj.json) {
@@ -458,9 +441,8 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
       var filedata = [];
       var numFiles = 0;
       function readMriFile(file, pos) {
-        var reader = new FileReader();
 
-        var onload = function(data) {
+        self.readFile(file, 'readAsArrayBuffer', function(data) {
           filedata[pos] = data;
           ++numFiles;
 
@@ -478,25 +460,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
             render.render();
             viewerjs.documentRepaint();
           }
-        };
-
-        reader.onload = function() {
-          onload(reader.result);
-        };
-
-        if (file.remote) {
-          if (file.cloudId) {
-            self.collab.driveFm.getFileBlob(file.cloudId, function(blob){
-              reader.readAsArrayBuffer(blob);
-            });
-          } else {
-            viewerjs.urlToBlob(file.url, function(blob) {
-              reader.readAsArrayBuffer(blob);
-            });
-          }
-        } else {
-          reader.readAsArrayBuffer(file);
-        }
+        });
       }
 
       // read all neuroimage files in imgFileObj.files
@@ -782,29 +746,13 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
 
         // internal function to read the thumbnail's url so it can be assigned to the src of <img>
         function readThumbnailUrl() {
-          var reader = new FileReader();
-
-          reader.onload = function() {
-            imgJq.attr('src', reader.result);
+          self.readFile(imgFileObj.thumbnail, 'readAsDataURL', function(data) {
+            imgJq.attr('src', data);
             // if there is a corresponding renderer window already in the UI then hide this thumbnail
             if ($('#' + self.rendersContID + '_render2D' + id).length) {
               thContJq.css({ display:"none" });
             }
-          };
-
-          if (imgFileObj.thumbnail.remote) {
-            if (imgFileObj.thumbnail.cloudId) {
-              self.collab.driveFm.getFileBlob(imgFileObj.thumbnail.cloudId, function(blob){
-                reader.readAsDataURL(blob);
-              });
-            } else {
-              viewerjs.urlToBlob(imgFileObj.thumbnail.url, function(blob) {
-                reader.readAsDataURL(blob);
-              });
-            }
-          } else {
-            reader.readAsDataURL(imgFileObj.thumbnail);
-          }
+          });
         }
 
         // internal function to create and read the thumbnails' url so it can be assigned to the src of <img>
@@ -826,10 +774,9 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
           render.afterRender = function() {
             var canvas = $('#' + tempRenderContId + ' > canvas')[0];
             var img = imgJq[0];
-            var reader = new FileReader();
 
-            reader.onload = function() {
-              img.src = reader.result;
+            self.readFile(viewerjs.dataURItoJPGBlob(canvas.toDataURL('image/jpeg')), 'readAsDataURL', function(data) {
+              img.src = data;
               render.remove(vol);
               vol.destroy();
               $('#' + tempRenderContId).remove();
@@ -840,18 +787,13 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
               if ($('#' + self.rendersContID + '_render2D' + id).length) {
                 thContJq.css({ display:"none" });
               }
-            };
-
-            reader.readAsDataURL(viewerjs.dataURItoJPGBlob(canvas.toDataURL('image/jpeg')));
+            });
           };
 
           function readFile(file, pos) {
-            var reader = new FileReader();
-
-            reader.onload = function() {
-              filedata[pos] = reader.result;
-              ++numFiles;
-              if (numFiles===imgFileObj.files.length) {
+            self.readFile(file, 'readAsArrayBuffer', function(data) {
+              filedata[pos] = data;
+              if (++numFiles === imgFileObj.files.length) {
                 // all files have been read
                 if (imgFileObj.imgType === 'dicom') {
                   //update the thumbnail info with the series description
@@ -871,21 +813,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
                 // start the rendering
                 render.render();
               }
-            };
-
-            if (file.remote) {
-              if (file.cloudId) {
-                self.collab.driveFm.getFileBlob(file.cloudId, function(blob){
-                  reader.readAsArrayBuffer(blob);
-                });
-              } else {
-                viewerjs.urlToBlob(file.url, function(blob) {
-                  reader.readAsArrayBuffer(blob);
-                });
-              }
-            } else {
-              reader.readAsArrayBuffer(file);
-            }
+            });
           }
 
           // read all files belonging to the volume
@@ -987,29 +915,18 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
       // function to load a file into GDrive
       var fObjArr = [];
       function loadFile(file, url) {
-        var reader = new FileReader();
-
-        reader.onload = function() {
-          self.collab.driveFm.writeFile(self.collab.dataFilesBaseDir + '/' + file.name, reader.result, function(fileResp) {
+        self.readFile(file, 'readAsArrayBuffer', function(data) {
+          self.collab.driveFm.writeFile(self.collab.dataFilesBaseDir + '/' + file.name, data, function(fileResp) {
             fObjArr.push({id: fileResp.id, url: url});
             if (fObjArr.length===totalNumFiles) {
               // all data files have been uploaded to GDrive
               self.collab.setDataFileList(fObjArr);
             }
           });
-        };
-
-        if (file.remote) {
-          viewerjs.urlToBlob(file.url, function(blob) {
-            reader.readAsArrayBuffer(blob);
-          });
-        } else {
-          reader.readAsArrayBuffer(file);
-        }
+        });
       }
 
       if (this.collab.collabOwner) {
-
         // Update the UI
         var collabButton = document.getElementById(self.toolbarContID + '_buttoncollab');
         var authButton = document.getElementById(self.toolbarContID + '_buttonauth');
@@ -1086,6 +1003,39 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
         collabButton.title = "Start collaboration";
         roomIdLabel.innerHTML = "";
         console.log('collaborationIsOn = ', this.collaborationIsOn);
+      }
+    };
+
+    /**
+     * read a file
+     *
+     * @param {String} HTML5 file object or an object containing properties:
+     *  -remote: a boolean indicating whether the file has not been read locally (with a filepicker)
+     *  -url the file's url
+     *  -clouId: the id of the file in a cloud storage system if stored in the cloud
+     * @param {String} reading method.
+     * @param {Function} callback whose argument is the file data.
+     */
+    viewerjs.Viewer.prototype.readFile = function(file, readingMethod, callback) {
+      var reader = new FileReader();
+      var self = this;
+
+      reader.onload = function() {
+        callback(reader.result);
+      };
+
+      if (file.remote) {
+        if (file.cloudId) {
+          self.collab.driveFm.getFileBlob(file.cloudId, function(blob) {
+            reader[readingMethod](blob);
+          });
+        } else {
+          viewerjs.urlToBlob(file.url, function(blob) {
+            reader[readingMethod](blob);
+          });
+        }
+      } else {
+        reader[readingMethod](file);
       }
     };
 
