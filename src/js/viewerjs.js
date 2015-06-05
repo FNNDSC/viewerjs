@@ -89,11 +89,11 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
      *           are gotten from a cloud storage like GDrive)
      */
     viewerjs.Viewer.prototype.init = function(fObjArr) {
-      // insert initial html
-      this._initInterface();
+      // Insert initial html. Initially the interface only contains the renderers' container.
+      this._addRenderersContainer();
       // build viewer's main data structure (this.imgFileArr)
       this._buildImgFileArr(fObjArr);
-      // load and render the first volume
+      // load and render the first volume in this.imgFileArr
       for (var i=0; i<this.imgFileArr.length; i++) {
         if (this.imgFileArr[i].imgType==='vol' || this.imgFileArr[i].imgType==='dicom') {
           this.add2DRender(this.imgFileArr[i], 'Z');
@@ -109,11 +109,8 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
     /**
      * Append initial html interface to the viewer container.
      */
-    viewerjs.Viewer.prototype._initInterface = function() {
+    viewerjs.Viewer.prototype._addRenderersContainer = function() {
       var self = this;
-
-      // Initially the interface only contains the renderers' container which in turn contains a
-      // single renderer that loads and displays the first volume in this.imgFileArr
 
       $('#' + this.wholeContID).css({
         "position": "relative",
@@ -171,7 +168,6 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
 
       // make the renderers container sortable
       $('#' + this.rendersContID).sortable(sort_opts);
-
     };
 
     /**
