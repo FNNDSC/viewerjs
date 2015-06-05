@@ -31,7 +31,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
       this.thumbnailbarContID = this.wholeContID + '_thumbnailbar';
       // renderers container's ID
       this.rendersContID =  this.wholeContID + '_renders';
-      // 2D renderer objects
+      // list of currently rendered 2D renderer objects
       this.renders2D = [];
       // whether renderers' events are linked
       this.rendersLinked = false;
@@ -51,11 +51,10 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
       //  -json: HTML5 File object (an optional json file with the mri info for imgType different from 'dicom')
       this.imgFileArr = [];
 
-      // scene object
-      this.scene = null;
-
+      //
+      // collaborator object
+      //
       if (collab) {
-        // collaborator object
         this.collab = collab;
 
         // Collaboration event listeners
@@ -93,21 +92,25 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
       this._addRenderersContainer();
       // build viewer's main data structure (this.imgFileArr)
       this._buildImgFileArr(fObjArr);
-      // load and render the first volume in this.imgFileArr
-      for (var i=0; i<this.imgFileArr.length; i++) {
-        if (this.imgFileArr[i].imgType==='vol' || this.imgFileArr[i].imgType==='dicom') {
-          this.add2DRender(this.imgFileArr[i], 'Z');
-          break;
+
+      if (!this.collab || !this.collab.collabIsOn) {
+        // load and render the first volume in this.imgFileArr
+        for (var i=0; i<this.imgFileArr.length; i++) {
+          if (this.imgFileArr[i].imgType==='vol' || this.imgFileArr[i].imgType==='dicom') {
+            this.add2DRender(this.imgFileArr[i], 'Z');
+            break;
+          }
         }
+      } else {
+        // get and render the scene  (meantime we are just modifiying the scene here)
+        var scene = this.getSceneObj();
+        ++scene.data;
+        this.collab.setCollabObj(scene);
       }
-
-      // temporal code
-      this.scene = {data: 0};
-
     };
 
     /**
-     * Append initial html interface to the viewer container.
+     * Append the renderers' container to the viewer.
      */
     viewerjs.Viewer.prototype._addRenderersContainer = function() {
       var self = this;
@@ -166,14 +169,14 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
         }
       };
 
-      // make the renderers container sortable
+      // make the renderers' container sortable
       $('#' + this.rendersContID).sortable(sort_opts);
     };
 
     /**
      * Build viewer's main data structure (the model).
      *
-     * @param {Array} array of file objects. Same as the one passed to the init method
+     * @param {Array} array of file objects. Same as the one passed to the init method.
      */
     viewerjs.Viewer.prototype._buildImgFileArr = function(fObjArr) {
       var thumbnails = {}; // associative array of thumbnail image files
@@ -300,7 +303,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
     };
 
     /**
-     * Create and add a 2D renderer with a loaded volume to the UI.
+     * Create and add a 2D renderer with a loaded volume to the renderers' container.
      *
      * @param {Oject} Image file object.
      * @param {String} X, Y or Z orientation.
@@ -309,7 +312,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
       var render, vol, containerID;
       var self = this;
 
-      // append renderer div to the renderers container
+      // append renderer div to the renderers' container
       // the renderer's id is related to the imgFileObj's id
       containerID = this.rendersContID + "_render2D" + imgFileObj.id;
       $('#' + this.rendersContID).append(
@@ -473,7 +476,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
     };
 
     /**
-     * Remove 2D renderer from the UI.
+     * Remove a 2D renderer from the UI.
      *
      * @param {String} renderer's container.
      */
@@ -596,7 +599,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
     };
 
     /**
-     * Create and add toolbar to the viewer container.
+     * Create and add a toolbar to the viewer.
      */
     viewerjs.Viewer.prototype.addToolBar = function() {
       var self = this;
@@ -644,7 +647,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
       });
 
       $('#' + this.toolbarContID + '_buttoncollab').click(function() {
-        if (self.collaborationIsOn) {
+        if (self.collab.collabIsOn) {
           self.leaveCollaboration();
         } else {
           self.startCollaboration();
@@ -654,7 +657,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
     };
 
     /**
-     * Create and add thumbnail bar to the viewer container.
+     * Create and add a thumbnail bar to the viewer.
      */
     viewerjs.Viewer.prototype.addThumbnailBar = function() {
       var self = this;
@@ -861,6 +864,37 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
     };
 
     /**
+     * Create and returns a scene object describing the current scene.
+     */
+    viewerjs.Viewer.prototype.createSceneObj = function() {
+      var scene = {data: 1};
+
+      return scene;
+    };
+
+    /**
+     * Returns a clone of the current scene object.
+     */
+    viewerjs.Viewer.prototype.getSceneObj = function() {
+      var scene = this.collab.getCollabObj();
+      var sceneClone = {};
+
+      for (var prop in scene) {
+        sceneClone[prop] = scene[prop];
+      }
+      return sceneClone;
+    };
+
+    /**
+     * Update the scene object.
+     *
+     * @param {Obj} new scene object.
+     */
+    viewerjs.Viewer.prototype.setSceneObj = function(newScene) {
+      this.collab.setCollabObj(newScene);
+    };
+
+    /**
      * Start the realtime collaboration as a collaboration/scene owner.
      */
     viewerjs.Viewer.prototype.startCollaboration = function() {
@@ -871,9 +905,9 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
         var authButton = document.getElementById(this.toolbarContID + '_buttonauth');
 
         this.collab.authorizeAndLoadApi(true, function(granted) {
-          if (granted && self.scene) {
+          if (granted) {
             // realtime API ready.
-            self.collab.startRealtimeCollaboration(self.scene);
+            self.collab.startRealtimeCollaboration(self.createSceneObj());
           } else {
             // show the auth button to start the authorization flow
             collabButton.style.display = 'none';
@@ -881,9 +915,9 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
 
             authButton.onclick = function() {
               self.collab.authorizeAndLoadApi(false, function(granted) {
-                if (granted && self.scene) {
+                if (granted) {
                   // realtime API ready.
-                  self.collab.startRealtimeCollaboration(self.scene);
+                  self.collab.startRealtimeCollaboration(self.createSceneObj());
                 }
               });
             };
@@ -901,6 +935,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
     viewerjs.Viewer.prototype.handleOnConnect = function(roomId) {
       var self = this;
 
+      console.log('collaborationIsOn: ', this.collab.collabIsOn);
       // determine the total number of files to be uploaded to GDrive
       var totalNumFiles = (function() {
         var nFiles = 0;
@@ -930,16 +965,14 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
 
       if (this.collab.collabOwner) {
         // Update the UI
-        var collabButton = document.getElementById(self.toolbarContID + '_buttoncollab');
-        var authButton = document.getElementById(self.toolbarContID + '_buttonauth');
-        var roomIdLabel = document.getElementById(self.toolbarContID + '_labelcollab');
-        authButton.style.display = 'none';
+        var collabButton = document.getElementById(this.toolbarContID + '_buttoncollab');
         collabButton.style.display = '';
         collabButton.innerHTML = "End collab";
         collabButton.title = "End collaboration";
+        var authButton = document.getElementById(this.toolbarContID + '_buttonauth');
+        authButton.style.display = 'none';
+        var roomIdLabel = document.getElementById(this.toolbarContID + '_labelcollab');
         roomIdLabel.innerHTML = roomId;
-        self.collaborationIsOn = true;
-        console.log('collaborationIsOn = ', self.collaborationIsOn);
 
         // Asyncronously load all files to GDrive
         this.collab.driveFm.createPath(this.collab.dataFilesBaseDir, function() {
@@ -957,9 +990,6 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
             }
           }
         });
-      } else {
-        // a new object must be created and passed to setCollabObj because the collaboration object is immutable
-        this.collab.setCollabObj({data: ++this.collab.getCollabObj().data});
       }
     };
 
@@ -971,7 +1001,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
       if (!this.collab.collabOwner && (this.collab.collaboratorInfo.mail === collaboratorInfo.mail)) {
         var fileArr = [];
 
-        for (var i=0; i<fObjArr.length; i++){
+        for (var i=0; i<fObjArr.length; i++) {
           fileArr.push({url: fObjArr[i].url, cloudId: fObjArr[i].id});
         }
         // start the viewer
@@ -981,12 +1011,10 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
 
         // Update the UI
         var collabButton = document.getElementById(this.toolbarContID + '_buttoncollab');
-        var roomIdLabel = document.getElementById(this.toolbarContID + '_labelcollab');
         collabButton.innerHTML = "End collab";
         collabButton.title = "End collaboration";
+        var roomIdLabel = document.getElementById(this.toolbarContID + '_labelcollab');
         roomIdLabel.innerHTML = this.collab.realtimeFileId;
-        this.collaborationIsOn = true;
-        console.log('collaborationIsOn = ', this.collaborationIsOn);
       }
     };
 
@@ -995,16 +1023,16 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
      */
     viewerjs.Viewer.prototype.leaveCollaboration = function() {
 
-      if (this.collaborationIsOn) {
-        var collabButton = document.getElementById(this.toolbarContID + '_buttoncollab');
-        var roomIdLabel = document.getElementById(this.toolbarContID + '_labelcollab');
-
+      if (this.collab.collabIsOn) {
         this.collab.leaveRealtimeCollaboration();
-        this.collaborationIsOn = false;
+        console.log('collaborationIsOn: ', this.collab.collabIsOn);
+
+        // update the UI
+        var collabButton = document.getElementById(this.toolbarContID + '_buttoncollab');
         collabButton.innerHTML = "Start collab";
         collabButton.title = "Start collaboration";
+        var roomIdLabel = document.getElementById(this.toolbarContID + '_labelcollab');
         roomIdLabel.innerHTML = "";
-        console.log('collaborationIsOn = ', this.collaborationIsOn);
       }
     };
 
