@@ -102,10 +102,8 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
           }
         }
       } else {
-        // get and render the scene  (meantime we are just modifiying the scene here)
-        var scene = this.getSceneObj();
-        ++scene.data;
-        this.collab.setCollabObj(scene);
+        // render the scene
+        this.renderScene();
       }
     };
 
@@ -545,7 +543,10 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
      * Rearrange renderers in the UI layout.
      */
     viewerjs.Viewer.prototype.positionRenders = function() {
-      var jqRenders = $('div.view-render', $('#' + this.rendersContID));
+      // sort by id
+      var jqRenders = $('div.view-render', $('#' + this.rendersContID)).sort(function(el1, el2) {
+        return el1.id > el2.id;
+      });
 
       switch(this.numOfRenders) {
         case 1:
@@ -864,10 +865,37 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
     };
 
     /**
+     * Render the current scene.
+     */
+    viewerjs.Viewer.prototype.renderScene = function() {
+      var scene = this.getScene();
+
+      // load and render the first volume in this.imgFileArr
+      for (var i=0; i<scene.renders2DIds.length; i++) {
+        this.add2DRender(this.getImgFileObject(scene.renders2DIds[i]), 'Z');
+      }
+      if (scene.hasToolBar) {this.addToolBar();}
+      if (scene.hasThumbnailBar) {this.addThumbnailBar();}
+      this.rendersLinked = scene.rendersLinked;
+    };
+
+    /**
      * Create and returns a scene object describing the current scene.
      */
-    viewerjs.Viewer.prototype.createSceneObj = function() {
-      var scene = {data: 1};
+    viewerjs.Viewer.prototype.createScene = function() {
+
+      // create the scene object
+      var scene = {};
+
+      scene.rendersLinked = this.rendersLinked;
+      scene.hasToolBar = $('#' + this.toolbarContID).length;
+      scene.hasThumbnailBar = $('#' + this.thumbnailbarContID).length;
+      scene.renders2DIds = [];
+
+      for (var i=0; i<this.renders2D.length; i++) {
+        // get the integer id of the currently displayed renderers
+        scene.renders2DIds[i] = parseInt(this.renders2D[i].container.id.replace(this.rendersContID + "_render2D", ""));
+      }
 
       return scene;
     };
@@ -875,7 +903,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
     /**
      * Returns a clone of the current scene object.
      */
-    viewerjs.Viewer.prototype.getSceneObj = function() {
+    viewerjs.Viewer.prototype.getScene = function() {
       var scene = this.collab.getCollabObj();
       var sceneClone = {};
 
@@ -890,7 +918,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
      *
      * @param {Obj} new scene object.
      */
-    viewerjs.Viewer.prototype.setSceneObj = function(newScene) {
+    viewerjs.Viewer.prototype.setScene = function(newScene) {
       this.collab.setCollabObj(newScene);
     };
 
@@ -907,7 +935,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
         this.collab.authorizeAndLoadApi(true, function(granted) {
           if (granted) {
             // realtime API ready.
-            self.collab.startRealtimeCollaboration(self.createSceneObj());
+            self.collab.startRealtimeCollaboration(self.createScene());
           } else {
             // show the auth button to start the authorization flow
             collabButton.style.display = 'none';
@@ -917,7 +945,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
               self.collab.authorizeAndLoadApi(false, function(granted) {
                 if (granted) {
                   // realtime API ready.
-                  self.collab.startRealtimeCollaboration(self.createSceneObj());
+                  self.collab.startRealtimeCollaboration(self.createScene());
                 }
               });
             };
@@ -1004,10 +1032,9 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
         for (var i=0; i<fObjArr.length; i++) {
           fileArr.push({url: fObjArr[i].url, cloudId: fObjArr[i].id});
         }
+
         // start the viewer
         this.init(fileArr);
-        this.addThumbnailBar();
-        this.addToolBar();
 
         // Update the UI
         var collabButton = document.getElementById(this.toolbarContID + '_buttoncollab');
