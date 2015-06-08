@@ -92,19 +92,8 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
       this._addRenderersContainer();
       // build viewer's main data structure (this.imgFileArr)
       this._buildImgFileArr(fObjArr);
-
-      if (!this.collab || !this.collab.collabIsOn) {
-        // load and render the first volume in this.imgFileArr
-        for (var i=0; i<this.imgFileArr.length; i++) {
-          if (this.imgFileArr[i].imgType==='vol' || this.imgFileArr[i].imgType==='dicom') {
-            this.add2DRender(this.imgFileArr[i], 'Z');
-            break;
-          }
-        }
-      } else {
-        // render the scene
-        this.renderScene();
-      }
+      // render the scene
+      this.renderScene();
     };
 
     /**
@@ -260,14 +249,12 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
           }
         })});
       }
+
       // push non-DICOM data into self.imgFileArr
       for (i=0; i<nonDcmData.length; i++) {
         self.imgFileArr.push(nonDcmData[i]);
       }
-      // assign an id to each array elem
-      for (i=0; i<self.imgFileArr.length; i++) {
-        self.imgFileArr[i].id = i;
-      }
+
       // add thumbnail images
       for (var th in thumbnails) {
         // Search for a neuroimage file with the same name as the current thumbnail
@@ -283,6 +270,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
           }
         }
       }
+
       // add json files
       for (var jsn in jsons) {
         // Search for a neuroimage file with the same name as the current json
@@ -297,6 +285,16 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
             break;
           }
         }
+      }
+
+      // sort the built array for consistency between possible collaborators
+      self.imgFileArr.sort(function(el1, el2) {
+        return (el1.baseUrl + el1.files[0].name) > (el2.baseUrl + el2.files[0].name);
+      });
+
+      // assign an id to each array elem
+      for (i=0; i<self.imgFileArr.length; i++) {
+        self.imgFileArr[i].id = i;
       }
     };
 
@@ -868,15 +866,26 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
      * Render the current scene.
      */
     viewerjs.Viewer.prototype.renderScene = function() {
-      var scene = this.getScene();
-
-      // load and render the first volume in this.imgFileArr
-      for (var i=0; i<scene.renders2DIds.length; i++) {
-        this.add2DRender(this.getImgFileObject(scene.renders2DIds[i]), 'Z');
+      var i;
+      
+      if (!this.collab || !this.collab.collabIsOn) {
+        // just load and render the first volume in this.imgFileArr
+        for (i=0; i<this.imgFileArr.length; i++) {
+          if (this.imgFileArr[i].imgType==='vol' || this.imgFileArr[i].imgType==='dicom') {
+            this.add2DRender(this.imgFileArr[i], 'Z');
+            break;
+          }
+        }
+      } else {
+        // collaboration is on, so get and render the scene
+        var scene = this.getScene();
+        for (i=0; i<scene.renders2DIds.length; i++) {
+          this.add2DRender(this.getImgFileObject(scene.renders2DIds[i]), 'Z');
+        }
+        if (scene.hasToolBar) {this.addToolBar();}
+        if (scene.hasThumbnailBar) {this.addThumbnailBar();}
+        this.rendersLinked = scene.rendersLinked;
       }
-      if (scene.hasToolBar) {this.addToolBar();}
-      if (scene.hasThumbnailBar) {this.addThumbnailBar();}
-      this.rendersLinked = scene.rendersLinked;
     };
 
     /**
