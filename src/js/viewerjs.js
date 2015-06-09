@@ -70,10 +70,10 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
           self.handleOnDataFilesShared(collaboratorInfo, fObjArr);
         };
 
-        // This is called everytime the scene object is updated
-        /*this.collab.onCollabObjChanged = function(newScene) {
-          self.handleOnCollabObjChanged(newScene);
-        };*/
+        // This is called everytime the scene object is updated by a remote collaborator
+        this.collab.onCollabObjChanged = function() {
+          self.handleOnCollabObjChanged();
+        };
       }
 
     };
@@ -973,6 +973,8 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
 
     /**
      * Handle the onConnect event when the collaboration has successfully started and is ready.
+     *
+     * @param {String} roomId (realtime model file id).
      */
     viewerjs.Viewer.prototype.handleOnConnect = function(roomId) {
       var self = this;
@@ -1037,6 +1039,9 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
 
     /**
      * Handle the onDataFilesShared event when the collaboration owner has shared all data files with this collaborator
+     *
+     * @param {Object} collaborator info object with a mail property (collaborator's mail)
+     * @param {Object} array of file objects with properties: url and cloudId.
      */
      viewerjs.Viewer.prototype.handleOnDataFilesShared = function(collaboratorInfo, fObjArr) {
 
@@ -1058,6 +1063,14 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
         roomIdLabel.innerHTML = this.collab.realtimeFileId;
       }
     };
+
+    /**
+     * Handle the onCollabObjChanged event when the scene object has been modified by a remote collaborator
+     *
+     */
+     viewerjs.Viewer.prototype.handleOnCollabObjChanged = function() {
+       this.renderScene();
+     };
 
     /**
      * Leave the realtime collaboration.
