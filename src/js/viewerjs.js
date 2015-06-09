@@ -59,6 +59,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
 
         // Collaboration event listeners
         var self = this;
+
         // This is called when the collaboration has successfully started and is ready
         this.collab.onConnect = function(roomId) {
           self.handleOnConnect(roomId);
@@ -170,7 +171,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
       var jsons = {}; // associative array of json files
       var dicoms = {}; // associative array of arrays with ordered DICOM files
       var nonDcmData = []; // array of non-DICOM data
-      var path, name, i, j;
+      var path, name;
       var self = this;
 
       // function to add a file object into the proper internal data structure
@@ -223,80 +224,73 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
        }
      }
 
-      // add files
-      for (i=0; i<fObjArr.length; i++) {
-        addFile(fObjArr[i]);
-      }
+     // function to assign utility files (thumbnail images or json files) to their corresponding
+     // image file object in self.imgFileArr
+     function assignUtilityFiles(files, filetype) {
+       for (var key in files) {
+         // Search for a neuroimage file with the same name as the current utility file
+         for (var i=0; i<self.imgFileArr.length; i++) {
+           var j = 0;
+           do {
+             path = self.imgFileArr[i].baseUrl + self.imgFileArr[i].files[j].name;
+             name = path.substring(0, path.lastIndexOf('.'));
+           } while ((++j<self.imgFileArr[i].files.length)  && (key!==name));
+           if (key === name) {
+             self.imgFileArr[i][filetype] = files[key];
+             break;
+           }
+         }
+       }
+     }
 
-      //
-      // now build self.imgFileArr from the internal data structures
-      //
+     // add files
+     for (var i=0; i<fObjArr.length; i++) {
+       addFile(fObjArr[i]);
+     }
 
-      // push ordered DICOMs into self.imgFileArr
-      for (var baseUrl in dicoms) {
-        self.imgFileArr.push({
-        'baseUrl': baseUrl,
-        'imgType': 'dicom',
-        'files': dicoms[baseUrl].sort(function(f1, f2) {
-          var fnames = [f1.name, f2.name].sort();
+     //
+     // now build self.imgFileArr from the internal data structures
+     //
 
-          if (fnames[0] === fnames[1]) {
-            return 0;
-          } else if (fnames[0] === f1.name) {
-            return -1;
-          } else {
-            return 1;
-          }
-        })});
-      }
+     // push ordered DICOMs into self.imgFileArr
+     for (var baseUrl in dicoms) {
+       self.imgFileArr.push({
+       'baseUrl': baseUrl,
+       'imgType': 'dicom',
+       'files': dicoms[baseUrl].sort(function(f1, f2) {
+         var fnames = [f1.name, f2.name].sort();
 
-      // push non-DICOM data into self.imgFileArr
-      for (i=0; i<nonDcmData.length; i++) {
-        self.imgFileArr.push(nonDcmData[i]);
-      }
+         if (fnames[0] === fnames[1]) {
+           return 0;
+         } else if (fnames[0] === f1.name) {
+           return -1;
+         } else {
+           return 1;
+         }
+       })});
+     }
 
-      // add thumbnail images
-      for (var th in thumbnails) {
-        // Search for a neuroimage file with the same name as the current thumbnail
-        for (i=0; i<self.imgFileArr.length; i++) {
-          j = 0;
-          do {
-            path = self.imgFileArr[i].baseUrl + self.imgFileArr[i].files[j].name;
-            name = path.substring(0, path.lastIndexOf('.'));
-          } while ((++j<self.imgFileArr[i].files.length)  && (th!==name));
-          if (th === name) {
-            self.imgFileArr[i].thumbnail = thumbnails[th];
-            break;
-          }
-        }
-      }
+     // push non-DICOM data into self.imgFileArr
+     for (i=0; i<nonDcmData.length; i++) {
+       self.imgFileArr.push(nonDcmData[i]);
+     }
 
-      // add json files
-      for (var jsn in jsons) {
-        // Search for a neuroimage file with the same name as the current json
-        for (i=0; i<self.imgFileArr.length; i++) {
-          j = 0;
-          do {
-            path = self.imgFileArr[i].baseUrl + self.imgFileArr[i].files[j].name;
-            name = path.substring(0, path.lastIndexOf('.'));
-          } while ((++j<self.imgFileArr[i].files.length)  && (jsn!==name));
-          if (jsn === name) {
-            self.imgFileArr[i].json = jsons[jsn];
-            break;
-          }
-        }
-      }
+     // add thumbnail images to self.imgFileArr
+     assignUtilityFiles(thumbnails, 'thumbnail');
 
-      // sort the built array for consistency between possible collaborators
-      self.imgFileArr.sort(function(el1, el2) {
-        return (el1.baseUrl + el1.files[0].name) > (el2.baseUrl + el2.files[0].name);
-      });
+     // add json files to self.imgFileArr
+     assignUtilityFiles(jsons, 'json');
 
-      // assign an id to each array elem
-      for (i=0; i<self.imgFileArr.length; i++) {
-        self.imgFileArr[i].id = i;
-      }
-    };
+     // sort the built array for consistency among possible collaborators
+     self.imgFileArr.sort(function(el1, el2) {
+       return (el1.baseUrl + el1.files[0].name) > (el2.baseUrl + el2.files[0].name);
+     });
+
+     // assign an id to each array elem
+     for (i=0; i<self.imgFileArr.length; i++) {
+       self.imgFileArr[i].id = i;
+     }
+   };
 
     /**
      * Create and add a 2D renderer with a loaded volume to the renderers' container.
@@ -867,7 +861,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
      */
     viewerjs.Viewer.prototype.renderScene = function() {
       var i;
-      
+
       if (!this.collab || !this.collab.collabIsOn) {
         // just load and render the first volume in this.imgFileArr
         for (i=0; i<this.imgFileArr.length; i++) {
@@ -879,38 +873,49 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
       } else {
         // collaboration is on, so get and render the scene
         var scene = this.getScene();
+
+        // update renderers
         for (i=0; i<scene.renders2DIds.length; i++) {
           this.add2DRender(this.getImgFileObject(scene.renders2DIds[i]), 'Z');
         }
-        if (scene.hasToolBar) {this.addToolBar();}
+
+        // update thumbnailbar
         if (scene.hasThumbnailBar) {this.addThumbnailBar();}
-        this.rendersLinked = scene.rendersLinked;
+
+        // update toolbar
+        if (scene.hasToolBar) {this.addToolBar();}
+        this.rendersLinked = !scene.rendersLinked;
+        $('#' + this.toolbarContID + '_buttonlink').click();
       }
     };
 
     /**
-     * Create and returns a scene object describing the current scene.
+     * Create and return a scene object describing the current scene.
      */
     viewerjs.Viewer.prototype.createScene = function() {
 
       // create the scene object
       var scene = {};
 
-      scene.rendersLinked = this.rendersLinked;
-      scene.hasToolBar = $('#' + this.toolbarContID).length;
-      scene.hasThumbnailBar = $('#' + this.thumbnailbarContID).length;
+      // set renderers' properties
       scene.renders2DIds = [];
-
       for (var i=0; i<this.renders2D.length; i++) {
         // get the integer id of the currently displayed renderers
         scene.renders2DIds[i] = parseInt(this.renders2D[i].container.id.replace(this.rendersContID + "_render2D", ""));
       }
 
+      // set thumbnailbar's properties
+      scene.hasThumbnailBar = $('#' + this.thumbnailbarContID).length;
+
+      // set toolbar's properties
+      scene.hasToolBar = $('#' + this.toolbarContID).length;
+      scene.rendersLinked = this.rendersLinked;
+
       return scene;
     };
 
     /**
-     * Returns a clone of the current scene object.
+     * Return a clone of the current scene object.
      */
     viewerjs.Viewer.prototype.getScene = function() {
       var scene = this.collab.getCollabObj();
@@ -927,7 +932,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
      *
      * @param {Obj} new scene object.
      */
-    viewerjs.Viewer.prototype.setScene = function(newScene) {
+    viewerjs.Viewer.prototype.updateScene = function(newScene) {
       this.collab.setCollabObj(newScene);
     };
 
