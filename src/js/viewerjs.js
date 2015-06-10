@@ -302,9 +302,13 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
       var render, vol, containerID;
       var self = this;
 
-      // append renderer div to the renderers' container
       // the renderer's id is related to the imgFileObj's id
-      containerID = this.rendersContID + '_render2D' + imgFileObj.id;
+      containerID = this.rendersContID + "_render2D" + imgFileObj.id;
+      if ($('#' + containerID).length) {
+        return; // renderer already added
+      }
+
+      // append renderer div to the renderers' container
       $('#' + this.rendersContID).append(
         '<div id="' + containerID + '" class="view-render">' +
           '<div class="view-render-info view-render-info-topleft"></div>' +
@@ -627,16 +631,24 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
       //
       // event handlers
       //
-      $('#' + this.toolbarContID + '_buttonlink').click(function() {
+      this.handleToolBarButtonLinkClick = function() {
+        var jqButton = $('#' + this.toolbarContID + '_buttonlink');
+
         if (self.rendersLinked) {
           self.rendersLinked = false;
-          $(this).text('Link views');
-          $(this).attr('title', 'Link views');
+          jqButton.text('Link views');
+          jqButton.attr('title', 'Link views');
         } else {
           self.rendersLinked = true;
-          $(this).text('Unlink views');
-          $(this).attr('title', 'Unlink views');
+          jqButton.text('Unlink views');
+          jqButton.attr('title', 'Unlink views');
         }
+      };
+
+      $('#' + this.toolbarContID + '_buttonlink').click(function() {
+        //handle the event
+        self.handleToolBarButtonLinkClick();
+        self.updateCollabScene();
       });
 
       $('#' + this.toolbarContID + '_buttoncollab').click(function() {
@@ -862,131 +874,131 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
     viewerjs.Viewer.prototype.renderScene = function() {
       var i;
 
-      if (!this.collab || !this.collab.collabIsOn) {
-        // just load and render the first volume in this.imgFileArr
+      if (this.collab && this.collab.collabIsOn) {
+        // collaboration is on, so get and render the scene
+        var scene = this.getCollabScene();
+
+        // update thumbnailbar
+        if (scene.tumbnailBar) {this.addThumbnailBar();}
+
+        // update toolbar
+        if (scene.toolBar) {
+          this.addToolBar();
+          if (this.rendersLinked !== scene.toolBar.rendersLinked) {
+            this.handleToolBarButtonLinkClick();
+          }
+          //$('#' + this.toolbarContID + '_buttonlink').click();
+        }
+
+        // update renderers
+        var renders2DIds = [];
+        for (i=0; i<scene.renders.length; i++) {
+          if (scene.renders[i].general.type = '2D') {
+            renders2DIds.push(scene.renders[i].general.id);
+          }
+        }
+        for (i=0; i<this.renders2D.length; i++) {
+          var id = parseInt(this.renders2D[i].container.id.replace(this.rendersContID + "_render2D", ""));
+
+          if (renders2DIds.indexOf(id) === -1) {
+            this.remove2DRender(this.rendersContID + "_render2D" + id);
+          }
+        }
+        for (i=0; i<renders2DIds.length; i++) {
+          this.add2DRender(this.getImgFileObject(renders2DIds[i]), 'Z');
+        }
+
+      } else {
+        //  collaboration is off so just load and render the first volume in this.imgFileArr
         for (i=0; i<this.imgFileArr.length; i++) {
           if (this.imgFileArr[i].imgType==='vol' || this.imgFileArr[i].imgType==='dicom') {
             this.add2DRender(this.imgFileArr[i], 'Z');
             break;
           }
         }
-      } else {
-        // collaboration is on, so get and render the scene
-        var scene = this.getScene();
-
-        // update renderers
-        for (i=0; i<scene.renders2DIds.length; i++) {
-          this.add2DRender(this.getImgFileObject(scene.renders2DIds[i]), 'Z');
-        }
-
-        // update thumbnailbar
-        if (scene.hasThumbnailBar) {this.addThumbnailBar();}
-
-        // update toolbar
-        if (scene.hasToolBar) {this.addToolBar();}
-        this.rendersLinked = !scene.rendersLinked;
-        $('#' + this.toolbarContID + '_buttonlink').click();
       }
     };
 
     /**
      * Create and return a scene object describing the current scene.
      */
-    viewerjs.Viewer.prototype.createScene = function() {
-
-      // create the scene object
+    viewerjs.Viewer.prototype.getLocalScene = function() {
       var scene = {};
-      // scene.general = {};
-
-      // set renderers' properties
-      scene.renders2DIds = [];
-      for (var i=0; i<this.renders2D.length; i++) {
-        // get the integer id of the currently displayed renderers
-        scene.renders2DIds[i] = parseInt(this.renders2D[i].container.id.replace(this.rendersContID + '_render2D', ''));
-      }
 
       // set thumbnailbar's properties
-      scene.hasThumbnailBar = $('#' + this.thumbnailbarContID).length;
+      scene.thumbnailBar = $('#' + this.thumbnailbarContID).length;
 
       // set toolbar's properties
-      scene.hasToolBar = $('#' + this.toolbarContID).length;
-      scene.rendersLinked = this.rendersLinked;
+      if ($('#' + this.toolbarContID).length) {
+        scene.toolBar = {};
+        scene.toolBar.rendersLinked = this.rendersLinked;
+      }
 
-      //
-      // TO BE REVIEWED BY JORGE
-      //
-      // Added by nicolas
+      // set renderers' properties
       // https://docs.google.com/document/d/1GHT7DtSq1ds4TyplA0E2Efy4fuv2xf17APcorqzBZjc/edit
-      //
-      // scene.renderers = [];
-      //
-      var renderers = [];
+      scene.renders = [];
 
       // parse each renderer and get information to be synchronized
       for (var j=0; j<this.renders2D.length; j++) {
-        var renderer = {};
+        var render = {};
 
         // set general information about the renderer
-        renderer.general = {};
-        renderer.general.id = parseInt(this.renders2D[j].container.id.replace(this.rendersContID + '_render2D', ''));
-        renderer.general.type = '2D';
+        render.general = {};
+        render.general.id = parseInt(this.renders2D[j].container.id.replace(this.rendersContID + '_render2D', ''));
+        render.general.type = '2D';
 
         // set renderer specific information
         // information on how to re-build the view matrix there:
         // https://github.com/FNNDSC/chrisreloaded/blob/master/plugins/viewer/widget/js/viewer.js#L846-848
-        renderer.renderer = {};
-        renderer.renderer.viewMatrix = JSON.stringify(this.renders2D[j].camera.view);
+        render.renderer = {};
+        render.renderer.viewMatrix = JSON.stringify(this.renders2D[j].camera.view);
 
         // set volume specific information
         // only supports 1 volume for now....
-        renderer.volume = {};
+        render.volume = {};
         // @jorge
         // full name or just file name?
-        renderer.volume.file = this.renders2D[j].volume.file;
-        renderer.volume.lowerThreshold = this.renders2D[j].volume.lowerThreshold;
-        renderer.volume.upperThreshold = this.renders2D[j].volume.upperThreshold;
-        renderer.volume.lowerWindowLevel = this.renders2D[j].volume.windowLow;
-        renderer.volume.upperWindowLevel = this.renders2D[j].volume.windowHigh;
-        renderer.volume.indexX = this.renders2D[j].volume.indexX;
-        renderer.volume.indexY = this.renders2D[j].volume.indexY;
-        renderer.volume.indexZ = this.renders2D[j].volume.indexZ;
+        render.volume.file = this.renders2D[j].volume.file;
+        render.volume.lowerThreshold = this.renders2D[j].volume.lowerThreshold;
+        render.volume.upperThreshold = this.renders2D[j].volume.upperThreshold;
+        render.volume.lowerWindowLevel = this.renders2D[j].volume.windowLow;
+        render.volume.upperWindowLevel = this.renders2D[j].volume.windowHigh;
+        render.volume.indexX = this.renders2D[j].volume.indexX;
+        render.volume.indexY = this.renders2D[j].volume.indexY;
+        render.volume.indexZ = this.renders2D[j].volume.indexZ;
 
         // set interactor specific information
         // set camera specific information
         // set pointer specific information
-        renderer.interactor = {};
-        renderer.camera = {};
-        renderer.pointerr = {};
+        render.interactor = {};
+        render.camera = {};
+        render.pointer = {};
 
-        renderers.push(renderer);
+        scene.renders.push(render);
       }
-
-      window.console.log(renderers);
-
 
       return scene;
     };
 
     /**
-     * Return a clone of the current scene object.
+     * Return the current collaboration scene object.
      */
-    viewerjs.Viewer.prototype.getScene = function() {
-      var scene = this.collab.getCollabObj();
-      var sceneClone = {};
-
-      for (var prop in scene) {
-        sceneClone[prop] = scene[prop];
+    viewerjs.Viewer.prototype.getCollabScene = function() {
+      if (this.collab && this.collab.collabIsOn) {
+        return this.collab.getCollabObj();
       }
-      return sceneClone;
     };
 
     /**
-     * Update the scene object.
-     *
-     * @param {Obj} new scene object.
+     * Update the collaboration scene.
      */
-    viewerjs.Viewer.prototype.updateScene = function(newScene) {
-      this.collab.setCollabObj(newScene);
+    viewerjs.Viewer.prototype.updateCollabScene = function() {
+
+      // if collaboration is on then update the collaboration scene
+      if (this.collab && this.collab.collabIsOn) {
+        var newScene = this.getLocalScene();
+        this.collab.setCollabObj(newScene);
+      }
     };
 
     /**
@@ -1002,7 +1014,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
         this.collab.authorizeAndLoadApi(true, function(granted) {
           if (granted) {
             // realtime API ready.
-            self.collab.startRealtimeCollaboration(self.createScene());
+            self.collab.startRealtimeCollaboration(self.getLocalScene());
           } else {
             // show the auth button to start the authorization flow
             collabButton.style.display = 'none';
@@ -1012,7 +1024,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
               self.collab.authorizeAndLoadApi(false, function(granted) {
                 if (granted) {
                   // realtime API ready.
-                  self.collab.startRealtimeCollaboration(self.createScene());
+                  self.collab.startRealtimeCollaboration(self.getLocalScene());
                 }
               });
             };
