@@ -104,11 +104,11 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
       var self = this;
 
       $('#' + this.wholeContID).css({
-        "position": "relative",
-        "margin": 0,
-        "-webkit-box-sizing": "border-box",
-        "-moz-box-sizing": "border-box",
-        "box-sizing": "border-box"
+        'position': 'relative',
+        'margin': 0,
+        '-webkit-box-sizing': 'border-box',
+        '-moz-box-sizing': 'border-box',
+        'box-sizing': 'border-box'
       }).append('<div id="' + this.rendersContID + '" class="view-renders ' + this.wholeContID + '-sortable"></div>' );
 
       // jQuery UI options object for sortable elems
@@ -123,14 +123,14 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
         dropOnEmpty: true,
 
         helper: function (evt, target) {
-          var thWidth =  $('.view-thumbnail').css("width");
-          var thHeight = $('.view-thumbnail').css("height");
-          var renderId = target.attr("id");
-          var thId = renderId.replace(self.rendersContID + "_render2D", self.thumbnailbarContID + "_th");
+          var thWidth =  $('.view-thumbnail').css('width');
+          var thHeight = $('.view-thumbnail').css('height');
+          var renderId = target.attr('id');
+          var thId = renderId.replace(self.rendersContID + '_render2D', self.thumbnailbarContID + '_th');
 
           // the moving helper is a clone of the corresponding thumbnail
           return $('#' + thId).clone().css({
-            display:"block",
+            display:'block',
             width: thWidth,
             height: thHeight });
         },
@@ -138,22 +138,22 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
         //event handlers
         start: function() {
           // thumbnails' scroll bar has to be removed to make the moving helper visible
-          $('#' + self.thumbnailbarContID).css({ overflow: "visible" });
+          $('#' + self.thumbnailbarContID).css({ overflow: 'visible' });
         },
 
         beforeStop: function(evt, ui) {
           var renderId, thId;
 
-          if (ui.placeholder.parent().attr("id") === self.thumbnailbarContID) {
-            $(this).sortable("cancel");
-            renderId = ui.item.attr("id");
-            thId = renderId.replace(self.rendersContID + "_render2D", self.thumbnailbarContID + "_th");
+          if (ui.placeholder.parent().attr('id') === self.thumbnailbarContID) {
+            $(this).sortable('cancel');
+            renderId = ui.item.attr('id');
+            thId = renderId.replace(self.rendersContID + '_render2D', self.thumbnailbarContID + '_th');
             // display the dropped renderer's thumbnail
-            $('#' + thId).css({ display:"block" });
+            $('#' + thId).css({ display:'block' });
             self.remove2DRender(renderId);
           }
           // restore thumbnails' scroll bar
-          $('#' + self.thumbnailbarContID).css({ overflow: "auto" });
+          $('#' + self.thumbnailbarContID).css({ overflow: 'auto' });
         }
       };
 
@@ -304,7 +304,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
 
       // append renderer div to the renderers' container
       // the renderer's id is related to the imgFileObj's id
-      containerID = this.rendersContID + "_render2D" + imgFileObj.id;
+      containerID = this.rendersContID + '_render2D' + imgFileObj.id;
       $('#' + this.rendersContID).append(
         '<div id="' + containerID + '" class="view-render">' +
           '<div class="view-render-info view-render-info-topleft"></div>' +
@@ -474,7 +474,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
 
       // find and destroy xtk objects and remove the renderer's div from the UI
       for (var i=0; i<this.renders2D.length; i++) {
-        if ($(this.renders2D[i].container).attr("id") === containerID) {
+        if ($(this.renders2D[i].container).attr('id') === containerID) {
           this.renders2D[i].remove(this.renders2D[i].volume);
           this.renders2D[i].volume.destroy();
           this.renders2D[i].interactor.removeEventListener(X.event.events.SCROLL, this.onRender2DScroll);
@@ -543,8 +543,8 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
       switch(this.numOfRenders) {
         case 1:
           jqRenders.css({
-            width: "100%",
-            height: "100%",
+            width: '100%',
+            height: '100%',
             top: 0,
             left: 0
           });
@@ -552,41 +552,41 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
 
         case 2:
           jqRenders.css({
-            width: "50%",
-            height: "100%",
+            width: '50%',
+            height: '100%',
             top: 0,
             left:0
           });
-          jqRenders[1].style.left = "50%";
+          jqRenders[1].style.left = '50%';
         break;
 
         case 3:
           jqRenders.css({
-            width: "50%",
-            height: "50%",
+            width: '50%',
+            height: '50%',
           });
           jqRenders[0].style.top = 0;
           jqRenders[0].style.left = 0;
           jqRenders[1].style.top = 0;
-          jqRenders[1].style.left = "50%";
-          jqRenders[2].style.top = "50%";
+          jqRenders[1].style.left = '50%';
+          jqRenders[2].style.top = '50%';
           jqRenders[2].style.left = 0;
-          jqRenders[2].style.width = "100%";
+          jqRenders[2].style.width = '100%';
         break;
 
         case 4:
           jqRenders.css({
-            width: "50%",
-            height: "50%",
+            width: '50%',
+            height: '50%',
           });
           jqRenders[0].style.top = 0;
           jqRenders[0].style.left = 0;
           jqRenders[1].style.top = 0;
-          jqRenders[1].style.left = "50%";
-          jqRenders[2].style.top = "50%";
+          jqRenders[1].style.left = '50%';
+          jqRenders[2].style.top = '50%';
           jqRenders[2].style.left = 0;
-          jqRenders[3].style.top = "50%";
-          jqRenders[3].style.left = "50%";
+          jqRenders[3].style.top = '50%';
+          jqRenders[3].style.left = '50%';
         break;
       }
     };
@@ -611,17 +611,17 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
         '<div>'
       );
       // hide the authorize button
-      $('#' + this.toolbarContID + '_buttonauth').css({display: "none" });
+      $('#' + this.toolbarContID + '_buttonauth').css({display: 'none' });
 
       // make space for the toolbar
       var jqToolCont = $('#' + this.toolbarContID);
-      var rendersTopEdge = parseInt(jqToolCont.css("top")) + parseInt(jqToolCont.css("height")) + 5;
-      $('#' + this.rendersContID).css({ height: "calc(100% - " + rendersTopEdge + "px)" });
+      var rendersTopEdge = parseInt(jqToolCont.css('top')) + parseInt(jqToolCont.css('height')) + 5;
+      $('#' + this.rendersContID).css({ height: 'calc(100% - ' + rendersTopEdge + 'px)' });
       if ($('#' + this.thumbnailbarContID).length) {
         // there is a thumbnail bar so make space for it
         var jqThCont = $('#' + this.thumbnailbarContID);
-        var toolLeftEdge = parseInt(jqThCont.css("left")) + parseInt(jqThCont.css("width")) + 5;
-        jqToolCont.css({ width: "calc(100% - " + toolLeftEdge + "px)" });
+        var toolLeftEdge = parseInt(jqThCont.css('left')) + parseInt(jqThCont.css('width')) + 5;
+        jqToolCont.css({ width: 'calc(100% - ' + toolLeftEdge + 'px)' });
       }
 
       //
@@ -630,12 +630,12 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
       $('#' + this.toolbarContID + '_buttonlink').click(function() {
         if (self.rendersLinked) {
           self.rendersLinked = false;
-          $(this).text("Link views");
-          $(this).attr("title", "Link views");
+          $(this).text('Link views');
+          $(this).attr('title', 'Link views');
         } else {
           self.rendersLinked = true;
-          $(this).text("Unlink views");
-          $(this).attr("title", "Unlink views");
+          $(this).text('Unlink views');
+          $(this).attr('title', 'Unlink views');
         }
       });
 
@@ -698,11 +698,11 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
 
       // make space for the thumbnail bar
       var jqThBarCont = $('#' + this.thumbnailbarContID);
-      var rendersLeftEdge = parseInt(jqThBarCont.css("left")) + parseInt(jqThBarCont.css("width")) + 5;
-      $('#' + this.rendersContID).css({ width: "calc(100% - " + rendersLeftEdge + "px)" });
+      var rendersLeftEdge = parseInt(jqThBarCont.css('left')) + parseInt(jqThBarCont.css('width')) + 5;
+      $('#' + this.rendersContID).css({ width: 'calc(100% - ' + rendersLeftEdge + 'px)' });
       if ($('#' + this.toolbarContID).length) {
         // there is a toolbar
-        $('#' + this.toolbarContID).css({ width: "calc(100% - " + rendersLeftEdge + "px)" });
+        $('#' + this.toolbarContID).css({ width: 'calc(100% - ' + rendersLeftEdge + 'px)' });
       }
 
       // function to load the thumbnail corresponding to the imgFileObj argument
@@ -760,11 +760,11 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
           var vol = self.createVolume(imgFileObj);
           var render;
           var tempRenderContId = thContJq.attr('id') + '_temp';
-          var imgWidth = imgJq.css("width");
-          var imgHeight = imgJq.css("height");
+          var imgWidth = imgJq.css('width');
+          var imgHeight = imgJq.css('height');
 
           // hide the <img> and prepend a div for a renderer canvas with the same size as the hidden <img>
-          imgJq.css({ display:"none" });
+          imgJq.css({ display:'none' });
           thContJq.prepend('<div id="' + tempRenderContId + '"></div>');
           $('#' + tempRenderContId).css({ width: imgWidth, height: imgHeight });
           render = self.create2DRender(tempRenderContId, 'Z');
@@ -780,10 +780,10 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
               $('#' + tempRenderContId).remove();
               render.destroy();
               // restore the hidden <img>
-              imgJq.css({ display:"block" });
+              imgJq.css({ display:'block' });
               // if there is a corresponding renderer window already in the UI then hide this thumbnail
               if ($('#' + self.rendersContID + '_render2D' + id).length) {
-                thContJq.css({ display:"none" });
+                thContJq.css({ display:'none' });
               }
             });
           };
@@ -896,12 +896,13 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
 
       // create the scene object
       var scene = {};
+      // scene.general = {};
 
       // set renderers' properties
       scene.renders2DIds = [];
       for (var i=0; i<this.renders2D.length; i++) {
         // get the integer id of the currently displayed renderers
-        scene.renders2DIds[i] = parseInt(this.renders2D[i].container.id.replace(this.rendersContID + "_render2D", ""));
+        scene.renders2DIds[i] = parseInt(this.renders2D[i].container.id.replace(this.rendersContID + '_render2D', ''));
       }
 
       // set thumbnailbar's properties
@@ -910,6 +911,58 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
       // set toolbar's properties
       scene.hasToolBar = $('#' + this.toolbarContID).length;
       scene.rendersLinked = this.rendersLinked;
+
+      //
+      // TO BE REVIEWED BY JORGE
+      //
+      // Added by nicolas
+      // https://docs.google.com/document/d/1GHT7DtSq1ds4TyplA0E2Efy4fuv2xf17APcorqzBZjc/edit
+      //
+      // scene.renderers = [];
+      //
+      var renderers = [];
+
+      // parse each renderer and get information to be synchronized
+      for (var j=0; j<this.renders2D.length; j++) {
+        var renderer = {};
+
+        // set general information about the renderer
+        renderer.general = {};
+        renderer.general.id = parseInt(this.renders2D[j].container.id.replace(this.rendersContID + '_render2D', ''));
+        renderer.general.type = '2D';
+
+        // set renderer specific information
+        // information on how to re-build the view matrix there:
+        // https://github.com/FNNDSC/chrisreloaded/blob/master/plugins/viewer/widget/js/viewer.js#L846-848
+        renderer.renderer = {};
+        renderer.renderer.viewMatrix = JSON.stringify(this.renders2D[j].camera.view);
+
+        // set volume specific information
+        // only supports 1 volume for now....
+        renderer.volume = {};
+        // @jorge
+        // full name or just file name?
+        renderer.volume.file = this.renders2D[j].volume.file;
+        renderer.volume.lowerThreshold = this.renders2D[j].volume.lowerThreshold;
+        renderer.volume.upperThreshold = this.renders2D[j].volume.upperThreshold;
+        renderer.volume.lowerWindowLevel = this.renders2D[j].volume.windowLow;
+        renderer.volume.upperWindowLevel = this.renders2D[j].volume.windowHigh;
+        renderer.volume.indexX = this.renders2D[j].volume.indexX;
+        renderer.volume.indexY = this.renders2D[j].volume.indexY;
+        renderer.volume.indexZ = this.renders2D[j].volume.indexZ;
+
+        // set interactor specific information
+        // set camera specific information
+        // set pointer specific information
+        renderer.interactor = {};
+        renderer.camera = {};
+        renderer.pointerr = {};
+
+        renderers.push(renderer);
+      }
+
+      window.console.log(renderers);
+
 
       return scene;
     };
@@ -967,7 +1020,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
         });
 
       } else {
-        console.error("Collaboration was not enabled for this viewer instance");
+        console.error('Collaboration was not enabled for this viewer instance');
       }
     };
 
@@ -1011,8 +1064,8 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
         // Update the UI
         var collabButton = document.getElementById(this.toolbarContID + '_buttoncollab');
         collabButton.style.display = '';
-        collabButton.innerHTML = "End collab";
-        collabButton.title = "End collaboration";
+        collabButton.innerHTML = 'End collab';
+        collabButton.title = 'End collaboration';
         var authButton = document.getElementById(this.toolbarContID + '_buttonauth');
         authButton.style.display = 'none';
         var roomIdLabel = document.getElementById(this.toolbarContID + '_labelcollab');
@@ -1057,8 +1110,8 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
 
         // Update the UI
         var collabButton = document.getElementById(this.toolbarContID + '_buttoncollab');
-        collabButton.innerHTML = "End collab";
-        collabButton.title = "End collaboration";
+        collabButton.innerHTML = 'End collab';
+        collabButton.title = 'End collaboration';
         var roomIdLabel = document.getElementById(this.toolbarContID + '_labelcollab');
         roomIdLabel.innerHTML = this.collab.realtimeFileId;
       }
@@ -1083,10 +1136,10 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
 
         // update the UI
         var collabButton = document.getElementById(this.toolbarContID + '_buttoncollab');
-        collabButton.innerHTML = "Start collab";
-        collabButton.title = "Start collaboration";
+        collabButton.innerHTML = 'Start collab';
+        collabButton.title = 'Start collaboration';
         var roomIdLabel = document.getElementById(this.toolbarContID + '_labelcollab');
-        roomIdLabel.innerHTML = "";
+        roomIdLabel.innerHTML = '';
       }
     };
 
@@ -1236,8 +1289,8 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
      viewerjs.urlToBlob = function(url, callback) {
        var xhr = new XMLHttpRequest();
 
-       xhr.open("GET", url);
-       xhr.responseType = "blob";//force the HTTP response, response-type header to be blob
+       xhr.open('GET', url);
+       xhr.responseType = 'blob';//force the HTTP response, response-type header to be blob
        xhr.onload = function() {
            callback(xhr.response);//xhr.response is now a blob object
        };
