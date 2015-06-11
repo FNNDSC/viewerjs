@@ -151,6 +151,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
             // display the dropped renderer's thumbnail
             $('#' + thId).css({ display:'block' });
             self.remove2DRender(renderId);
+            self.updateCollabScene();
           }
           // restore thumbnails' scroll bar
           $('#' + self.thumbnailbarContID).css({ overflow: 'auto' });
@@ -663,15 +664,17 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
 
     /**
      * Create and add a thumbnail bar to the viewer.
+     *
+     * @param {Function} optional callback to be called when the thumbnail bar is ready
      */
-    viewerjs.Viewer.prototype.addThumbnailBar = function() {
+    viewerjs.Viewer.prototype.addThumbnailBar = function(callback) {
+      var numLoadedThumbnails = 0;
       var self = this;
 
-      if (this.imgFileArr.length<2){
-        return; // a single (or none) file doesn't need a thumbnail bar
-      }
-      if ($('#' + this.thumbnailbarContID).length){
-        return; // thumbnail bar already exists
+      // return if less than 2 files (doesn't need a thumbnail bar) or if thumbnail bar already exists
+      if ((this.imgFileArr.length<2) || $('#' + this.thumbnailbarContID).length) {
+        if (callback) {callback();}
+        return;
       }
 
       // append thumbnailbar to the whole container
@@ -698,6 +701,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
               var id = parseInt(ui.item.css({ display:"none" }).attr("id").replace(self.thumbnailbarContID + "_th",""));
               // add a renderer to the UI containing a volume with the same id suffix as the thumbnail
               self.add2DRender(self.getImgFileObject(id), 'Z');
+              self.updateCollabScene();
             } else {
               alert('Reached maximum number of renders allow which is 4. You must drag a render out ' +
                'of the viewer window and drop it into the thumbnails bar to make a render available');
@@ -755,12 +759,16 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
         imgJq = $('.view-thumbnail-img', thContJq);
 
         // internal function to read the thumbnail's url so it can be assigned to the src of <img>
-        function readThumbnailUrl() {
-          self.readFile(imgFileObj.thumbnail, 'readAsDataURL', function(data) {
+        function readThumbnailUrl(thumbnail) {
+          self.readFile(thumbnail, 'readAsDataURL', function(data) {
             imgJq.attr('src', data);
             // if there is a corresponding renderer window already in the UI then hide this thumbnail
             if ($('#' + self.rendersContID + '_render2D' + id).length) {
               thContJq.css({ display:"none" });
+            }
+            if (++numLoadedThumbnails === self.imgFileArr.length) {
+              // all thumbnails loaded
+              if (callback) {callback();}
             }
           });
         }
@@ -783,10 +791,9 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
 
           render.afterRender = function() {
             var canvas = $('#' + tempRenderContId + ' > canvas')[0];
-            var img = imgJq[0];
 
             self.readFile(viewerjs.dataURItoJPGBlob(canvas.toDataURL('image/jpeg')), 'readAsDataURL', function(data) {
-              img.src = data;
+              imgJq.attr('src', data);
               render.remove(vol);
               vol.destroy();
               $('#' + tempRenderContId).remove();
@@ -796,6 +803,10 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
               // if there is a corresponding renderer window already in the UI then hide this thumbnail
               if ($('#' + self.rendersContID + '_render2D' + id).length) {
                 thContJq.css({ display:'none' });
+              }
+              if (++numLoadedThumbnails === self.imgFileArr.length) {
+                // all thumbnails loaded
+                if (callback) {callback();}
               }
             });
           };
@@ -833,7 +844,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
         }
 
         if (imgFileObj.thumbnail) {
-          readThumbnailUrl();
+          readThumbnailUrl(imgFileObj.thumbnail);
         } else {
           createAndReadThumbnailUrl();
         }
@@ -872,45 +883,65 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
      * Render the current scene.
      */
     viewerjs.Viewer.prototype.renderScene = function() {
-      var i;
+      var scene;
+      var self = this;
 
-      if (this.collab && this.collab.collabIsOn) {
-        // collaboration is on, so get and render the scene
-        var scene = this.getCollabScene();
-
-        // update thumbnailbar
-        if (scene.tumbnailBar) {this.addThumbnailBar();}
-
-        // update toolbar
-        if (scene.toolBar) {
-          this.addToolBar();
-          if (this.rendersLinked !== scene.toolBar.rendersLinked) {
-            this.handleToolBarButtonLinkClick();
-          }
-          //$('#' + this.toolbarContID + '_buttonlink').click();
-        }
-
-        // update renderers
+      function renderRenders() {
         var renders2DIds = [];
-        for (i=0; i<scene.renders.length; i++) {
+
+        for (var i=0; i<scene.renders.length; i++) {
           if (scene.renders[i].general.type = '2D') {
             renders2DIds.push(scene.renders[i].general.id);
           }
         }
-        for (i=0; i<this.renders2D.length; i++) {
-          var id = parseInt(this.renders2D[i].container.id.replace(this.rendersContID + "_render2D", ""));
+        for (i=0; i<self.renders2D.length; i++) {
+          var id = parseInt(self.renders2D[i].container.id.replace(self.rendersContID + "_render2D", ""));
 
           if (renders2DIds.indexOf(id) === -1) {
-            this.remove2DRender(this.rendersContID + "_render2D" + id);
+            $('#' + self.thumbnailbarContID + '_th' + id).css({ display: "block" });
+            self.remove2DRender(self.rendersContID + "_render2D" + id);
           }
         }
         for (i=0; i<renders2DIds.length; i++) {
-          this.add2DRender(this.getImgFileObject(renders2DIds[i]), 'Z');
+          $('#' + self.thumbnailbarContID + '_th' + renders2DIds[i]).css({ display: "none" });
+          self.add2DRender(self.getImgFileObject(renders2DIds[i]), 'Z');
         }
+      }
 
+      function renderToolbar() {
+        if (scene.toolBar) {
+          if ($('#' + self.toolbarContID).length===0) {
+            // add a toolbar
+            self.addToolBar();
+            // Update the toolbar's UI
+            var collabButton = document.getElementById(self.toolbarContID + '_buttoncollab');
+            collabButton.innerHTML = 'End collab';
+            collabButton.title = 'End collaboration';
+            var roomIdLabel = document.getElementById(self.toolbarContID + '_labelcollab');
+            roomIdLabel.innerHTML = self.collab.realtimeFileId;
+          }
+          if (self.rendersLinked !== scene.toolBar.rendersLinked) {
+            self.handleToolBarButtonLinkClick();
+          }
+        }
+      }
+
+      if (this.collab && this.collab.collabIsOn) {
+        // collaboration is on, so get and render the scene
+        scene = this.getCollabScene();
+
+        if (scene.thumbnailBar) {
+          this.addThumbnailBar(function() {
+            renderToolbar();
+            renderRenders();
+          });
+        } else {
+          renderToolbar();
+          renderRenders();
+        }
       } else {
         //  collaboration is off so just load and render the first volume in this.imgFileArr
-        for (i=0; i<this.imgFileArr.length; i++) {
+        for (var i=0; i<this.imgFileArr.length; i++) {
           if (this.imgFileArr[i].imgType==='vol' || this.imgFileArr[i].imgType==='dicom') {
             this.add2DRender(this.imgFileArr[i], 'Z');
             break;
@@ -1119,13 +1150,6 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
 
         // start the viewer
         this.init(fileArr);
-
-        // Update the UI
-        var collabButton = document.getElementById(this.toolbarContID + '_buttoncollab');
-        collabButton.innerHTML = 'End collab';
-        collabButton.title = 'End collaboration';
-        var roomIdLabel = document.getElementById(this.toolbarContID + '_labelcollab');
-        roomIdLabel.innerHTML = this.collab.realtimeFileId;
       }
     };
 
