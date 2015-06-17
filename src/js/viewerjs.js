@@ -4,7 +4,7 @@
  */
 
 // define a new module
-define(['jquery_ui', 'dicomParser', 'xtk'], function() {
+define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
 
   /**
    * Provide a namespace for the viewer module
@@ -216,7 +216,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
          // array keys are the full path with the extension trimmed
          jsons[path.substring(0, path.lastIndexOf('.'))] = file;
        } else if (imgType !== 'unsupported') {
-         // push fibers, meshes and volumes into nonDcmData
+         // push fibers, meshes, volumes and zipped dicoms into nonDcmData
          nonDcmData.push({
            'baseUrl': baseUrl,
            'imgType': imgType,
@@ -437,9 +437,9 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
       // add xtk 2D renderer to the list of current UI renders
       this.renders2D.push(render);
 
-      // function to read an MRI file into filedata array
-      var filedata = [];
+      // function to read an MRI file
       var numFiles = 0;
+      var filedata = [];
       function readMriFile(file, pos) {
 
         self.readFile(file, 'readAsArrayBuffer', function(data) {
@@ -447,13 +447,38 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
           ++numFiles;
 
           if (numFiles===imgFileObj.files.length) {
-            if (imgFileObj.imgType === 'dicom') {
+
+            if (imgFileObj.imgType === 'dicom' || imgFileObj.imgType === 'dicomzip') {
+              // if the file is a zip file of dicoms then unzip it and sort the resultant files
+              if (imgFileObj.imgType === 'dicomzip') {
+                var fDataArr = self.unzipFileData(data).sort(function(f1, f2) {
+                  var fnames = [f1.name, f2.name].sort();
+
+                  if (fnames[0] === fnames[1]) {
+                    return 0;
+                  } else if (fnames[0] === f1.name) {
+                    return -1;
+                  } else {
+                    return 1;
+                  }
+                });
+
+                filedata = [];
+                var urls = [];
+                for (var i=0; i<fDataArr.length; i++) {
+                  filedata.push(fDataArr[i].data);
+                  urls.push(imgFileObj.baseUrl + fDataArr[i].name);
+                }
+                vol.file = urls;
+              }
+
               try {
                 imgFileObj.dicomInfo = viewerjs.Viewer.parseDicom(filedata[0]);
               } catch(err) {
                 console.log('Could not parse dicom ' + imgFileObj.baseUrl + ' Error - ' + err);
               }
             }
+
             vol.filedata = filedata;
             render.add(vol);
             // start the rendering
@@ -523,16 +548,20 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
      */
     viewerjs.Viewer.prototype.createVolume = function(imgFileObj) {
       var fileNames = [];
-      var vol;
 
-      for (var i=0; i<imgFileObj.files.length; i++) {
-        fileNames[i] = imgFileObj.files[i].name;
+      if (imgFileObj.imgType === 'dicomzip') {
+        fileNames.push(imgFileObj.files[0].name.replace('.zip', ''));
+      } else {
+        for (var i=0; i<imgFileObj.files.length; i++) {
+          fileNames[i] = imgFileObj.files[i].name;
+        }
       }
       // create xtk object
-      vol = new X.volume();
+      var vol = new X.volume();
       vol.reslicing = 'false';
       vol.file = fileNames.sort().map(function(str) {
         return imgFileObj.baseUrl + str;});
+
       return vol;
     };
 
@@ -814,9 +843,33 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
           function readFile(file, pos) {
             self.readFile(file, 'readAsArrayBuffer', function(data) {
               filedata[pos] = data;
+
               if (++numFiles === imgFileObj.files.length) {
-                // all files have been read
-                if (imgFileObj.imgType === 'dicom') {
+                // all files have been read            
+                if (imgFileObj.imgType === 'dicom' || imgFileObj.imgType === 'dicomzip') {
+                  // if the file is a zip file of dicoms then unzip it and sort the resultant files
+                  if (imgFileObj.imgType === 'dicomzip') {
+                    var fDataArr = self.unzipFileData(data).sort(function(f1, f2) {
+                      var fnames = [f1.name, f2.name].sort();
+
+                      if (fnames[0] === fnames[1]) {
+                        return 0;
+                      } else if (fnames[0] === f1.name) {
+                        return -1;
+                      } else {
+                        return 1;
+                      }
+                    });
+
+                    filedata = [];
+                    var urls = [];
+                    for (var i=0; i<fDataArr.length; i++) {
+                      filedata.push(fDataArr[i].data);
+                      urls.push(imgFileObj.baseUrl + fDataArr[i].name);
+                    }
+                    vol.file = urls;
+                  }
+
                   //update the thumbnail info with the series description
                   var byteArray = new Uint8Array(filedata[0]);
                   try {
@@ -829,6 +882,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
                     console.log('Could not parse dicom ' + imgFileObj.baseUrl + ' Error - ' + err);
                   }
                 }
+
                 vol.filedata = filedata;
                 render.add(vol);
                 // start the rendering
@@ -911,7 +965,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
       function renderToolbar() {
         if (scene.toolBar) {
           if ($('#' + self.toolbarContID).length===0) {
-            // add a toolbar
+            // no local toolbar so add a toolbar
             self.addToolBar();
             // Update the toolbar's UI
             var collabButton = document.getElementById(self.toolbarContID + '_buttoncollab');
@@ -1081,25 +1135,25 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
         var nFiles = 0;
 
         for (var i=0; i<self.imgFileArr.length; i++) {
+          ++nFiles;
           if (self.imgFileArr[i].json) {
             ++nFiles;
           }
-          nFiles += self.imgFileArr[i].files.length;
         }
         return nFiles;
       }());
 
       // function to load a file into GDrive
       var fObjArr = [];
-      function loadFile(file, url) {
-        self.readFile(file, 'readAsArrayBuffer', function(data) {
-          self.collab.driveFm.writeFile(self.collab.dataFilesBaseDir + '/' + file.name, data, function(fileResp) {
-            fObjArr.push({id: fileResp.id, url: url});
-            if (fObjArr.length===totalNumFiles) {
-              // all data files have been uploaded to GDrive
-              self.collab.setDataFileList(fObjArr);
-            }
-          });
+      function loadFile(url, data) {
+        var name = url.substring(url.lastIndexOf('/') + 1);
+
+        self.collab.driveFm.writeFile(self.collab.dataFilesBaseDir + '/' + name, data, function(fileResp) {
+          fObjArr.push({id: fileResp.id, url: url});
+          if (fObjArr.length===totalNumFiles) {
+            // all data files have been uploaded to GDrive
+            self.collab.setDataFileList(fObjArr);
+          }
         });
       }
 
@@ -1116,17 +1170,22 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
 
         // Asyncronously load all files to GDrive
         this.collab.driveFm.createPath(this.collab.dataFilesBaseDir, function() {
+
           for (var i=0; i<self.imgFileArr.length; i++) {
             var imgFileObj = self.imgFileArr[i];
             var url;
 
             if (imgFileObj.json) {
               url = imgFileObj.baseUrl + imgFileObj.json.name;
-              loadFile(imgFileObj.json, url);
+              self.readFile(imgFileObj.json, 'readAsArrayBuffer', loadFile.bind(null, url));
             }
-            for (var j=0; j<imgFileObj.files.length; j++) {
-              url = imgFileObj.baseUrl + imgFileObj.files[j].name;
-              loadFile(imgFileObj.files[j], url);
+
+            if (imgFileObj.files.length > 1) {
+              url = imgFileObj.baseUrl + imgFileObj.files[0].name + '.zip';
+              self.zipFiles(imgFileObj.files, loadFile.bind(null, url));
+            } else {
+              url = imgFileObj.baseUrl + imgFileObj.files[0].name;
+              self.readFile(imgFileObj.files[0], 'readAsArrayBuffer', loadFile.bind(null, url));
             }
           }
         });
@@ -1134,7 +1193,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
     };
 
     /**
-     * Handle the onDataFilesShared event when the collaboration owner has shared all data files with this collaborator
+     * Handle the onDataFilesShared event when the collaboration owner has shared all data files with this collaborator.
      *
      * @param {Object} collaborator info object with a mail property (collaborator's mail)
      * @param {Object} array of file objects with properties: url and cloudId.
@@ -1154,7 +1213,7 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
     };
 
     /**
-     * Handle the onCollabObjChanged event when the scene object has been modified by a remote collaborator
+     * Handle the onCollabObjChanged event when the scene object has been modified by a remote collaborator.
      *
      */
      viewerjs.Viewer.prototype.handleOnCollabObjChanged = function() {
@@ -1180,9 +1239,9 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
     };
 
     /**
-     * read a file
+     * Read a local or remote file.
      *
-     * @param {String} HTML5 file object or an object containing properties:
+     * @param {Object} HTML5 file object or an object containing properties:
      *  -remote: a boolean indicating whether the file has not been read locally (with a filepicker)
      *  -url the file's url
      *  -clouId: the id of the file in a cloud storage system if stored in the cloud
@@ -1213,11 +1272,62 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
     };
 
     /**
+     * Zip the content of several files into a single zip file content.
+     *
+     * @param {Array} Array of HTML5 file objects or objects containing properties:
+     *  -remote: a boolean indicating whether the file has not been read locally (with a filepicker)
+     *  -url the file's url
+     *  -clouId: the id of the file in a cloud storage system if stored in the cloud
+     * @param {Function} callback whose argument is an arrayBuffer with the resultant zip file data.
+     */
+    viewerjs.Viewer.prototype.zipFiles = function(fileArr, callback) {
+      var zip = jszip();
+      var numFiles = 0;
+      var url, fileName;
+
+      function zipFile(fName, fData) {
+        zip.file(fName, fData);
+        if (++numFiles === fileArr.length) {
+          // all files have been read so generate the zip file
+          var content = zip.generate({type:"arraybuffer"});
+          callback(content);
+        }
+      }
+
+      for (var i=0; i<fileArr.length; i++) {
+        if (fileArr[i].remote) {
+          url = fileArr[i].url;
+          fileName = url.substring(url.lastIndexOf('/') + 1);
+        } else {
+          fileName = fileArr[i].name;
+        }
+        this.readFile(fileArr[i], 'readAsArrayBuffer', zipFile.bind(null, fileName));
+      }
+    };
+
+    /**
+     * Unzip the content of a zip file.
+     *
+     * @param {Array} ArrayBuffer corresponding to the zip file data.
+     * @return {Array} array of objects where each object has the properties name: the file
+     * name and data: the file's data.
+     */
+    viewerjs.Viewer.prototype.unzipFileData = function(zData) {
+      var zip = jszip(zData);
+      var fileDataArr = [];
+
+      for (var name in zip.files) {
+        fileDataArr.push({name: name, data: zip.file(name).asArrayBuffer()});
+      }
+      return fileDataArr;
+    };
+
+    /**
      * Static method to determine if a File object is a supported neuroimage type.
-     * Return the type of the image: 'dicom', 'vol', 'fibers', 'mesh', 'thumbnail'
-     * or 'unsupported'
      *
      * @param {Object} HTML5 File object
+     * @return {String} the type of the image: 'dicom', 'dicomzip', 'vol', 'fibers', 'mesh',
+     * 'thumbnail', 'json' or 'unsupported'
      */
     viewerjs.Viewer.imgType = function(file) {
       var ext = {};
@@ -1225,6 +1335,8 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
 
       // dicom extensions
       ext.DICOM = ['.dcm', '.ima', '.DCM', '.IMA'];
+      // zipped dicom extensions
+      ext.DICOMZIP = ['.dcm.zip', '.DCM.zip'];
       // volume extensions
       ext.VOL = ['.mgh', '.mgz', '.nrrd', '.nii', '.nii.gz'];
       // fibers extension is .trk
@@ -1238,6 +1350,8 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
 
       if (viewerjs.strEndsWith(file.name, ext.DICOM)) {
         type = 'dicom';
+      } else if (viewerjs.strEndsWith(file.name, ext.DICOMZIP)) {
+        type = 'dicomzip';
       } else if (viewerjs.strEndsWith(file.name, ext.VOL)) {
         type = 'vol';
       } else if (viewerjs.strEndsWith(file.name, ext.FIBERS)) {
@@ -1256,9 +1370,9 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
     };
 
     /**
-     * Static method to parse a dicom file. Raises an exception if the parsing fails
+     * Static method to parse a dicom file. Raises an exception if the parsing fails.
      *
-     * @param {Object} ArrayBuffer object containing the dicom data
+     * @return {Object} the dicom info object
      */
     viewerjs.Viewer.parseDicom = function(dicomFileData) {
 
@@ -1283,10 +1397,11 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
 
     /**
      * Module utility function. Return true if the string str ends with any of the
-     * specified suffixes in arrayOfStr otherwise return false
+     * specified suffixes in arrayOfStr otherwise return false.
      *
      * @param {String} input string
      * @param {Array} array of string suffixes
+     * @return {boolean}
      */
     viewerjs.strEndsWith = function(str, arrayOfStr) {
       var index;
@@ -1301,10 +1416,11 @@ define(['jquery_ui', 'dicomParser', 'xtk'], function() {
     };
 
     /**
-     * Module utility function. Create and return a Blob object conytaining a JPG image
+     * Module utility function. Create a Blob object containing a JPG image from a data URI.
      *
      * @param {String} a data URI such as the one returned by the toDataURL() of
      * a canvas element
+     * @return {Object} Blob object containing the JPG image
      */
      viewerjs.dataURItoJPGBlob = function(dataURI) {
       var binary = atob(dataURI.split(',')[1]);
