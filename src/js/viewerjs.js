@@ -256,19 +256,10 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
      // push ordered DICOMs into self.imgFileArr
      for (var baseUrl in dicoms) {
        self.imgFileArr.push({
-       'baseUrl': baseUrl,
-       'imgType': 'dicom',
-       'files': dicoms[baseUrl].sort(function(f1, f2) {
-         var fnames = [f1.name, f2.name].sort();
-
-         if (fnames[0] === fnames[1]) {
-           return 0;
-         } else if (fnames[0] === f1.name) {
-           return -1;
-         } else {
-           return 1;
-         }
-       })});
+        'baseUrl': baseUrl,
+        'imgType': 'dicom',
+        'files': viewerjs.sortByName(dicoms[baseUrl])
+       });
      }
 
      // push non-DICOM data into self.imgFileArr
@@ -328,25 +319,29 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
       //
       render = this.create2DRender(containerID, orientation);
       // renderer's event handlers
-      this.onRender2DScroll = function(evt) {
-        var i;
+      this.onRender2DScroll = function() {
+        var targetRender;
 
-        for (i=0; i<self.renders2D.length; i++) {
+        function onScroll(render) {
+          $('.view-render-info-bottomleft', $(render.container)).html(
+            'slice: ' + (render.volume.indexZ + 1) + '/' + render.volume.range[2]);
+        }
+
+        for (var i=0; i<self.renders2D.length; i++) {
           if (self.renders2D[i].interactor === this) {
-            // update slice number on the GUI
-            $('.view-render-info-bottomleft', $(self.renders2D[i].container)).html(
-              'slice: ' + (self.renders2D[i].volume.indexZ + 1) + '/' + self.renders2D[i].volume.range[2]);
+            targetRender = self.renders2D[i];
           }
         }
-        if (self.rendersLinked && !evt.detail) {
-          // scroll event triggered by the user
-          evt.detail = true;
+
+        if (self.rendersLinked) {
           for (i=0; i<self.renders2D.length; i++) {
-            if (self.renders2D[i].interactor !== evt.target) {
-              // trigger the scroll event programatically on other renderers
-              self.renders2D[i].interactor.dispatchEvent(evt);
+            if (self.renders2D[i].interactor !== this) {
+              self.renders2D[i].volume.indexZ = targetRender.volume.indexZ;
             }
+            onScroll(self.renders2D[i]);
           }
+        } else {
+          onScroll(targetRender);
         }
       };
       // bind onRender2DScroll method with the renderer's interactor
@@ -451,20 +446,10 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
             if (imgFileObj.imgType === 'dicom' || imgFileObj.imgType === 'dicomzip') {
               // if the file is a zip file of dicoms then unzip it and sort the resultant files
               if (imgFileObj.imgType === 'dicomzip') {
-                var fDataArr = self.unzipFileData(data).sort(function(f1, f2) {
-                  var fnames = [f1.name, f2.name].sort();
-
-                  if (fnames[0] === fnames[1]) {
-                    return 0;
-                  } else if (fnames[0] === f1.name) {
-                    return -1;
-                  } else {
-                    return 1;
-                  }
-                });
-
+                var fDataArr = viewerjs.sortByName(self.unzipFileData(data));
                 filedata = [];
                 var urls = [];
+
                 for (var i=0; i<fDataArr.length; i++) {
                   filedata.push(fDataArr[i].data);
                   urls.push(imgFileObj.baseUrl + fDataArr[i].name);
@@ -845,24 +830,14 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
               filedata[pos] = data;
 
               if (++numFiles === imgFileObj.files.length) {
-                // all files have been read            
+                // all files have been read
                 if (imgFileObj.imgType === 'dicom' || imgFileObj.imgType === 'dicomzip') {
                   // if the file is a zip file of dicoms then unzip it and sort the resultant files
                   if (imgFileObj.imgType === 'dicomzip') {
-                    var fDataArr = self.unzipFileData(data).sort(function(f1, f2) {
-                      var fnames = [f1.name, f2.name].sort();
-
-                      if (fnames[0] === fnames[1]) {
-                        return 0;
-                      } else if (fnames[0] === f1.name) {
-                        return -1;
-                      } else {
-                        return 1;
-                      }
-                    });
-
+                    var fDataArr = viewerjs.sortByName(self.unzipFileData(data));
                     filedata = [];
                     var urls = [];
+
                     for (var i=0; i<fDataArr.length; i++) {
                       filedata.push(fDataArr[i].data);
                       urls.push(imgFileObj.baseUrl + fDataArr[i].name);
@@ -1416,6 +1391,28 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
     };
 
     /**
+     * Module utility function. Sort an array of objects with a string property: name. The
+     * ordering is based on that property.
+     *
+     * @param {Array} array of string suffixes
+     * @return {Array} Sorted array
+     */
+     viewerjs.sortByName = function(objArr) {
+
+       return objArr.sort(function(o1, o2) {
+         var names = [o1.name, o2.name].sort();
+
+         if (names[0] === names[1]) {
+           return 0;
+         } else if (names[0] === o1.name) {
+           return -1;
+         } else {
+           return 1;
+         }
+       });
+     };
+
+    /**
      * Module utility function. Create a Blob object containing a JPG image from a data URI.
      *
      * @param {String} a data URI such as the one returned by the toDataURL() of
@@ -1423,14 +1420,14 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
      * @return {Object} Blob object containing the JPG image
      */
      viewerjs.dataURItoJPGBlob = function(dataURI) {
-      var binary = atob(dataURI.split(',')[1]);
-      var array = [];
+       var binary = atob(dataURI.split(',')[1]);
+       var array = [];
 
-      for(var i = 0; i < binary.length; i++) {
-          array.push(binary.charCodeAt(i));
-      }
-      return new Blob([new Uint8Array(array)], {type: 'image/jpeg'});
-    };
+       for(var i = 0; i < binary.length; i++) {
+         array.push(binary.charCodeAt(i));
+       }
+       return new Blob([new Uint8Array(array)], {type: 'image/jpeg'});
+     };
 
     /**
      * Module utility function. Make an Ajax request to get a Blob from a url.
@@ -1447,7 +1444,7 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
            callback(xhr.response);//xhr.response is now a blob object
        };
        xhr.send();
-    };
+     };
 
     /**
      * Module utility function. Repaint the document
