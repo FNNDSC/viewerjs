@@ -289,8 +289,9 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
      *
      * @param {Oject} Image file object.
      * @param {String} X, Y or Z orientation.
+     * @param {Function} optional callback whose argument is the 2D renderer object.
      */
-    viewerjs.Viewer.prototype.add2DRender = function(imgFileObj, orientation) {
+    viewerjs.Viewer.prototype.add2DRender = function(imgFileObj, orientation, callback) {
       var render, vol, containerID;
       var volProps = {};
       var self = this;
@@ -298,7 +299,11 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
       // the renderer's id is related to the imgFileObj's id
       containerID = this.rendersContID + "_render2D" + imgFileObj.id;
       if ($('#' + containerID).length) {
-        return; // renderer already added
+        // renderer already added
+        if (callback) {
+          callback(self.renders2D.filter(function(rendr) {return rendr.container.id === containerID;})[0]);
+        }
+        return;
       }
 
       // append renderer div to the renderers' container
@@ -337,21 +342,14 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
 
       // renderer's event handlers
       this.onRender2DScroll = function(evt) {
-        var targetRender;
 
         function updateSliceInfoHTML(render) {
           $('.view-render-info-bottomleft', $(render.container)).html(
             'slice: ' + (render.volume[volProps.index] + 1) + '/' + render.volume.range[volProps.rangeInd]);
         }
 
-        for (var i=0; i<self.renders2D.length; i++) {
-          if (self.renders2D[i].interactor === evt.target) {
-            targetRender = self.renders2D[i];
-          }
-        }
-
         if (self.rendersLinked) {
-          for (i=0; i<self.renders2D.length; i++) {
+          for (var i=0; i<self.renders2D.length; i++) {
             if (self.renders2D[i].interactor !== evt.target) {
               if (evt.V) {
                 self.renders2D[i].volume[volProps.index]++;
@@ -362,14 +360,29 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
             updateSliceInfoHTML(self.renders2D[i]);
           }
         } else {
-          updateSliceInfoHTML(targetRender);
+          updateSliceInfoHTML(self.renders2D.filter(function(rendr) {return rendr.interactor === evt.target;})[0]);
         }
 
         self.updateCollabScene();
       };
 
-      // bind onRender2DScroll method with the renderer's interactor
+      this.onRender2DZoom = function() {
+        self.updateCollabScene();
+      };
+
+      this.onRender2DPan = function() {
+        self.updateCollabScene();
+      };
+
+      this.onRender2DRotate = function() {
+        self.updateCollabScene();
+      };
+
+      // bind event handler callbacks with the renderer's interactor
       render.interactor.addEventListener(X.event.events.SCROLL, this.onRender2DScroll);
+      render.interactor.addEventListener(X.event.events.ZOOM, this.onRender2DZoom);
+      render.interactor.addEventListener(X.event.events.PAN, this.onRender2DPan);
+      render.interactor.addEventListener(X.event.events.ROTATE, this.onRender2DRotate);
 
       // the onShowtime event handler gets executed after all files were fully loaded and
       // just before the first rendering attempt
@@ -408,6 +421,9 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
 
           $('.view-render-info-bottomleft', jqR).html(
             'slice: ' + (vol[volProps.index] + 1) + '/' + vol.range[volProps.rangeInd]);
+
+          // renderer is ready
+          if (callback) {callback(render);}
         }
 
         // define function to read the json file
@@ -446,6 +462,9 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
           // just display slice number
           $('.view-render-info-bottomleft', $('#' + containerID)).html(
             'slice: ' + (vol[volProps.index] + 1) + '/' + vol.range[volProps.rangeInd]);
+
+          // renderer is ready
+          if (callback) {callback(render);}
         }
       };
 
@@ -517,6 +536,9 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
           this.renders2D[i].remove(this.renders2D[i].volume);
           this.renders2D[i].volume.destroy();
           this.renders2D[i].interactor.removeEventListener(X.event.events.SCROLL, this.onRender2DScroll);
+          this.renders2D[i].interactor.removeEventListener(X.event.events.ZOOM, this.onRender2DZoom);
+          this.renders2D[i].interactor.removeEventListener(X.event.events.PAN, this.onRender2DPan);
+          this.renders2D[i].interactor.removeEventListener(X.event.events.ROTATE, this.onRender2DRotate);
           this.renders2D[i].destroy();
           this.renders2D.splice(i, 1);
           $('#' + containerID).remove();
@@ -738,8 +760,9 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
               // a dropped thumbnail disappears from thumbnail bar
               var id = parseInt(ui.item.css({ display:"none" }).attr("id").replace(self.thumbnailbarContID + "_th",""));
               // add a renderer to the UI containing a volume with the same id suffix as the thumbnail
-              self.add2DRender(self.getImgFileObject(id), 'Z');
-              self.updateCollabScene();
+              self.add2DRender(self.getImgFileObject(id), 'Z', function() {
+                self.updateCollabScene();
+              });
             } else {
               alert('Reached maximum number of renders allow which is 4. You must drag a render out ' +
                'of the viewer window and drop it into the thumbnails bar to make a render available');
@@ -943,6 +966,27 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
         var renders2DIds = [];
         var renders2DProps = [];
 
+        function updateRender(render) {
+          var id = parseInt(render.container.id.replace(self.rendersContID + "_render2D", ""));
+          var ix = renders2DIds.indexOf(id);
+
+          // update the volume properties
+          render.volume.lowerThreshold = renders2DProps[ix].volume.lowerThreshold;
+          render.volume.upperThreshold = renders2DProps[ix].volume.upperThreshold;
+          render.volume.windowLow = renders2DProps[ix].volume.lowerWindowLevel;
+          render.volume.windowHigh = renders2DProps[ix].volume.upperWindowLevel;
+          render.volume.indexX = renders2DProps[ix].volume.indexX;
+          render.volume.indexY = renders2DProps[ix].volume.indexY;
+          render.volume.indexZ = renders2DProps[ix].volume.indexZ;
+          // update the camera
+          var obj = JSON.parse(renders2DProps[ix].renderer.viewMatrix);
+          var arr = $.map(obj, function(el) { return el; });
+          render.camera.view = new Float32Array(arr);
+          // update the slice info HTML
+          $('.view-render-info-bottomleft', $(render.container)).html(
+            'slice: ' + (render.volume.indexZ + 1) + '/' + render.volume.range[2]);
+        }
+
         // get the collab scene's 2D renderer ids
         for (var i=0; i<scene.renders.length; i++) {
           if (scene.renders[i].general.type = '2D') {
@@ -963,18 +1007,7 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
         for (i=0; i<renders2DIds.length; i++) {
           // add a 2D renderer to the local scene that was added to the collab scene
           $('#' + self.thumbnailbarContID + '_th' + renders2DIds[i]).css({ display: "none" });
-          self.add2DRender(self.getImgFileObject(renders2DIds[i]), 'Z');
-          // update the objects' properties
-          self.renders2D[i].volume.lowerThreshold = renders2DProps[i].volume.lowerThreshold;
-          self.renders2D[i].volume.upperThreshold = renders2DProps[i].volume.upperThreshold;
-          self.renders2D[i].volume.windowLow = renders2DProps[i].volume.lowerWindowLevel;
-          self.renders2D[i].volume.windowHigh = renders2DProps[i].volume.upperWindowLevel;
-          self.renders2D[i].volume.indexX = renders2DProps[i].volume.indexX;
-          self.renders2D[i].volume.indexY = renders2DProps[i].volume.indexY;
-          self.renders2D[i].volume.indexZ = renders2DProps[i].volume.indexZ;
-          // update the slice info HTML
-          $('.view-render-info-bottomleft', $(self.renders2D[i].container)).html(
-            'slice: ' + (self.renders2D[i].volume.indexZ + 1) + '/' + self.renders2D[i].volume.range[2]);
+          self.add2DRender(self.getImgFileObject(renders2DIds[i]), 'Z', updateRender);
         }
       }
 
