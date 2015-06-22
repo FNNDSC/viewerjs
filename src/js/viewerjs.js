@@ -1,6 +1,6 @@
 /**
  * This module takes care of all image visualization and user interface as well as
- * collaboration through the passed collaborator object.
+ * collaboration through the collaborator object injected into viewerjs.Viewer constructor.
  */
 
 // define a new module
@@ -45,10 +45,10 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
       //  -id: Integer, the object's id
       //  -baseUrl: String ‘directory/containing/the/files’
       //  -imgType: String neuroimage type. Any of the possible values returned by viewerjs.Viewer.imgType
-      //  -files: Array of HTML5 File objects (it contains a single file for imgType different from 'dicom')
+      //  -files: Array of HTML5 or custom File objects (it contains a single file for imgType different from 'dicom')
       //   DICOM files with the same base url/path are assumed to belong to the same volume
-      //  -thumbnail: HTML5 File object (for a thumbnail image)
-      //  -json: HTML5 File object (an optional json file with the mri info for imgType different from 'dicom')
+      //  -thumbnail: HTML5 or custom File object (optional jpg file for a thumbnail image)
+      //  -json: HTML5 or custom File object (optional json file with the mri info for imgType different from 'dicom')
       this.imgFileArr = [];
 
       //
@@ -1082,8 +1082,6 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
         render.general.type = '2D';
 
         // set renderer specific information
-        // information on how to re-build the view matrix there:
-        // https://github.com/FNNDSC/chrisreloaded/blob/master/plugins/viewer/widget/js/viewer.js#L846-848
         render.renderer = {};
         render.renderer.viewMatrix = JSON.stringify(this.renders2D[j].camera.view);
 
@@ -1100,10 +1098,10 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
         render.volume.indexZ = this.renders2D[j].volume.indexZ;
 
         // set interactor specific information
-        // set camera specific information
-        // set pointer specific information
         render.interactor = {};
+        // set camera specific information
         render.camera = {};
+        // set pointer specific information
         render.pointer = {};
 
         scene.renders.push(render);
@@ -1228,6 +1226,7 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
             }
 
             if (imgFileObj.files.length > 1) {
+              // if there are many files (dicoms) then compress them into a single .zip file before uploading
               url = imgFileObj.baseUrl + imgFileObj.files[0].name + '.zip';
               self.zipFiles(imgFileObj.files, loadFile.bind(null, url));
             } else {
