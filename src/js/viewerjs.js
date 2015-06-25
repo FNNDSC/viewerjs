@@ -1190,16 +1190,28 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
 
       // function to load a file into GDrive
       var fObjArr = [];
-      function loadFile(url, data) {
-        var name = url.substring(url.lastIndexOf('/') + 1);
+      function loadFile(url, fData) {
+        var fName = url.substring(url.lastIndexOf('/') + 1);
 
-        self.collab.driveFm.writeFile(self.collab.dataFilesBaseDir + '/' + name, data, function(fileResp) {
-          fObjArr.push({id: fileResp.id, url: url});
-          if (fObjArr.length===totalNumFiles) {
-            // all data files have been uploaded to GDrive
-            self.collab.setDataFileList(fObjArr);
+        function writeToGdrive(name, data) {
+          self.collab.driveFm.writeFile(self.collab.dataFilesBaseDir + '/' + name, data, function(fileResp) {
+            fObjArr.push({id: fileResp.id, url: url});
+            if (fObjArr.length===totalNumFiles) {
+              // all data files have been uploaded to GDrive
+              self.collab.setDataFileList(fObjArr);
+            }
+          });
+        }
+
+        if (viewerjs.strEndsWith(fName, ['.zip'])) {
+          // fData is an array of arrayBuffer
+          for (var i=0; i<fData.length; i++) {
+            writeToGdrive(fName.replace('.zip', i+'.zip'), fData[i]);
           }
-        });
+        } else {
+          // fData is just a single arrayBuffer
+          writeToGdrive(fName, fData);
+        }
       }
 
       if (this.collab.collabOwner) {
@@ -1318,25 +1330,56 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
     };
 
     /**
-     * Zip the content of several files into a single zip file content.
+     * Zip the contents of several files into a few zip file contents. Maximum size for
+     * each resultant zip file contents is 25 MB.
      *
      * @param {Array} Array of HTML5 file objects or objects containing properties:
      *  -remote: a boolean indicating whether the file has not been read locally (with a filepicker)
      *  -url the file's url
-     *  -clouId: the id of the file in a cloud storage system if stored in the cloud
-     * @param {Function} callback whose argument is an arrayBuffer with the resultant zip file data.
+     *  -cloudId: the id of the file in a cloud storage system if stored in the cloud
+     * @param {Function} callback whose argument is an array of arrayBuffer. Each entry of the
+     * array contains the data for a single zip file.
      */
     viewerjs.Viewer.prototype.zipFiles = function(fileArr, callback) {
-      var zip = jszip();
-      var numFiles = 0;
       var url, fileName;
+      var fileDataArr = [];
 
-      function zipFile(fName, fData) {
-        zip.file(fName, fData);
-        if (++numFiles === fileArr.length) {
-          // all files have been read so generate the zip file
-          var content = zip.generate({type:"arraybuffer"});
-          callback(content);
+      function zipFiles() {
+        var zip = jszip();
+        var zipDataArr = [];
+        var contents;
+        var byteLength = 0;
+
+        for (var i=0; i<fileDataArr.length; i++) {
+          // maximum zip file size is 25 MB
+          if (byteLength + fileDataArr[i].data.byteLength <= 26214400) {
+            byteLength += fileDataArr[i].data.byteLength;
+            zip.file(fileDataArr[i].name, fileDataArr[i].data);
+          } else {
+            // generate the zip file contents for the current chunk of files
+            contents = zip.generate({type:"arraybuffer"});
+            zipDataArr.push(contents);
+            // create a new zip for the next chunk of files
+            zip = jszip();
+            byteLength = fileDataArr[i].data.byteLength;
+            zip.file(fileDataArr[i].name, fileDataArr[i].data);
+          }
+          // generate the zip file contents for the last chunk of files
+          if (i+1>=fileDataArr.length) {
+            contents = zip.generate({type:"arraybuffer"});
+            zipDataArr.push(contents);
+          }
+        }
+
+        return zipDataArr;
+      }
+
+      function addFile(fName, fData) {
+        fileDataArr.push({name: fName, data: fData});
+
+        if (fileDataArr.length === fileArr.length) {
+          // all files have been read so generate the zip files' contents
+          callback(zipFiles());
         }
       }
 
@@ -1347,12 +1390,12 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
         } else {
           fileName = fileArr[i].name;
         }
-        this.readFile(fileArr[i], 'readAsArrayBuffer', zipFile.bind(null, fileName));
+        this.readFile(fileArr[i], 'readAsArrayBuffer', addFile.bind(null, fileName));
       }
     };
 
     /**
-     * Unzip the content of a zip file.
+     * Unzip the contents of a zip file.
      *
      * @param {Array} ArrayBuffer corresponding to the zip file data.
      * @return {Array} array of objects where each object has the properties name: the file
