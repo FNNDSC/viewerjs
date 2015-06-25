@@ -171,6 +171,7 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
       var thumbnails = {}; // associative array of thumbnail image files
       var jsons = {}; // associative array of json files
       var dicoms = {}; // associative array of arrays with ordered DICOM files
+      var dicomZips = {}; // associative array of arrays with zipped DICOM files
       var nonDcmData = []; // array of non-DICOM data
       var path, name;
       var self = this;
@@ -203,6 +204,11 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
            dicoms[baseUrl] = [];
          }
          dicoms[baseUrl].push(file); // all dicoms with the same base url belong to the same volume
+       } else if (imgType === 'dicomzip') {
+         if (!dicomZips[baseUrl]) {
+           dicomZips[baseUrl] = [];
+         }
+         dicomZips[baseUrl].push(file); // all dicom zip files with the same base url belong to the same volume
        } else if (imgType === 'thumbnail') {
          // save thumbnail file in an associative array
          // array keys are the full path up to the first dash in the file name or the last period
@@ -216,7 +222,7 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
          // array keys are the full path with the extension trimmed
          jsons[path.substring(0, path.lastIndexOf('.'))] = file;
        } else if (imgType !== 'unsupported') {
-         // push fibers, meshes, volumes and zipped dicoms into nonDcmData
+         // push fibers, meshes, volumes into nonDcmData
          nonDcmData.push({
            'baseUrl': baseUrl,
            'imgType': imgType,
@@ -259,6 +265,15 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
         'baseUrl': baseUrl,
         'imgType': 'dicom',
         'files': viewerjs.sortByName(dicoms[baseUrl])
+       });
+     }
+
+     // push DICOM zip files into self.imgFileArr
+     for (var baseUrl in dicomZips) {
+       self.imgFileArr.push({
+        'baseUrl': baseUrl,
+        'imgType': 'dicomzip',
+        'files': dicomZips[baseUrl]
        });
      }
 
@@ -487,13 +502,19 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
           if (numFiles===imgFileObj.files.length) {
 
             if (imgFileObj.imgType === 'dicom' || imgFileObj.imgType === 'dicomzip') {
-              // if the file is a zip file of dicoms then unzip it and sort the resultant files
+
+              // if the files are zip files of dicoms then unzip them and sort the resultant files
               if (imgFileObj.imgType === 'dicomzip') {
-                var fDataArr = viewerjs.sortByName(self.unzipFileData(data));
+                var fDataArr = [];
+
+                for (var i=0; i<filedata.length; i++) {
+                  fDataArr = fDataArr.concat(self.unzipFileData(filedata[i]));
+                }
+                fDataArr = viewerjs.sortByName(fDataArr);
+
                 filedata = [];
                 var urls = [];
-
-                for (var i=0; i<fDataArr.length; i++) {
+                for (i=0; i<fDataArr.length; i++) {
                   filedata.push(fDataArr[i].data);
                   urls.push(imgFileObj.baseUrl + fDataArr[i].name);
                 }
@@ -581,9 +602,11 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
       var fileNames = [];
 
       if (imgFileObj.imgType === 'dicomzip') {
-        fileNames.push(imgFileObj.files[0].name.replace('.zip', ''));
-      } else {
         for (var i=0; i<imgFileObj.files.length; i++) {
+          fileNames[i] = imgFileObj.files[i].name.replace('.zip', '');
+        }
+      } else {
+        for (i=0; i<imgFileObj.files.length; i++) {
           fileNames[i] = imgFileObj.files[i].name;
         }
       }
@@ -879,13 +902,19 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
               if (++numFiles === imgFileObj.files.length) {
                 // all files have been read
                 if (imgFileObj.imgType === 'dicom' || imgFileObj.imgType === 'dicomzip') {
-                  // if the file is a zip file of dicoms then unzip it and sort the resultant files
+
+                  // if the files are zip files of dicoms then unzip them and sort the resultant files
                   if (imgFileObj.imgType === 'dicomzip') {
-                    var fDataArr = viewerjs.sortByName(self.unzipFileData(data));
+                    var fDataArr = [];
+
+                    for (var i=0; i<filedata.length; i++) {
+                      fDataArr = fDataArr.concat(self.unzipFileData(filedata[i]));
+                    }
+                    fDataArr = viewerjs.sortByName(fDataArr);
+
                     filedata = [];
                     var urls = [];
-
-                    for (var i=0; i<fDataArr.length; i++) {
+                    for (i=0; i<fDataArr.length; i++) {
                       filedata.push(fDataArr[i].data);
                       urls.push(imgFileObj.baseUrl + fDataArr[i].name);
                     }
@@ -1205,8 +1234,12 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
 
         if (viewerjs.strEndsWith(fName, ['.zip'])) {
           // fData is an array of arrayBuffer
-          for (var i=0; i<fData.length; i++) {
-            writeToGdrive(fName.replace('.zip', i+'.zip'), fData[i]);
+          // use the extension .dcm.zip for those files
+          if (fName.search(/.dcm.zip$/i) === -1) {
+            fName = fName.replace(/.zip$/, '.dcm.zip');
+          }
+          for (var j=0; j<fData.length; j++) {
+            writeToGdrive(fName.replace(/.dcm.zip$/i, j+'.dcm.zip'), fData[j]);
           }
         } else {
           // fData is just a single arrayBuffer
