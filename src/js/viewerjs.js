@@ -269,7 +269,7 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
      }
 
      // push DICOM zip files into self.imgFileArr
-     for (var baseUrl in dicomZips) {
+     for (baseUrl in dicomZips) {
        self.imgFileArr.push({
         'baseUrl': baseUrl,
         'imgType': 'dicomzip',
@@ -606,8 +606,8 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
           fileNames[i] = imgFileObj.files[i].name.replace('.zip', '');
         }
       } else {
-        for (i=0; i<imgFileObj.files.length; i++) {
-          fileNames[i] = imgFileObj.files[i].name;
+        for (var j=0; j<imgFileObj.files.length; j++) {
+          fileNames[j] = imgFileObj.files[j].name;
         }
       }
       // create xtk object
