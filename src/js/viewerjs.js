@@ -1364,7 +1364,7 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
 
     /**
      * Zip the contents of several files into a few zip file contents. Maximum size for
-     * each resultant zip file contents is 25 MB.
+     * each resultant zip file contents is 20 MB.
      *
      * @param {Array} Array of HTML5 file objects or objects containing properties:
      *  -remote: a boolean indicating whether the file has not been read locally (with a filepicker)
@@ -1384,8 +1384,8 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
         var byteLength = 0;
 
         for (var i=0; i<fileDataArr.length; i++) {
-          // maximum zip file size is 25 MB
-          if (byteLength + fileDataArr[i].data.byteLength <= 26214400) {
+          // maximum zip file size is 20 MB
+          if (byteLength + fileDataArr[i].data.byteLength <= 20971520) {
             byteLength += fileDataArr[i].data.byteLength;
             zip.file(fileDataArr[i].name, fileDataArr[i].data);
           } else {
