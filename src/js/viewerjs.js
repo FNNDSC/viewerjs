@@ -1204,7 +1204,7 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
       var self = this;
 
       console.log('collaborationIsOn: ', this.collab.collabIsOn);
-      // determine the total number of files to be uploaded to GDrive
+      // total number of files to be uploaded to GDrive
       var totalNumFiles = (function() {
         var nFiles = 0;
 
@@ -1220,7 +1220,6 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
       // function to load a file into GDrive
       var fObjArr = [];
       function loadFile(url, fData) {
-        var fName = url.substring(url.lastIndexOf('/') + 1);
 
         function writeToGdrive(name, data) {
           self.collab.driveFm.writeFile(self.collab.dataFilesBaseDir + '/' + name, data, function(fileResp) {
@@ -1232,8 +1231,10 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
           });
         }
 
+        var fName = url.substring(url.lastIndexOf('/') + 1);
         if (viewerjs.strEndsWith(fName, ['.zip'])) {
-          // fData is an array of arrayBuffer
+          // fData is an array of arrayBuffer so instead of one file now fData.length files need to be uploaded
+          totalNumFiles += fData.length-1;
           // use the extension .dcm.zip for those files
           if (fName.search(/.dcm.zip$/i) === -1) {
             fName = fName.replace(/.zip$/, '.dcm.zip');
