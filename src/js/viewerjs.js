@@ -264,7 +264,7 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
        self.imgFileArr.push({
         'baseUrl': baseUrl,
         'imgType': 'dicom',
-        'files': viewerjs.sortByName(dicoms[baseUrl])
+        'files': viewerjs.sortObjArr(dicoms[baseUrl], 'name')
        });
      }
 
@@ -273,7 +273,7 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
        self.imgFileArr.push({
         'baseUrl': baseUrl,
         'imgType': 'dicomzip',
-        'files': dicomZips[baseUrl]
+        'files': viewerjs.sortObjArr(dicomZips[baseUrl], 'name')
        });
      }
 
@@ -290,7 +290,17 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
 
      // sort the built array for consistency among possible collaborators
      self.imgFileArr.sort(function(el1, el2) {
-       return (el1.baseUrl + el1.files[0].name) > (el2.baseUrl + el2.files[0].name);
+       var val1 = el1.baseUrl + el1.files[0].name.replace(/.zip$/, '');
+       var val2 = el2.baseUrl + el2.files[0].name.replace(/.zip$/, '');
+       var values = [val1, val2].sort();
+
+       if (values[0] === values[1]) {
+         return 0;
+       } else if (values[0] === val1) {
+         return -1;
+       } else {
+         return 1;
+       }
      });
 
      // assign an id to each array elem
@@ -510,7 +520,7 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
                 for (var i=0; i<filedata.length; i++) {
                   fDataArr = fDataArr.concat(self.unzipFileData(filedata[i]));
                 }
-                fDataArr = viewerjs.sortByName(fDataArr);
+                fDataArr = viewerjs.sortObjArr(fDataArr, 'name');
 
                 filedata = [];
                 var urls = [];
@@ -624,9 +634,7 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
      */
     viewerjs.Viewer.prototype.positionRenders = function() {
       // sort by id
-      var jqRenders = $('div.view-render', $('#' + this.rendersContID)).sort(function(el1, el2) {
-        return el1.id > el2.id;
-      });
+      var jqRenders = viewerjs.sortObjArr($('div.view-render', $('#' + this.rendersContID)), 'id');
 
       switch(this.numOfRenders) {
         case 1:
@@ -910,7 +918,7 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
                     for (var i=0; i<filedata.length; i++) {
                       fDataArr = fDataArr.concat(self.unzipFileData(filedata[i]));
                     }
-                    fDataArr = viewerjs.sortByName(fDataArr);
+                    fDataArr = viewerjs.sortObjArr(fDataArr, 'name');
 
                     filedata = [];
                     var urls = [];
@@ -1219,9 +1227,11 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
 
       // function to load a file into GDrive
       var fObjArr = [];
-      function loadFile(url, fData) {
+      function loadFile(fUrl, fData) {
 
-        function writeToGdrive(name, data) {
+        function writeToGdrive(url, data) {
+          var name = url.substring(url.lastIndexOf('/') + 1);
+
           self.collab.driveFm.writeFile(self.collab.dataFilesBaseDir + '/' + name, data, function(fileResp) {
             fObjArr.push({id: fileResp.id, url: url});
             if (fObjArr.length===totalNumFiles) {
@@ -1231,20 +1241,18 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
           });
         }
 
-        var fName = url.substring(url.lastIndexOf('/') + 1);
-        if (viewerjs.strEndsWith(fName, ['.zip'])) {
+        if (fUrl.search(/.dcm.zip$/i) !== -1) {
           // fData is an array of arrayBuffer so instead of one file now fData.length files need to be uploaded
           totalNumFiles += fData.length-1;
-          // use the extension .dcm.zip for those files
-          if (fName.search(/.dcm.zip$/i) === -1) {
-            fName = fName.replace(/.zip$/, '.dcm.zip');
-          }
-          for (var j=0; j<fData.length; j++) {
-            writeToGdrive(fName.replace(/.dcm.zip$/i, j+'.dcm.zip'), fData[j]);
+
+          writeToGdrive(fUrl, fData[0]);
+
+          for (var j=1; j<fData.length; j++) {
+            writeToGdrive(fUrl.replace(/.dcm.zip$/i, j+'.dcm.zip'), fData[j]);
           }
         } else {
           // fData is just a single arrayBuffer
-          writeToGdrive(fName, fData);
+          writeToGdrive(fUrl, fData);
         }
       }
 
@@ -1465,11 +1473,11 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
       // fibers extension is .trk
       ext.FIBERS = ['.trk'];
       // geometric model extensions
-      ext.MESH = ['obj', 'vtk', 'stl'];
+      ext.MESH = ['.obj', '.vtk', '.stl'];
       // thumbnail extensions
-      ext.THUMBNAIL = ['png', 'gif', 'jpg'];
+      ext.THUMBNAIL = ['.png', '.gif', '.jpg'];
       // json extensions
-      ext.JSON = ['json'];
+      ext.JSON = ['.json'];
 
       if (viewerjs.strEndsWith(file.name, ext.DICOM)) {
         type = 'dicom';
@@ -1539,20 +1547,21 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
     };
 
     /**
-     * Module utility function. Sort an array of objects with a string property: name. The
-     * ordering is based on that property.
+     * Module utility function. Sort an array of objects with a string property prop.
+     * The ordering is based on that property.
      *
      * @param {Array} array of string suffixes
+     * @param {String} the objects' ordering property
      * @return {Array} Sorted array
      */
-     viewerjs.sortByName = function(objArr) {
+     viewerjs.sortObjArr = function(objArr, prop) {
 
        return objArr.sort(function(o1, o2) {
-         var names = [o1.name, o2.name].sort();
+         var values = [o1[prop], o2[prop]].sort();
 
-         if (names[0] === names[1]) {
+         if (values[0] === values[1]) {
            return 0;
-         } else if (names[0] === o1.name) {
+         } else if (values[0] === o1[prop]) {
            return -1;
          } else {
            return 1;
