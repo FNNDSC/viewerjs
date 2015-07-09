@@ -99,7 +99,7 @@ div.view-thumbnailbar{
   height: 100%;
   width: 115px;
   overflow: auto;
-  background-color: black;
+  /*background-color: black;*/
 }
 
 /*thumbnail image frames (divs) within the thumbnail bar*/
