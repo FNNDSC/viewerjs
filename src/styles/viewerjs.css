@@ -10,7 +10,8 @@ div.view-renders{
   height: 100%;
   width: 100%;
   border: 1px solid #DDE8BB;
-  background-color: rgb(51,51,51);
+  background-color: black;
+  font-family: 'Karla';
 }
 
 /*================================================= single renderer ================================================== */
@@ -20,15 +21,16 @@ div.view-renders{
   -moz-box-sizing: border-box;
   box-sizing: border-box;
   position: absolute;
-  background-color: rgb(51,51,51);
+  background-color: black;
 }
 
 /*================================================= patient info in renderer ================================================== */
 .view-render-info{
   position: absolute;
   z-index: 9999;
-  color: white;
-  font-size: small;
+  color: #DDE8BB;
+  font-size: 11px;
+  background-color: black;
 }
 .view-render-info-topleft{
   top: 2px;
@@ -61,7 +63,7 @@ div.view-toolbar{
   height: 30px;
   width: 100%;
   text-align:center;
-  background-color: rgb(51,51,51);
+  background-color: black;
 }
 
 label.view-toolbar-label{
@@ -97,7 +99,7 @@ div.view-thumbnailbar{
   height: 100%;
   width: 115px;
   overflow: auto;
-  background-color: rgb(51,51,51);
+  background-color: black;
 }
 
 /*thumbnail image frames (divs) within the thumbnail bar*/
@@ -120,8 +122,8 @@ div.view-thumbnailbar{
 
 /*text info within a thumbnail frame*/
 .view-thumbnail-info{
-  font-size: 12px;
+  font-size: 11px;
   text-align:center;
-  background-color: rgb(51,51,51);
-  color: white;
+  background-color: black;
+  color: #DDE8BB;
 }
