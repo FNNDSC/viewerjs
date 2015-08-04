@@ -403,11 +403,32 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
         self.updateCollabScene();
       };
 
+      this.onRender2DFlipColumns = function() {
+        // press W to trigger this event
+        render.flipColumns = !render.flipColumns;
+        self.updateCollabScene();
+      };
+
+      this.onRender2DFlipRows = function() {
+        // press Q to trigger this event
+        render.flipRows = !render.flipRows;
+        self.updateCollabScene();
+      };
+
+      this.onRender2DPoint = function() {
+        self.updateCollabScene();
+      };
+
       // bind event handler callbacks with the renderer's interactor
       render.interactor.addEventListener(X.event.events.SCROLL, this.onRender2DScroll);
       render.interactor.addEventListener(X.event.events.ZOOM, this.onRender2DZoom);
       render.interactor.addEventListener(X.event.events.PAN, this.onRender2DPan);
       render.interactor.addEventListener(X.event.events.ROTATE, this.onRender2DRotate);
+      render.interactor.addEventListener("flipColumns", this.onRender2DFlipColumns);
+      render.interactor.addEventListener("flipRows", this.onRender2DFlipRows);
+
+      // called every time the pointing position is changed with shift+left-mouse
+      render.addEventListener("onPoint", this.onRender2DPoint);
 
       // the onShowtime event handler gets executed after all files were fully loaded and
       // just before the first rendering attempt
@@ -570,6 +591,9 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
           this.renders2D[i].interactor.removeEventListener(X.event.events.ZOOM, this.onRender2DZoom);
           this.renders2D[i].interactor.removeEventListener(X.event.events.PAN, this.onRender2DPan);
           this.renders2D[i].interactor.removeEventListener(X.event.events.ROTATE, this.onRender2DRotate);
+          this.renders2D[i].interactor.removeEventListener("flipColumns", this.onRender2DFlipColumns);
+          this.renders2D[i].interactor.removeEventListener("flipRows", this.onRender2DFlipRows);
+          this.renders2D[i].removeEventListener("onPoint", this.onRender2DPoint);
           this.renders2D[i].destroy();
           this.renders2D.splice(i, 1);
           $('#' + containerID).remove();
@@ -1019,6 +1043,11 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
           var obj = JSON.parse(renders2DProps[ix].renderer.viewMatrix);
           var arr = $.map(obj, function(el) { return el; });
           render.camera.view = new Float32Array(arr);
+          // update the flip orientation
+          render.flipColumns = renders2DProps[ix].renderer.flipColumns;
+          render.flipRows = renders2DProps[ix].renderer.flipRows;
+          // update the pointing position
+          render.pointer = renders2DProps[ix].renderer.pointer;
           // update the slice info HTML
           $('.view-render-info-bottomleft', $(render.container)).html(
             'slice: ' + (render.volume.indexZ + 1) + '/' + render.volume.range[2]);
@@ -1121,6 +1150,9 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
         // set renderer specific information
         render.renderer = {};
         render.renderer.viewMatrix = JSON.stringify(this.renders2D[j].camera.view);
+        render.renderer.flipColumns = this.renders2D[j].flipColumns;
+        render.renderer.flipRows = this.renders2D[j].flipRows;
+        render.renderer.pointer = this.renders2D[j].pointer;
 
         // set volume specific information
         // only supports 1 volume for now....
