@@ -343,6 +343,10 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
 
       // rearrange layout
       ++this.numOfRenders;
+      // if there is now two renderers then show the Link views button
+      if (this.numOfRenders===2) {
+        $('#' + this.toolbarContID + '_buttonlink').css({display: '' });
+      }
       this.positionRenders();
 
       //
@@ -376,7 +380,7 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
         if (self.rendersLinked) {
           for (var i=0; i<self.renders2D.length; i++) {
             if (self.renders2D[i].interactor !== evt.target) {
-              if (evt.V) {
+              if (evt.up) {
                 self.renders2D[i].volume[volProps.index]++;
               } else {
                 self.renders2D[i].volume[volProps.index]--;
@@ -598,6 +602,13 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
           this.renders2D.splice(i, 1);
           $('#' + containerID).remove();
           --this.numOfRenders;
+          // if there is now a single renderer then hide the Link views button
+          if (this.numOfRenders===1) {
+            $('#' + this.toolbarContID + '_buttonlink').css({display: 'none' });
+            if (this.rendersLinked) {
+              this.handleToolBarButtonLinkClick();
+            }
+          }
           this.positionRenders();
           viewerjs.documentRepaint();
           break;
@@ -732,6 +743,8 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
       );
       // hide the authorize button
       $('#' + this.toolbarContID + '_buttonauth').css({display: 'none' });
+      // hide the Link views button
+      $('#' + this.toolbarContID + '_buttonlink').css({display: 'none' });
 
       // make space for the toolbar
       var jqToolCont = $('#' + this.toolbarContID);
