@@ -89,6 +89,11 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
      *           are gotten from a cloud storage like GDrive)
      */
     viewerjs.Viewer.prototype.init = function(fObjArr) {
+
+      if (this.collab && this.collab.collabIsOn && !this.collab.collabOwner) {
+        // wipe the initial text in the collaborators's viewer container
+        $('#' + this.wholeContID).text('');
+      }
       // Insert initial html. Initially the interface only contains the renderers' container.
       this._addRenderersContainer();
       // build viewer's main data structure (this.imgFileArr)
@@ -1333,6 +1338,11 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
               self.readFile(imgFileObj.files[0], 'readAsArrayBuffer', loadFile.bind(null, url));
             }
           }
+        });
+      } else {
+        $('#' + this.wholeContID).text('Please wait while loading the viewer...');
+        $('#' + this.wholeContID).css({
+          'color': 'white'
         });
       }
     };
