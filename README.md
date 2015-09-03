@@ -1,6 +1,30 @@
 # viewerjs
 
-Reusable medical image viewer
+This is reusable JavaScript module that exposes a <tt>viewerjs.Viewer</tt> class that provides methods
+for easily embedding a neuroimage visualization object (VObj) within an HTML page. The <tt>viewerjs.Viewer</tt>
+constructor only requires as an input the DOM identifier of the HTML element on which the resultant
+VObj's HTML interface is inserted. The following code shows the simplicity of the method calls:
+
+````
+var view = new viewerjs.Viewer(divId);
+view.init(imgFileArr);
+view.addThumbnailBar();
+view.addToolBar();
+````
+
+The VObj can asynchronously load more than one neuroimage volume specified by the <tt>imgFileArr</tt> variable
+passed to the <tt>init</tt> method. This is an array of custom file objects where each object entry has the
+following properties:
+* url: String representing the file’s url/local path (required)
+* file: HTML5 File object (optional but necessary when the files are gotten through a local file-picker
+  or drop-zone)
+* cloudId: String representing the file cloud identifier (optional but necessary when the files are gotten
+  from a cloud storage service such as Google Drive)
+
+Thus the VObj can load image data from diverse sources such as a hooked back-end using the provided url,
+a local filesystem using the file property or the Google Drive storage service using the cloudId property.
+
+Take a look at the wiki to learn how to interact with the VObj through peripheral device controls.
 
 ## Build
 This project uses grunt.
@@ -40,6 +64,8 @@ bower install
 
 * Run grunt:
 
-<tt>grunt</tt>
+````
+grunt
+````
 
 The project is built within the directory <tt>dist</tt>.
