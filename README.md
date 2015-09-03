@@ -1,6 +1,6 @@
 # viewerjs
 
-This is reusable JavaScript module that exposes a <tt>viewerjs.Viewer</tt> class that provides methods
+This is a reusable JavaScript module that exposes a <tt>viewerjs.Viewer</tt> class that provides methods
 for easily embedding a neuroimage visualization object (VObj) within an HTML page. The <tt>viewerjs.Viewer</tt>
 constructor only requires as an input the DOM identifier of the HTML element on which the resultant
 VObj's HTML interface is inserted. The following code shows the simplicity of the method calls:
@@ -21,10 +21,15 @@ following properties:
 * cloudId: String representing the file cloud identifier (optional but necessary when the files are gotten
   from a cloud storage service such as Google Drive)
 
-Thus the VObj can load image data from diverse sources such as a hooked back-end using the provided url,
-a local filesystem using the file property or the Google Drive storage service using the cloudId property.
+Thus the VObj can load image data from diverse sources such as a hooked back-end using the provided <tt>url</tt>,
+a local filesystem using the <tt>file</tt> property or the Google Drive storage service using the <tt>cloudId</tt>
+property.
 
-Take a look at the wiki to learn how to interact with the VObj through peripheral device controls.
+The <tt>viewerjs.Viewer</tt> constructor can also accept a [gcjs.GDriveCollab](https://github.com/FNNDSC/gcjs)  
+object as an optional second parameter to enable realtime collaboration among remote visualizations. The
+resultant VObj delegates the synchronization of the data describing the visualization state on that object.
+
+Please take a look at the wiki to learn how to interact with the VObj through peripheral device controls.
 
 ## Build
 This project uses grunt.
