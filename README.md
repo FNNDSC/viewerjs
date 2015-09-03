@@ -29,7 +29,8 @@ The <tt>viewerjs.Viewer</tt> constructor can also accept a [gcjs.GDriveCollab](h
 object as an optional second parameter to enable realtime collaboration among remote visualizations. The
 resultant VObj delegates the synchronization of the data describing the visualization state on that object.
 
-Please take a look at the wiki to learn how to interact with the VObj through peripheral device controls.
+Please take a look at the [wiki](https://github.com/FNNDSC/viewerjs/wiki) to learn how to interact with the VObj
+through peripheral device controls.
 
 ## Build
 This project uses grunt.
