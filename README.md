@@ -32,6 +32,8 @@ resultant VObj delegates the synchronization of the data describing the visualiz
 Please take a look at the [wiki](https://github.com/FNNDSC/viewerjs/wiki) to learn how to interact with the VObj
 through peripheral device controls.
 
+An example live web application that uses <tt>viewerjs.Viewer</tt> is running here: <http://fnndsc.github.io/mi2b2/>.
+
 ## Build
 This project uses grunt.
 
