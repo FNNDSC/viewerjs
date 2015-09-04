@@ -25,7 +25,7 @@ Thus the VObj can load image data from diverse sources such as a hooked back-end
 a local filesystem using the <tt>file</tt> property or the Google Drive storage service using the <tt>cloudId</tt>
 property.
 
-The <tt>viewerjs.Viewer</tt> constructor can also accept a [gcjs.GDriveCollab](https://github.com/FNNDSC/gcjs)  
+The <tt>viewerjs.Viewer</tt> constructor can also accept a [gcjs.GDriveCollab](https://github.com/FNNDSC/gcjs)
 object as an optional second parameter to enable realtime collaboration among remote visualizations. The
 resultant VObj delegates the synchronization of the data describing the visualization state on that object.
 
