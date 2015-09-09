@@ -740,12 +740,14 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
       // append toolbar div and it's buttons to the whole container
       $('#' + this.wholeContID).append(
         '<div id="' + this.toolbarContID + '" class="view-toolbar">' +
+          '<button id="' + this.toolbarContID + '_buttonhelp" class="view-toolbar-button" type="button" title="Wiki help">Help</button>' +
           '<button id="' + this.toolbarContID + '_buttonlink" class="view-toolbar-button" type="button" title="Link views">Link views</button>' +
           '<button id="' + this.toolbarContID + '_buttoncollab" class="view-toolbar-button" type="button" title="Start collaboration">Start collab</button>' +
           '<button id="' + this.toolbarContID + '_buttonauth" class="view-toolbar-button" type="button" title="Authorize">Authorize</button>' +
           '<label id="' + this.toolbarContID + '_labelcollab" class="view-toolbar-label"></label>' +
         '<div>'
       );
+
       // hide the authorize button
       $('#' + this.toolbarContID + '_buttonauth').css({display: 'none' });
       // hide the Link views button
@@ -793,6 +795,9 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
         }
       });
 
+      $('#' + this.toolbarContID + '_buttonhelp').click(function() {
+        window.open('https://github.com/FNNDSC/viewerjs/wiki');
+      });
     };
 
     /**
