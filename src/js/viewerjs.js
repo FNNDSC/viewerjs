@@ -56,6 +56,8 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
       //
       if (collab) {
         this.collab = collab;
+        // collaboration chat container's ID
+        this.chatContId = this.wholeContID + '_chat';
 
         // Collaboration event listeners
         var self = this;
@@ -1263,6 +1265,21 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
     };
 
     /**
+     * Start the realtime collaboration's chat.
+     */
+    viewerjs.Viewer.prototype.startCollaborationChat = function() {
+      var jqChat;
+
+      if (this.collab && this.collab.collabIsOn) {
+
+        // insert initial chat div container
+        $('#' + this.wholeContID).append( '<div id="' + this.chatContId + '" title="Collaboration chat"></div>' );
+        jqChat = $('#' + this.chatContId);
+        jqChat.dialog().text('I have connected!');
+      }
+    };
+
+    /**
      * Handle the onConnect event when the collaboration has successfully started and is ready.
      *
      * @param {Obj} new collaborator info object.
@@ -1355,6 +1372,8 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
           'Please wait while loading the viewer...</div>' );
           $('#' + this.wholeContID + '_initwaittext').css( {'color': 'white'} );
         }
+
+        this.startCollaborationChat();
       }
     };
 
