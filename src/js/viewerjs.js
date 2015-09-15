@@ -1261,9 +1261,9 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
     /**
      * Handle the onConnect event when the collaboration has successfully started and is ready.
      *
-     * @param {String} roomId (realtime model file id).
+     * @param {Obj} new collaborator info object.
      */
-    viewerjs.Viewer.prototype.handleOnConnect = function(roomId) {
+    viewerjs.Viewer.prototype.handleOnConnect = function(collaboratorInfo) {
       var self = this;
 
       console.log('collaborationIsOn: ', this.collab.collabIsOn);
@@ -1320,7 +1320,7 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
         var authButton = document.getElementById(this.toolbarContID + '_buttonauth');
         authButton.style.display = 'none';
         var roomIdLabel = document.getElementById(this.toolbarContID + '_labelcollab');
-        roomIdLabel.innerHTML = roomId;
+        roomIdLabel.innerHTML = this.collab.realtimeFileId;
 
         // Asyncronously load all files to GDrive
         this.collab.driveFm.createPath(this.collab.dataFilesBaseDir, function() {
@@ -1344,7 +1344,7 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
             }
           }
         });
-      } else {
+      } else if (this.collab.collaboratorInfo.mail === collaboratorInfo.mail) {
         $('#' + this.wholeContID).text('Please wait while loading the viewer...');
         $('#' + this.wholeContID).css({
           'color': 'white'
