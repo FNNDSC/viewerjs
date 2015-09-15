@@ -61,8 +61,8 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
         var self = this;
 
         // This is called when the collaboration has successfully started and is ready
-        this.collab.onConnect = function(roomId) {
-          self.handleOnConnect(roomId);
+        this.collab.onConnect = function(collaboratorInfo) {
+          self.handleOnConnect(collaboratorInfo);
         };
 
         // This is called everytime the collaboration owner has shared data files with a new collaborator
@@ -90,15 +90,24 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
      */
     viewerjs.Viewer.prototype.init = function(fObjArr) {
 
+      $('#' + this.wholeContID).css({
+        'position': 'relative',
+        'margin': 0,
+        '-webkit-box-sizing': 'border-box',
+        '-moz-box-sizing': 'border-box',
+        'box-sizing': 'border-box'
+      });
+
       if (this.collab && this.collab.collabIsOn && !this.collab.collabOwner) {
-        // wipe the initial text in the collaborators's viewer container
-        $('#' + this.wholeContID).text('');
+        // Wipe the initial wait text in the collaborators's viewer container
+        $('#' + this.wholeContID + '_initwaittext').remove();
       }
+
       // Insert initial html. Initially the interface only contains the renderers' container.
       this._addRenderersContainer();
-      // build viewer's main data structure (this.imgFileArr)
+      // Build viewer's main data structure (this.imgFileArr)
       this._buildImgFileArr(fObjArr);
-      // render the scene
+      // Render the scene
       this.renderScene();
     };
 
@@ -108,13 +117,8 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
     viewerjs.Viewer.prototype._addRenderersContainer = function() {
       var self = this;
 
-      $('#' + this.wholeContID).css({
-        'position': 'relative',
-        'margin': 0,
-        '-webkit-box-sizing': 'border-box',
-        '-moz-box-sizing': 'border-box',
-        'box-sizing': 'border-box'
-      }).append('<div id="' + this.rendersContID + '" class="view-renders ' + this.wholeContID + '-sortable"></div>' );
+      $('#' + this.wholeContID).append( '<div id="' + this.rendersContID + '" class="view-renders ' +
+        this.wholeContID + '-sortable"></div>' );
 
       // jQuery UI options object for sortable elems
       // ui-sortable CSS class is by default added to the containing elem
@@ -1266,7 +1270,6 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
     viewerjs.Viewer.prototype.handleOnConnect = function(collaboratorInfo) {
       var self = this;
 
-      console.log('collaborationIsOn: ', this.collab.collabIsOn);
       // total number of files to be uploaded to GDrive
       var totalNumFiles = (function() {
         var nFiles = 0;
@@ -1311,44 +1314,47 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
         }
       }
 
-      if (this.collab.collabOwner) {
-        // Update the UI
-        var collabButton = document.getElementById(this.toolbarContID + '_buttoncollab');
-        collabButton.style.display = '';
-        collabButton.innerHTML = 'End collab';
-        collabButton.title = 'End collaboration';
-        var authButton = document.getElementById(this.toolbarContID + '_buttonauth');
-        authButton.style.display = 'none';
-        var roomIdLabel = document.getElementById(this.toolbarContID + '_labelcollab');
-        roomIdLabel.innerHTML = this.collab.realtimeFileId;
+      if (this.collab.collaboratorInfo.mail === collaboratorInfo.mail) {
 
-        // Asyncronously load all files to GDrive
-        this.collab.driveFm.createPath(this.collab.dataFilesBaseDir, function() {
+        if (this.collab.collabOwner) {
+          // Update the UI
+          var collabButton = document.getElementById(this.toolbarContID + '_buttoncollab');
+          collabButton.style.display = '';
+          collabButton.innerHTML = 'End collab';
+          collabButton.title = 'End collaboration';
+          var authButton = document.getElementById(this.toolbarContID + '_buttonauth');
+          authButton.style.display = 'none';
+          var roomIdLabel = document.getElementById(this.toolbarContID + '_labelcollab');
+          roomIdLabel.innerHTML = this.collab.realtimeFileId;
 
-          for (var i=0; i<self.imgFileArr.length; i++) {
-            var imgFileObj = self.imgFileArr[i];
-            var url;
+          // Asyncronously load all files to GDrive
+          this.collab.driveFm.createPath(this.collab.dataFilesBaseDir, function() {
 
-            if (imgFileObj.json) {
-              url = imgFileObj.baseUrl + imgFileObj.json.name;
-              self.readFile(imgFileObj.json, 'readAsArrayBuffer', loadFile.bind(null, url));
+            for (var i=0; i<self.imgFileArr.length; i++) {
+              var imgFileObj = self.imgFileArr[i];
+              var url;
+
+              if (imgFileObj.json) {
+                url = imgFileObj.baseUrl + imgFileObj.json.name;
+                self.readFile(imgFileObj.json, 'readAsArrayBuffer', loadFile.bind(null, url));
+              }
+
+              if (imgFileObj.files.length > 1) {
+                // if there are many files (dicoms) then compress them into a single .zip file before uploading
+                url = imgFileObj.baseUrl + imgFileObj.files[0].name + '.zip';
+                self.zipFiles(imgFileObj.files, loadFile.bind(null, url));
+              } else {
+                url = imgFileObj.baseUrl + imgFileObj.files[0].name;
+                self.readFile(imgFileObj.files[0], 'readAsArrayBuffer', loadFile.bind(null, url));
+              }
             }
-
-            if (imgFileObj.files.length > 1) {
-              // if there are many files (dicoms) then compress them into a single .zip file before uploading
-              url = imgFileObj.baseUrl + imgFileObj.files[0].name + '.zip';
-              self.zipFiles(imgFileObj.files, loadFile.bind(null, url));
-            } else {
-              url = imgFileObj.baseUrl + imgFileObj.files[0].name;
-              self.readFile(imgFileObj.files[0], 'readAsArrayBuffer', loadFile.bind(null, url));
-            }
-          }
-        });
-      } else if (this.collab.collaboratorInfo.mail === collaboratorInfo.mail) {
-        $('#' + this.wholeContID).text('Please wait while loading the viewer...');
-        $('#' + this.wholeContID).css({
-          'color': 'white'
-        });
+          });
+        } else {
+          // insert initial wait text div to manage user expectatives
+          $('#' + this.wholeContID).append( '<div id="' + this.wholeContID + '_initwaittext">' +
+          'Please wait while loading the viewer...</div>' );
+          $('#' + this.wholeContID + '_initwaittext').css( {'color': 'white'} );
+        }
       }
     };
 
@@ -1387,7 +1393,6 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
 
       if (this.collab.collabIsOn) {
         this.collab.leaveRealtimeCollaboration();
-        console.log('collaborationIsOn: ', this.collab.collabIsOn);
 
         // update the UI
         var collabButton = document.getElementById(this.toolbarContID + '_buttoncollab');
