@@ -47,7 +47,7 @@ define(['jqdlgext'], function() {
        var self = this;
 
        var jqChat = $('<div id="' + this.containerId + '"></div>');
-       jqChat.dialog({title: "Collaboration chat"}).dialogExtend({
+       jqChat.dialog({title: "Collab room: ", height: 300, minWidth: 400, width: 700}).dialogExtend({
         "closable" : false,
         "maximizable" : true,
         "minimizable" : true,
@@ -57,12 +57,26 @@ define(['jqdlgext'], function() {
           "maximize" : "ui-icon-arrow-4-diag"
         }
       });
+      jqChat.append(
+        '<div class="view-chat-usersarea"></div>'
+      ).append(
+        '<textarea class="view-chat-msgarea">You are connected!</textarea>'
+      ).append(
+        '<div class="view-chat-inputarea"></div>'
+      );
+      var jqChatInputArea = $('.view-chat-inputarea', jqChat).append(
+        '<button type="button">Send msg</button>'
+      ).append(
+        '<input type="text">'
+      );
+      var usersAreaWidth = parseInt($('.view-chat-usersarea', jqChat).css('width'));
+      $('.view-chat-msgarea', jqChat).css({ width: 'calc(100% - ' + usersAreaWidth + 'px)' });
+      $('.view-chat-inputarea', jqChat).css({ width: 'calc(100% - ' + usersAreaWidth + 'px)' });
 
-      jqChat.append('<div></div>');
-      jqChat.append('<textarea>You are connected!</textarea>');
-      jqChat.append('<button type="button">Send msg</button>');
-      jqChat.append('<input type="text">');
-      //$('#me', $('#' + this.containerId)).text("Hi man!");
+      var buttonHeight = parseInt($('button', jqChatInputArea).css('height'));
+      var buttonWidth = parseInt($('button', jqChatInputArea).css('width'));
+      $('.view-chat-msgarea', jqChat).css({ height: 'calc(100% - ' + buttonHeight + 'px)' });
+      $('input', jqChat).css({ width: 'calc(100% - ' + buttonWidth + 'px)' });
     };
 
     /**
