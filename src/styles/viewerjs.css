@@ -27,7 +27,7 @@ div.view-renders{
 /*================================================= patient info in renderer ================================================== */
 .view-render-info{
   position: absolute;
-  z-index: 9999;
+  z-index: 90;
   color: #DDE8BB;
   font-size: 11px;
   background-color: black;
@@ -65,7 +65,6 @@ div.view-toolbar{
   text-align:center;
   background-color: black;
 }
-
 label.view-toolbar-label{
   position: absolute;
   right: 10px;
@@ -81,7 +80,9 @@ label.view-toolbar-label{
   -moz-box-sizing: border-box;
   box-sizing: border-box;
   height: 100%;
-  width: 150px;
+  width: 140px;
+  padding: 1px 2px;
+  overflow: hidden;
   background-color: #DDE8BB;
   color: black;
   font-size: small;
@@ -99,9 +100,7 @@ div.view-thumbnailbar{
   height: 100%;
   width: 115px;
   overflow: auto;
-  /*background-color: black;*/
 }
-
 /*thumbnail image frames (divs) within the thumbnail bar*/
 .view-thumbnail{
     border-style: solid;
@@ -112,18 +111,37 @@ div.view-thumbnailbar{
 .view-thumbnail:hover{
   border: 1px solid #D9E2D4;
 }
-
 /*image within a thumbnail frame*/
 .view-thumbnail-img{
     display: block;
     height: 96px;
     width: 96px;
 }
-
 /*text info within a thumbnail frame*/
 .view-thumbnail-info{
   font-size: 11px;
   text-align:center;
   background-color: black;
   color: #DDE8BB;
+}
+
+/*================================================= CHAT ================================================== */
+.ui-dialog{
+  padding: 0;
+  border: 2px solid #DDE8BB;
+}
+.ui-dialog-titlebar{
+  margin: 0;
+}
+.ui-dialog .ui-dialog-content{
+  margin: 0;
+  padding: 0;
+  background-color: black;
+  color: white;
+}
+.view-chatbutton{
+  margin: 0;
+}
+.view-chattextarea{
+  margin: 0;
 }

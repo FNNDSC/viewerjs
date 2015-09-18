@@ -4,7 +4,7 @@
  */
 
 // define a new module
-define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
+define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, chatjs) {
 
   /**
    * Provide a namespace for the viewer module
@@ -794,11 +794,12 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
       });
 
       $('#' + this.toolbarContID + '_buttoncollab').click(function() {
-        if (self.collab.collabIsOn) {
+        /*if (self.collab.collabIsOn) {
           self.leaveCollaboration();
         } else {
           self.startCollaboration();
-        }
+        }*/
+        self.startCollaborationChat();
       });
 
       $('#' + this.toolbarContID + '_buttonhelp').click(function() {
@@ -1268,15 +1269,12 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
      * Start the realtime collaboration's chat.
      */
     viewerjs.Viewer.prototype.startCollaborationChat = function() {
-      var jqChat;
 
-      if (this.collab && this.collab.collabIsOn) {
+      //if (this.collab && this.collab.collabIsOn) {
 
-        // insert initial chat div container
-        $('#' + this.wholeContID).append( '<div id="' + this.chatContId + '" title="Collaboration chat"></div>' );
-        jqChat = $('#' + this.chatContId);
-        jqChat.dialog().text('I have connected!');
-      }
+        var chat = new chatjs.Chat(this.chatContId, this.collab);
+        chat.init();
+      //}
     };
 
     /**
