@@ -1,12 +1,15 @@
+*{
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+}
+
 /*================================================= RENDERER DIV ================================================== */
 div.view-renders{
   position: absolute;
   bottom: 0;
   right: 0;
   margin: 0;
-  -webkit-box-sizing: border-box;
-  -moz-box-sizing: border-box;
-  box-sizing: border-box;
   height: 100%;
   width: 100%;
   border: 1px solid #DDE8BB;
@@ -17,9 +20,6 @@ div.view-renders{
 /*================================================= single renderer ================================================== */
 .view-render{
   border: 1px solid #DDE8BB;
-  -webkit-box-sizing: border-box;
-  -moz-box-sizing: border-box;
-  box-sizing: border-box;
   position: absolute;
   background-color: black;
 }
@@ -57,9 +57,6 @@ div.view-toolbar{
   top: 5px;
   right: 0;
   margin: 0;
-  -webkit-box-sizing: border-box;
-  -moz-box-sizing: border-box;
-  box-sizing: border-box;
   height: 30px;
   width: 100%;
   text-align:center;
@@ -76,9 +73,6 @@ label.view-toolbar-label{
 .view-toolbar-button{
   cursor: pointer;
   margin: 0;
-  -webkit-box-sizing: border-box;
-  -moz-box-sizing: border-box;
-  box-sizing: border-box;
   height: 100%;
   width: 140px;
   padding: 1px 2px;
@@ -94,9 +88,6 @@ div.view-thumbnailbar{
   top: 5px;
   left: 5px;
   margin: 0;
-  -webkit-box-sizing: border-box;
-  -moz-box-sizing: border-box;
-  box-sizing: border-box;
   height: 100%;
   width: 115px;
   overflow: auto;
@@ -105,7 +96,7 @@ div.view-thumbnailbar{
 .view-thumbnail{
     border-style: solid;
     border-width: 1px;
-    width: 96px;
+    width: 98px;
     margin-bottom: 2px;
 }
 .view-thumbnail:hover{
@@ -140,9 +131,7 @@ div.view-thumbnailbar{
 .view-chat-usersarea{
   position: absolute;
   top: 0;
-  -webkit-box-sizing: border-box;
-  -moz-box-sizing: border-box;
-  box-sizing: border-box;
+  left: 0;
   height: 100%;
   width: 180px;
   background-color: black;
@@ -153,41 +142,50 @@ div.view-thumbnailbar{
   position: absolute;
   top: 0;
   right: 0;
+  height: 100%;
   background-color: black;
-  -webkit-box-sizing: border-box;
-  -moz-box-sizing: border-box;
-  box-sizing: border-box;
   border: 1px solid #DDE8BB;
-  width: 80%;
   margin: 0;
   color: white;
 }
-.view-chat-inputarea{
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  -webkit-box-sizing: border-box;
-  -moz-box-sizing: border-box;
-  box-sizing: border-box;
+.view-chat-msgarea-header{
+  background-color: black;
+  margin: 0;
+  border: 1px solid #DDE8BB;
+  border-top: 0;
+  height: 4em;
+  overflow: auto;
+  font-size: 1em;
+  padding: 10px 2px;
+  color: white;
+}
+.view-chat-msgarea-content{
+  margin: 0;
+  overflow: auto;
+}
+
+.view-chat-msgarea-content-text{
+  width: 100%;
+  border: 1px solid #DDE8BB;
+  background-color: black;
+  margin: 0;
+  padding: 6px 2px;
+  color: white;
+}
+.view-chat-msgarea-content-input{
+  border: 1px solid #DDE8BB;
   margin: 0;
 }
-.view-chat-inputarea button{
+.view-chat-msgarea-content-input button{
   cursor: pointer;
   margin: 0;
-  -webkit-box-sizing: border-box;
-  -moz-box-sizing: border-box;
-  box-sizing: border-box;
   padding: 1px 2px;
   overflow: hidden;
   width: 140px;
-  color: black;
 }
-
-.view-chat-inputarea input{
+.view-chat-msgarea-content-input input{
   margin: 0;
-  -webkit-box-sizing: border-box;
-  -moz-box-sizing: border-box;
-  box-sizing: border-box;
+  border: 0;
   background-color: black;
   color: white;
 }

@@ -16,17 +16,17 @@ define(['jqdlgext'], function() {
     * Class implementing the the realtime chat
     *
     * @constructor
-    * @param {String} id of the HTML div to be created.
+    * @param {Object} realtime collaborator object.
     */
-    chatjs.Chat = function(containerID, collab) {
+    chatjs.Chat = function(collab) {
 
       this.version = 0.0;
-      // chat container's ID
-      this.containerId = containerID;
+      // jQuery chat object
+      this.jqChat = null;
       // collaborator object
       this.collab = collab;
       // current colaborators list
-      this.collabotators = collab.getCollaboratorList();
+      //this.collabotators = collab.getCollaboratorList();
 
       // Collaboration event listeners
       var self = this;
@@ -44,10 +44,17 @@ define(['jqdlgext'], function() {
      * Insert chat's HTML.
      */
      chatjs.Chat.prototype.init = function() {
-       var self = this;
+       var jqChat = $('<div></div>');
 
-       var jqChat = $('<div id="' + this.containerId + '"></div>');
-       jqChat.dialog({title: "Collab room: ", height: 300, minWidth: 400, width: 700}).dialogExtend({
+       this.jqChat = jqChat;
+       // convert the previous div into a floating window with minimize, collapse and expand buttons
+       jqChat.dialog({
+         title: "Collab room: " + this.collab.realtimeFileId,
+         minHeight: 300,
+         height: 350,
+         minWidth: 500,
+         width: 650
+       }).dialogExtend({
         "closable" : false,
         "maximizable" : true,
         "minimizable" : true,
@@ -57,26 +64,45 @@ define(['jqdlgext'], function() {
           "maximize" : "ui-icon-arrow-4-diag"
         }
       });
-      jqChat.append(
-        '<div class="view-chat-usersarea"></div>'
-      ).append(
-        '<textarea class="view-chat-msgarea">You are connected!</textarea>'
-      ).append(
-        '<div class="view-chat-inputarea"></div>'
-      );
-      var jqChatInputArea = $('.view-chat-inputarea', jqChat).append(
-        '<button type="button">Send msg</button>'
-      ).append(
-        '<input type="text">'
-      );
-      var usersAreaWidth = parseInt($('.view-chat-usersarea', jqChat).css('width'));
-      $('.view-chat-msgarea', jqChat).css({ width: 'calc(100% - ' + usersAreaWidth + 'px)' });
-      $('.view-chat-inputarea', jqChat).css({ width: 'calc(100% - ' + usersAreaWidth + 'px)' });
 
-      var buttonHeight = parseInt($('button', jqChatInputArea).css('height'));
+      // add the HTML contents to the floating window
+      jqChat.append(
+        '<div class="view-chat-usersarea"></div>' +
+        '<div class="view-chat-msgarea">' +
+          '<div class="view-chat-msgarea-header"></div>' +
+          '<div class="view-chat-msgarea-content">' +
+            '<textarea class="view-chat-msgarea-content-text">You are connected!</textarea>' +
+            '<div class="view-chat-msgarea-content-input">' +
+              '<button type="button">Send msg</button>' +
+              '<input type="text">' +
+            '</div>' +
+          '</div>' +
+        '</div>'
+      );
+
+      var jqChatMsgArea = $('.view-chat-msgarea', jqChat);
+      $('.view-chat-msgarea-header', jqChatMsgArea).text('You can email to other collaborators ' +
+          'the collaboration room id:  ' + this.collab.realtimeFileId);
+
+      // lay out the contents
+      var usersAreaWidth = parseInt($('.view-chat-usersarea', jqChat).css('width'));
+      jqChatMsgArea.css({ width: 'calc(100% - ' + usersAreaWidth + 'px)' });
+
+
+      var jqChatInputArea = $('.view-chat-msgarea-content-input', jqChatMsgArea);
+      var inputAreaHeight = parseInt(jqChatInputArea.css('height'));
       var buttonWidth = parseInt($('button', jqChatInputArea).css('width'));
-      $('.view-chat-msgarea', jqChat).css({ height: 'calc(100% - ' + buttonHeight + 'px)' });
-      $('input', jqChat).css({ width: 'calc(100% - ' + buttonWidth + 'px)' });
+      var headerHeight = parseInt($('.view-chat-msgarea-header', jqChatMsgArea).css('height'));
+
+      $('.view-chat-msgarea-content', jqChatMsgArea).css({
+        height: 'calc(100% - ' + headerHeight + 'px)'
+        });
+
+      $('input', jqChatInputArea).css({ width: 'calc(100% - ' + buttonWidth + 'px)' });
+
+      $('.view-chat-msgarea-content-text', jqChatMsgArea).css({
+        height: 'calc(100% - ' + (inputAreaHeight+6) + 'px)'
+        });
     };
 
     /**

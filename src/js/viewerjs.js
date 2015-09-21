@@ -56,8 +56,6 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
       //
       if (collab) {
         this.collab = collab;
-        // collaboration chat container's ID
-        this.chatContId = this.wholeContID + '_chat';
 
         // Collaboration event listeners
         var self = this;
@@ -1272,9 +1270,9 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
 
       //if (this.collab && this.collab.collabIsOn) {
 
-        var chat = new chatjs.Chat(this.chatContId, this.collab);
+        var chat = new chatjs.Chat(this.collab);
         chat.init();
-      //}
+    //  }
     };
 
     /**
