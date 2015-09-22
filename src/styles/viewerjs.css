@@ -120,6 +120,7 @@ div.view-thumbnailbar{
 .ui-dialog{
   padding: 0;
   border: 2px solid #DDE8BB;
+  margin: 0;
 }
 .ui-dialog-titlebar{
   margin: 0;
@@ -137,55 +138,66 @@ div.view-thumbnailbar{
   background-color: black;
   border: 1px solid #DDE8BB;
   margin: 0;
+  color: white;
+  font-size: 0.8em;
+  padding: 4px;
 }
 .view-chat-msgarea{
   position: absolute;
   top: 0;
   right: 0;
+  width: calc(100% - 180px);
   height: 100%;
-  background-color: black;
   border: 1px solid #DDE8BB;
   margin: 0;
   color: white;
+  font-size: 1em;
 }
 .view-chat-msgarea-header{
+  position: absolute;
+  top: 0;
   background-color: black;
   margin: 0;
   border: 1px solid #DDE8BB;
   border-top: 0;
-  height: 4em;
+  height: 2em;
+  width: 100%;
   overflow: auto;
-  font-size: 1em;
-  padding: 10px 2px;
-  color: white;
+  padding: 2px 4px;
 }
-.view-chat-msgarea-content{
-  margin: 0;
-  overflow: auto;
-}
-
-.view-chat-msgarea-content-text{
+.view-chat-msgarea-text{
+  position: absolute;
+  top: 2em;
   width: 100%;
   border: 1px solid #DDE8BB;
   background-color: black;
   margin: 0;
-  padding: 6px 2px;
+  padding: 6px 4px;
   color: white;
 }
-.view-chat-msgarea-content-input{
+.view-chat-msgarea-input{
+  position: absolute;
+  width: 100%;
+  bottom: 0;
   border: 1px solid #DDE8BB;
   margin: 0;
+  height: 40px;
+  background-color: black;
 }
-.view-chat-msgarea-content-input button{
+.view-chat-msgarea-input button{
   cursor: pointer;
   margin: 0;
   padding: 1px 2px;
   overflow: hidden;
-  width: 140px;
+  width: 130px;
+  height: 100%;
+  font-size: small;
 }
-.view-chat-msgarea-content-input input{
+.view-chat-msgarea-input input{
   margin: 0;
   border: 0;
   background-color: black;
   color: white;
+  padding: 0 4px;
+  width: calc(100% - 130px);
 }

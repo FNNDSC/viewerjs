@@ -792,12 +792,11 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
       });
 
       $('#' + this.toolbarContID + '_buttoncollab').click(function() {
-        /*if (self.collab.collabIsOn) {
+        if (self.collab.collabIsOn) {
           self.leaveCollaboration();
         } else {
           self.startCollaboration();
-        }*/
-        self.startCollaborationChat();
+        }
       });
 
       $('#' + this.toolbarContID + '_buttonhelp').click(function() {
@@ -1268,11 +1267,11 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
      */
     viewerjs.Viewer.prototype.startCollaborationChat = function() {
 
-      //if (this.collab && this.collab.collabIsOn) {
+      if (this.collab && this.collab.collabIsOn) {
 
         var chat = new chatjs.Chat(this.collab);
         chat.init();
-    //  }
+      }
     };
 
     /**

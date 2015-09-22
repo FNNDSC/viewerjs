@@ -49,7 +49,7 @@ define(['jqdlgext'], function() {
        this.jqChat = jqChat;
        // convert the previous div into a floating window with minimize, collapse and expand buttons
        jqChat.dialog({
-         title: "Collab room: " + this.collab.realtimeFileId,
+         title: "Collaboration chat",
          minHeight: 300,
          height: 350,
          minWidth: 500,
@@ -67,42 +67,28 @@ define(['jqdlgext'], function() {
 
       // add the HTML contents to the floating window
       jqChat.append(
-        '<div class="view-chat-usersarea"></div>' +
+        '<div class="view-chat-usersarea"><ul></ul></div>' +
         '<div class="view-chat-msgarea">' +
           '<div class="view-chat-msgarea-header"></div>' +
-          '<div class="view-chat-msgarea-content">' +
-            '<textarea class="view-chat-msgarea-content-text">You are connected!</textarea>' +
-            '<div class="view-chat-msgarea-content-input">' +
-              '<button type="button">Send msg</button>' +
-              '<input type="text">' +
-            '</div>' +
+          '<textarea class="view-chat-msgarea-text">You are connected!</textarea>' +
+          '<div class="view-chat-msgarea-input">' +
+            '<button type="button">Send msg</button>' +
+            '<input type="text">' +
           '</div>' +
         '</div>'
       );
 
+      $('.view-chat-usersarea ul', jqChat).append('<li>' + this.collab.collaboratorInfo.name + ' (me)</li>');
+
+      // lay out elements
       var jqChatMsgArea = $('.view-chat-msgarea', jqChat);
-      $('.view-chat-msgarea-header', jqChatMsgArea).text('You can email to other collaborators ' +
-          'the collaboration room id:  ' + this.collab.realtimeFileId);
-
-      // lay out the contents
-      var usersAreaWidth = parseInt($('.view-chat-usersarea', jqChat).css('width'));
-      jqChatMsgArea.css({ width: 'calc(100% - ' + usersAreaWidth + 'px)' });
-
-
-      var jqChatInputArea = $('.view-chat-msgarea-content-input', jqChatMsgArea);
-      var inputAreaHeight = parseInt(jqChatInputArea.css('height'));
-      var buttonWidth = parseInt($('button', jqChatInputArea).css('width'));
       var headerHeight = parseInt($('.view-chat-msgarea-header', jqChatMsgArea).css('height'));
+      var inputAreaHeight = parseInt($('.view-chat-msgarea-input', jqChatMsgArea).css('height'));
 
-      $('.view-chat-msgarea-content', jqChatMsgArea).css({
-        height: 'calc(100% - ' + headerHeight + 'px)'
-        });
-
-      $('input', jqChatInputArea).css({ width: 'calc(100% - ' + buttonWidth + 'px)' });
-
-      $('.view-chat-msgarea-content-text', jqChatMsgArea).css({
-        height: 'calc(100% - ' + (inputAreaHeight+6) + 'px)'
-        });
+      $('.view-chat-msgarea-header', jqChatMsgArea).text('Room id: ' + this.collab.realtimeFileId);
+      $('.view-chat-msgarea-text', jqChatMsgArea).css({
+        height: 'calc(100% - ' + (inputAreaHeight+headerHeight) + 'px)'
+      });
     };
 
     /**
