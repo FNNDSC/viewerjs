@@ -33,7 +33,7 @@ define(['jqdlgext'], function() {
 
       // This method is called when a new chat msg is received from a remote collaborator
       this.collab.onNewChatMessage = function(msgObj) {
-        var chatTextarea = document.getElementById('chattextarea');
+        var chatTextarea = $('.view-chat-msgarea-text', self.jqChat)[0];
         var text = msgObj.user + ': ' + msgObj.msg;
 
         chatTextarea.innerHTML += '&#xA;' + text;
@@ -45,6 +45,7 @@ define(['jqdlgext'], function() {
      */
      chatjs.Chat.prototype.init = function() {
        var jqChat = $('<div></div>');
+       var self = this;
 
        this.jqChat = jqChat;
        // convert the previous div into a floating window with minimize, collapse and expand buttons
@@ -70,7 +71,7 @@ define(['jqdlgext'], function() {
         '<div class="view-chat-usersarea"><ul></ul></div>' +
         '<div class="view-chat-msgarea">' +
           '<div class="view-chat-msgarea-header"></div>' +
-          '<textarea class="view-chat-msgarea-text">You are connected!</textarea>' +
+          '<textarea class="view-chat-msgarea-text" disabled>You are connected!</textarea>' +
           '<div class="view-chat-msgarea-input">' +
             '<button type="button">Send msg</button>' +
             '<input type="text">' +
@@ -88,6 +89,17 @@ define(['jqdlgext'], function() {
       $('.view-chat-msgarea-header', jqChatMsgArea).text('Room id: ' + this.collab.realtimeFileId);
       $('.view-chat-msgarea-text', jqChatMsgArea).css({
         height: 'calc(100% - ' + (inputAreaHeight+headerHeight) + 'px)'
+      });
+
+      // UI event handlers
+      $('button', jqChat).click(function() {
+        var chatTextarea = $('.view-chat-msgarea-text', jqChat)[0];
+        var chatInput = $('input', jqChat)[0];
+        var text = chatInput.value;
+
+        chatInput.value = '';
+        chatTextarea.innerHTML += '&#xA;' + self.collab.collaboratorInfo.name + ': ' + text;
+        self.collab.sendChatMsg(text);
       });
     };
 
