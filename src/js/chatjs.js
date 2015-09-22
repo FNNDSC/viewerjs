@@ -115,7 +115,7 @@ define(['jqdlgext'], function() {
      * @param {Obj} chat message object.
      */
      chatjs.Chat.prototype.updateTextArea = function(msgObj) {
-       var chatTextarea = $('.view-chat-msgarea-text', self.jqChat)[0];
+       var chatTextarea = $('.view-chat-msgarea-text', this.jqChat)[0];
        var text = msgObj.user + ': ' + msgObj.msg;
 
        chatTextarea.innerHTML += '&#xA;' + text;

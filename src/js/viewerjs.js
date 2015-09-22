@@ -57,7 +57,7 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
       if (collab) {
         this.collab = collab;
         // chat object
-        this.chat;
+        this.chat = null;
 
         // Collaboration event listeners
         var self = this;
@@ -1368,7 +1368,7 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
         this.startCollaborationChat();
 
       } else {
-        
+
         if (this.collab.collabOwner) {
           this.collab.sendChatMsg('Welcome ' + collaboratorInfo.name + '!');
         }

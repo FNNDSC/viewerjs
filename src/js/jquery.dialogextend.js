@@ -117,7 +117,7 @@ require(['jquery_ui'], function() {
           mode = _ref[name];
           this._initModuleButton(name, mode);
         }
-        return titlebar.dblclick(function(evt) {
+        return titlebar.dblclick(function() {
           if (_this.options.dblclick) {
             if (_this._state !== "normal") {
               return _this.restore();
@@ -508,5 +508,5 @@ require(['jquery_ui'], function() {
     });
 
   }).call(this);
-  
+
 });

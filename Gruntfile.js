@@ -13,7 +13,7 @@ module.exports = function(grunt) {
       ' Licensed <%= _.pluck(pkg.licenses, "type").join(", ") %> */\n',
 
     // Custome Paths
-    srcFiles: ['src/js/viewerjs.js'], // source files
+    srcFiles: ['src/js/*.js'], // source files
     testFiles: ['spec/*.spec.js'], // test files (jasmine specs)
     libDir: 'src/js/lib', // libraries that cannot be installed through bower
     componentsDir: 'src/js/components', // bower components
