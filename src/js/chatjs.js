@@ -33,10 +33,15 @@ define(['jqdlgext'], function() {
 
       // This method is called when a new chat msg is received from a remote collaborator
       this.collab.onNewChatMessage = function(msgObj) {
-        var chatTextarea = $('.view-chat-msgarea-text', self.jqChat)[0];
-        var text = msgObj.user + ': ' + msgObj.msg;
+        self.updateTextArea(msgObj);
+      };
 
-        chatTextarea.innerHTML += '&#xA;' + text;
+      // This method is called everytime a remote collaborator disconnects from the collaboration
+      this.collab.onDisconnect = function(collaboratorInfo) {
+        // create a chat message object
+        var msgObj = {user: collaboratorInfo.name, msg: 'has disconnected.'};
+
+        self.updateTextArea(msgObj);
       };
     };
 
@@ -79,8 +84,6 @@ define(['jqdlgext'], function() {
         '</div>'
       );
 
-      $('.view-chat-usersarea ul', jqChat).append('<li>' + this.collab.collaboratorInfo.name + ' (me)</li>');
-
       // lay out elements
       var jqChatMsgArea = $('.view-chat-msgarea', jqChat);
       var headerHeight = parseInt($('.view-chat-msgarea-header', jqChatMsgArea).css('height'));
@@ -90,6 +93,9 @@ define(['jqdlgext'], function() {
       $('.view-chat-msgarea-text', jqChatMsgArea).css({
         height: 'calc(100% - ' + (inputAreaHeight+headerHeight) + 'px)'
       });
+
+      this.collab.sendChatMsg('I have connected!');
+      this.updateCollaboratorList();
 
       // UI event handlers
       $('button', jqChat).click(function() {
@@ -104,18 +110,41 @@ define(['jqdlgext'], function() {
     };
 
     /**
+     * Update the chat text area with new text.
+     *
+     * @param {Obj} chat message object.
+     */
+     chatjs.Chat.prototype.updateTextArea = function(msgObj) {
+       var chatTextarea = $('.view-chat-msgarea-text', self.jqChat)[0];
+       var text = msgObj.user + ': ' + msgObj.msg;
+
+       chatTextarea.innerHTML += '&#xA;' + text;
+       this.updateCollaboratorList();
+    };
+
+    /**
+     * Update the list of collaborators in the UI.
+     */
+     chatjs.Chat.prototype.updateCollaboratorList = function() {
+       var collaborators = this.collab.getCollaboratorList();
+       var jqUsersArea = $('.view-chat-usersarea', this.jqChat);
+       var ul = $('ul', jqUsersArea).empty();
+
+       for (var i=0; i<collaborators.length; i++) {
+         if (collaborators[i].displayName === this.collab.collaboratorInfo.name) {
+           ul.append('<li>' + this.collab.collaboratorInfo.name + ' (me)</li>');
+         } else {
+           ul.append('<li>' + collaborators[i].displayName + '</li>');
+         }
+       }
+    };
+
+    /**
      * Destroy all objects and remove html interface
      */
      chatjs.Chat.prototype.destroy = function() {
        this.jqChat.dialog("destroy");
        this.jqChat.empty();
-    };
-
-    /**
-     * Update the list of collaborators.
-     */
-     chatjs.Chat.prototype.updateCollaboratorList = function() {
-
     };
 
     return chatjs;
