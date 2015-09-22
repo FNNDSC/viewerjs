@@ -748,7 +748,6 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
           '<button id="' + this.toolbarContID + '_buttonlink" class="view-toolbar-button" type="button" title="Link views">Link views</button>' +
           '<button id="' + this.toolbarContID + '_buttoncollab" class="view-toolbar-button" type="button" title="Start collaboration">Start collab</button>' +
           '<button id="' + this.toolbarContID + '_buttonauth" class="view-toolbar-button" type="button" title="Authorize">Authorize</button>' +
-          '<label id="' + this.toolbarContID + '_labelcollab" class="view-toolbar-label"></label>' +
         '<div>'
       );
 
@@ -1113,8 +1112,6 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
             var collabButton = document.getElementById(self.toolbarContID + '_buttoncollab');
             collabButton.innerHTML = 'End collab';
             collabButton.title = 'End collaboration';
-            var roomIdLabel = document.getElementById(self.toolbarContID + '_labelcollab');
-            roomIdLabel.innerHTML = self.collab.realtimeFileId;
           }
           if (self.rendersLinked !== scene.toolBar.rendersLinked) {
             self.handleToolBarButtonLinkClick();
@@ -1336,8 +1333,6 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
           collabButton.title = 'End collaboration';
           var authButton = document.getElementById(this.toolbarContID + '_buttonauth');
           authButton.style.display = 'none';
-          var roomIdLabel = document.getElementById(this.toolbarContID + '_labelcollab');
-          roomIdLabel.innerHTML = this.collab.realtimeFileId;
 
           // Asyncronously load all files to GDrive
           this.collab.driveFm.createPath(this.collab.dataFilesBaseDir, function() {
@@ -1412,8 +1407,6 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
         var collabButton = document.getElementById(this.toolbarContID + '_buttoncollab');
         collabButton.innerHTML = 'Start collab';
         collabButton.title = 'Start collaboration';
-        var roomIdLabel = document.getElementById(this.toolbarContID + '_labelcollab');
-        roomIdLabel.innerHTML = '';
       }
     };
 

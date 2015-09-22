@@ -62,13 +62,6 @@ div.view-toolbar{
   text-align:center;
   background-color: black;
 }
-label.view-toolbar-label{
-  position: absolute;
-  right: 10px;
-  height: 100%;
-  color: #E4AD00;
-}
-
 /*================================================= tool bar button ================================================== */
 .view-toolbar-button{
   cursor: pointer;
@@ -124,11 +117,13 @@ div.view-thumbnailbar{
 }
 .ui-dialog-titlebar{
   margin: 0;
+  color: #633A05;
 }
 .ui-dialog .ui-dialog-content{
   margin: 0;
   padding: 0;
 }
+/*List of connected users*/
 .view-chat-usersarea{
   position: absolute;
   top: 0;
@@ -138,10 +133,11 @@ div.view-thumbnailbar{
   background-color: black;
   border: 1px solid #DDE8BB;
   margin: 0;
-  color: white;
+  color: #EC9F3A;
   font-size: 0.8em;
   padding: 4px;
 }
+/*whole chat elements container to the right of the list of connected users*/
 .view-chat-msgarea{
   position: absolute;
   top: 0;
@@ -150,9 +146,9 @@ div.view-thumbnailbar{
   height: 100%;
   border: 1px solid #DDE8BB;
   margin: 0;
-  color: white;
   font-size: 1em;
 }
+/*room id text*/
 .view-chat-msgarea-header{
   position: absolute;
   top: 0;
@@ -164,7 +160,9 @@ div.view-thumbnailbar{
   width: 100%;
   overflow: auto;
   padding: 2px 4px;
+  color: #E4AD00;
 }
+/*chat msg area*/
 .view-chat-msgarea-text{
   position: absolute;
   top: 2em;
@@ -173,8 +171,9 @@ div.view-thumbnailbar{
   background-color: black;
   margin: 0;
   padding: 6px 4px;
-  color: white;
+  color: #DDE8BB;
 }
+/*container of the 'send msg' button and input field*/
 .view-chat-msgarea-input{
   position: absolute;
   width: 100%;
@@ -192,12 +191,13 @@ div.view-thumbnailbar{
   width: 130px;
   height: 100%;
   font-size: small;
+  background-color: #DDE8BB;
 }
 .view-chat-msgarea-input input{
   margin: 0;
   border: 0;
   background-color: black;
-  color: white;
+  color: #DDE8BB;
   padding: 0 4px;
   width: calc(100% - 130px);
 }
