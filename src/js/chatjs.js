@@ -92,6 +92,14 @@ define(['jqdlgext'], function() {
     };
 
     /**
+     * Destroy all objects and remove html interface
+     */
+     chatjs.Chat.prototype.destroy = function() {
+       this.jqChat.dialog("destroy");
+       this.jqChat.empty();
+    };
+
+    /**
      * Update the list of collaborators.
      */
      chatjs.Chat.prototype.updateCollaboratorList = function() {

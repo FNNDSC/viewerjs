@@ -56,6 +56,8 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
       //
       if (collab) {
         this.collab = collab;
+        // chat object
+        this.chat;
 
         // Collaboration event listeners
         var self = this;
@@ -1266,8 +1268,8 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
 
       if (this.collab && this.collab.collabIsOn) {
 
-        var chat = new chatjs.Chat(this.collab);
-        chat.init();
+        this.chat = new chatjs.Chat(this.collab);
+        this.chat.init();
       }
     };
 
@@ -1407,6 +1409,7 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
         var collabButton = document.getElementById(this.toolbarContID + '_buttoncollab');
         collabButton.innerHTML = 'Start collab';
         collabButton.title = 'Start collaboration';
+        this.chat.destroy();
       }
     };
 
