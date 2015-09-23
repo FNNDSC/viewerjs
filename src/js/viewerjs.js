@@ -1416,6 +1416,7 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
         collabButton.innerHTML = 'Start collab';
         collabButton.title = 'Start collaboration';
         this.chat.destroy();
+        this.chat = null;
       }
     };
 
