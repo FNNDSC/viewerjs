@@ -97,15 +97,29 @@ define(['jqdlgext'], function() {
       this.collab.sendChatMsg('I have connected!');
       this.updateCollaboratorList();
 
+      //
       // UI event handlers
-      $('button', jqChat).click(function() {
-        var chatTextarea = $('.view-chat-msgarea-text', jqChat)[0];
-        var chatInput = $('input', jqChat)[0];
-        var text = chatInput.value;
+      //
+      var jqButton = $('button', jqChat);
+      var jqInput = $('input', jqChat);
+      var chatTextarea = $('.view-chat-msgarea-text', jqChat)[0];
 
-        chatInput.value = '';
-        chatTextarea.innerHTML += '&#xA;' + self.collab.collaboratorInfo.name + ': ' + text;
-        self.collab.sendChatMsg(text);
+      // send msg button click
+      jqButton.click(function() {
+        var text = jqInput[0].value;
+        
+        if (text) {
+          jqInput[0].value = '';
+          chatTextarea.innerHTML += '&#xA;' + self.collab.collaboratorInfo.name + ': ' + text;
+          self.collab.sendChatMsg(text);
+        }
+      });
+
+      // Enter key press
+      jqInput.keyup(function(evt) {
+        if (evt.keyCode === 13) {
+          jqButton.click();
+        }
       });
     };
 
