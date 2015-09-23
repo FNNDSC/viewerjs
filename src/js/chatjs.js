@@ -107,7 +107,7 @@ define(['jqdlgext'], function() {
       // send msg button click
       jqButton.click(function() {
         var text = jqInput[0].value;
-        
+
         if (text) {
           jqInput[0].value = '';
           chatTextarea.innerHTML += '&#xA;' + self.collab.collaboratorInfo.name + ': ' + text;
@@ -151,6 +151,27 @@ define(['jqdlgext'], function() {
            ul.append('<li>' + collaborators[i].displayName + '</li>');
          }
        }
+    };
+
+    /**
+     * Hide chat window.
+     */
+     chatjs.Chat.prototype.close = function() {
+       this.jqChat.dialog("close");
+    };
+
+    /**
+     * Show chat window.
+     */
+     chatjs.Chat.prototype.open = function() {
+       this.jqChat.dialog("open");
+    };
+
+    /**
+     * Whether the chat is currently open.
+     */
+     chatjs.Chat.prototype.isOpen = function() {
+       return this.jqChat.dialog("isOpen");
     };
 
     /**
