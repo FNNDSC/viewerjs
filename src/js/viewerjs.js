@@ -1027,10 +1027,16 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
      * Destroy all objects and remove html interface
      */
     viewerjs.Viewer.prototype.destroy = function() {
+      
+      if (this.collab && this.collab.collabIsOn) {
+        this.leaveCollaboration();
+      }
+
       // destroy XTK renderers
       for (var i=0; i<this.renders2D.length; i++) {
         this.remove2DRender($(this.renders2D[i].container).attr("id"));
       }
+
       // remove html
       $('#' + this.wholeContID).empty();
     };
