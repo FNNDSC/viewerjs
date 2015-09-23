@@ -1027,7 +1027,7 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
      * Destroy all objects and remove html interface
      */
     viewerjs.Viewer.prototype.destroy = function() {
-      
+
       if (this.collab && this.collab.collabIsOn) {
         this.leaveCollaboration();
       }
@@ -1331,7 +1331,7 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
         }
       }
 
-      if (this.collab.collaboratorInfo.mail === collaboratorInfo.mail) {
+      if (this.collab.collaboratorInfo.id === collaboratorInfo.id) {
 
         if (this.collab.collabOwner) {
           // Update the UI
@@ -1389,7 +1389,7 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
      */
      viewerjs.Viewer.prototype.handleOnDataFilesShared = function(collaboratorInfo, fObjArr) {
 
-      if (!this.collab.collabOwner && (this.collab.collaboratorInfo.mail === collaboratorInfo.mail)) {
+      if (this.collab.collaboratorInfo.id === collaboratorInfo.id) {
         var fileArr = [];
 
         for (var i=0; i<fObjArr.length; i++) {
