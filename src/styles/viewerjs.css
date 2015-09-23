@@ -1,12 +1,15 @@
+*{
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+}
+
 /*================================================= RENDERER DIV ================================================== */
 div.view-renders{
   position: absolute;
   bottom: 0;
   right: 0;
   margin: 0;
-  -webkit-box-sizing: border-box;
-  -moz-box-sizing: border-box;
-  box-sizing: border-box;
   height: 100%;
   width: 100%;
   border: 1px solid #DDE8BB;
@@ -17,9 +20,6 @@ div.view-renders{
 /*================================================= single renderer ================================================== */
 .view-render{
   border: 1px solid #DDE8BB;
-  -webkit-box-sizing: border-box;
-  -moz-box-sizing: border-box;
-  box-sizing: border-box;
   position: absolute;
   background-color: black;
 }
@@ -27,7 +27,7 @@ div.view-renders{
 /*================================================= patient info in renderer ================================================== */
 .view-render-info{
   position: absolute;
-  z-index: 9999;
+  z-index: 90;
   color: #DDE8BB;
   font-size: 11px;
   background-color: black;
@@ -57,31 +57,19 @@ div.view-toolbar{
   top: 5px;
   right: 0;
   margin: 0;
-  -webkit-box-sizing: border-box;
-  -moz-box-sizing: border-box;
-  box-sizing: border-box;
   height: 30px;
   width: 100%;
   text-align:center;
   background-color: black;
 }
-
-label.view-toolbar-label{
-  position: absolute;
-  right: 10px;
-  height: 100%;
-  color: #E4AD00;
-}
-
 /*================================================= tool bar button ================================================== */
 .view-toolbar-button{
   cursor: pointer;
   margin: 0;
-  -webkit-box-sizing: border-box;
-  -moz-box-sizing: border-box;
-  box-sizing: border-box;
   height: 100%;
-  width: 150px;
+  width: 140px;
+  padding: 1px 2px;
+  overflow: hidden;
   background-color: #DDE8BB;
   color: black;
   font-size: small;
@@ -93,37 +81,123 @@ div.view-thumbnailbar{
   top: 5px;
   left: 5px;
   margin: 0;
-  -webkit-box-sizing: border-box;
-  -moz-box-sizing: border-box;
-  box-sizing: border-box;
   height: 100%;
   width: 115px;
   overflow: auto;
-  /*background-color: black;*/
 }
-
 /*thumbnail image frames (divs) within the thumbnail bar*/
 .view-thumbnail{
     border-style: solid;
     border-width: 1px;
-    width: 96px;
+    width: 98px;
     margin-bottom: 2px;
 }
 .view-thumbnail:hover{
   border: 1px solid #D9E2D4;
 }
-
 /*image within a thumbnail frame*/
 .view-thumbnail-img{
     display: block;
     height: 96px;
     width: 96px;
 }
-
 /*text info within a thumbnail frame*/
 .view-thumbnail-info{
   font-size: 11px;
   text-align:center;
   background-color: black;
   color: #DDE8BB;
+}
+
+/*================================================= CHAT ================================================== */
+.ui-dialog{
+  padding: 0;
+  border: 2px solid #DDE8BB;
+  margin: 0;
+}
+.ui-dialog-titlebar{
+  margin: 0;
+  color: #633A05;
+}
+.ui-dialog .ui-dialog-content{
+  margin: 0;
+  padding: 0;
+}
+/*List of connected users*/
+.view-chat-usersarea{
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 180px;
+  background-color: black;
+  border: 1px solid #DDE8BB;
+  margin: 0;
+  color: #EC9F3A;
+  font-size: 0.8em;
+  padding: 4px;
+}
+/*whole chat elements container to the right of the list of connected users*/
+.view-chat-msgarea{
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: calc(100% - 180px);
+  height: 100%;
+  border: 1px solid #DDE8BB;
+  margin: 0;
+  font-size: 1em;
+}
+/*room id text*/
+.view-chat-msgarea-header{
+  position: absolute;
+  top: 0;
+  background-color: black;
+  margin: 0;
+  border: 1px solid #DDE8BB;
+  border-top: 0;
+  height: 2em;
+  width: 100%;
+  overflow: auto;
+  padding: 2px 4px;
+  color: #E4AD00;
+}
+/*chat msg area*/
+.view-chat-msgarea-text{
+  position: absolute;
+  top: 2em;
+  width: 100%;
+  border: 1px solid #DDE8BB;
+  background-color: black;
+  margin: 0;
+  padding: 6px 4px;
+  color: #DDE8BB;
+}
+/*container of the 'send msg' button and input field*/
+.view-chat-msgarea-input{
+  position: absolute;
+  width: 100%;
+  bottom: 0;
+  border: 1px solid #DDE8BB;
+  margin: 0;
+  height: 40px;
+  background-color: black;
+}
+.view-chat-msgarea-input button{
+  cursor: pointer;
+  margin: 0;
+  padding: 1px 2px;
+  overflow: hidden;
+  width: 130px;
+  height: 100%;
+  font-size: small;
+  background-color: #DDE8BB;
+}
+.view-chat-msgarea-input input{
+  margin: 0;
+  border: 0;
+  background-color: black;
+  color: #DDE8BB;
+  padding: 0 4px;
+  width: calc(100% - 130px);
 }

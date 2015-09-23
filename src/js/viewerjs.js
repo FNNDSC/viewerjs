@@ -4,7 +4,7 @@
  */
 
 // define a new module
-define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
+define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, chatjs) {
 
   /**
    * Provide a namespace for the viewer module
@@ -56,6 +56,8 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
       //
       if (collab) {
         this.collab = collab;
+        // chat object
+        this.chat = null;
 
         // Collaboration event listeners
         var self = this;
@@ -748,7 +750,6 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
           '<button id="' + this.toolbarContID + '_buttonlink" class="view-toolbar-button" type="button" title="Link views">Link views</button>' +
           '<button id="' + this.toolbarContID + '_buttoncollab" class="view-toolbar-button" type="button" title="Start collaboration">Start collab</button>' +
           '<button id="' + this.toolbarContID + '_buttonauth" class="view-toolbar-button" type="button" title="Authorize">Authorize</button>' +
-          '<label id="' + this.toolbarContID + '_labelcollab" class="view-toolbar-label"></label>' +
         '<div>'
       );
 
@@ -1113,8 +1114,6 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
             var collabButton = document.getElementById(self.toolbarContID + '_buttoncollab');
             collabButton.innerHTML = 'End collab';
             collabButton.title = 'End collaboration';
-            var roomIdLabel = document.getElementById(self.toolbarContID + '_labelcollab');
-            roomIdLabel.innerHTML = self.collab.realtimeFileId;
           }
           if (self.rendersLinked !== scene.toolBar.rendersLinked) {
             self.handleToolBarButtonLinkClick();
@@ -1263,6 +1262,18 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
     };
 
     /**
+     * Start the realtime collaboration's chat.
+     */
+    viewerjs.Viewer.prototype.startCollaborationChat = function() {
+
+      if (this.collab && this.collab.collabIsOn) {
+
+        this.chat = new chatjs.Chat(this.collab);
+        this.chat.init();
+      }
+    };
+
+    /**
      * Handle the onConnect event when the collaboration has successfully started and is ready.
      *
      * @param {Obj} new collaborator info object.
@@ -1324,8 +1335,6 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
           collabButton.title = 'End collaboration';
           var authButton = document.getElementById(this.toolbarContID + '_buttonauth');
           authButton.style.display = 'none';
-          var roomIdLabel = document.getElementById(this.toolbarContID + '_labelcollab');
-          roomIdLabel.innerHTML = this.collab.realtimeFileId;
 
           // Asyncronously load all files to GDrive
           this.collab.driveFm.createPath(this.collab.dataFilesBaseDir, function() {
@@ -1354,6 +1363,14 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
           $('#' + this.wholeContID).append( '<div id="' + this.wholeContID + '_initwaittext">' +
           'Please wait while loading the viewer...</div>' );
           $('#' + this.wholeContID + '_initwaittext').css( {'color': 'white'} );
+        }
+
+        this.startCollaborationChat();
+
+      } else {
+
+        if (this.collab.collabOwner) {
+          this.collab.sendChatMsg('Welcome ' + collaboratorInfo.name + '!');
         }
       }
     };
@@ -1398,8 +1415,7 @@ define(['jszip', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip) {
         var collabButton = document.getElementById(this.toolbarContID + '_buttoncollab');
         collabButton.innerHTML = 'Start collab';
         collabButton.title = 'Start collaboration';
-        var roomIdLabel = document.getElementById(this.toolbarContID + '_labelcollab');
-        roomIdLabel.innerHTML = '';
+        this.chat.destroy();
       }
     };
 
