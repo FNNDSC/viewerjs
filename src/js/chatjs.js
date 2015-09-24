@@ -145,10 +145,10 @@ define(['jqdlgext'], function() {
        var ul = $('ul', jqUsersArea).empty();
 
        for (var i=0; i<collaborators.length; i++) {
-         if (collaborators[i].sessionId === this.collab.collaboratorInfo.id) {
-           ul.append('<li>' + this.collab.collaboratorInfo.name + ' (me)</li>');
+         if (collaborators[i].id === this.collab.collaboratorInfo.id) {
+           ul.prepend('<li>' + this.collab.collaboratorInfo.name + ' (me)</li>');
          } else {
-           ul.append('<li>' + collaborators[i].displayName + '</li>');
+           ul.append('<li>' + collaborators[i].name + '</li>');
          }
        }
     };

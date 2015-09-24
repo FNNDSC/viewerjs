@@ -1372,12 +1372,8 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
         }
 
         this.startCollaborationChat();
-
       } else {
-
-        if (this.collab.collabOwner) {
-          this.collab.sendChatMsg('Welcome ' + collaboratorInfo.name + '!');
-        }
+        this.chat.updateCollaboratorList();
       }
     };
 
