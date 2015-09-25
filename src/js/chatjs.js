@@ -178,6 +178,7 @@ define(['jqdlgext'], function() {
      * Destroy all objects and remove html interface
      */
      chatjs.Chat.prototype.destroy = function() {
+       this.jqChat.dialogExtend("restore");
        this.jqChat.dialog("destroy");
        this.jqChat.empty();
     };
