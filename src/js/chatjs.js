@@ -105,7 +105,7 @@ define(['jqdlgext'], function() {
       var jqInput = $('input', jqChat);
       var chatTextarea = $('.view-chat-msgarea-text', jqChat)[0];
 
-      // send msg button click
+      // Send msg button click
       jqButton.click(function() {
         var text = jqInput[0].value;
 
