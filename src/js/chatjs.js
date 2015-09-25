@@ -42,6 +42,7 @@ define(['jqdlgext'], function() {
         var msgObj = {user: collaboratorInfo.name, msg: 'has disconnected.'};
 
         self.updateTextArea(msgObj);
+        self.updateCollaboratorList();
       };
     };
 
@@ -133,7 +134,6 @@ define(['jqdlgext'], function() {
        var text = msgObj.user + ': ' + msgObj.msg;
 
        chatTextarea.innerHTML += '&#xA;' + text;
-       this.updateCollaboratorList();
     };
 
     /**
