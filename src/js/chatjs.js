@@ -39,7 +39,7 @@ define(['jqdlgext'], function() {
       // This method is called everytime a remote collaborator disconnects from the collaboration
       this.collab.onDisconnect = function(collaboratorInfo) {
         // create a chat message object
-        var msgObj = {user: collaboratorInfo.name, msg: 'has disconnected.'};
+        var msgObj = {user: collaboratorInfo.name, msg: 'I have disconnected.'};
 
         self.updateTextArea(msgObj);
         self.updateCollaboratorList();
@@ -103,7 +103,6 @@ define(['jqdlgext'], function() {
       //
       var jqButton = $('button', jqChat);
       var jqInput = $('input', jqChat);
-      var chatTextarea = $('.view-chat-msgarea-text', jqChat)[0];
 
       // Send msg button click
       jqButton.click(function() {
@@ -111,7 +110,9 @@ define(['jqdlgext'], function() {
 
         if (text) {
           jqInput[0].value = '';
-          chatTextarea.innerHTML += '&#xA;' + self.collab.collaboratorInfo.name + ': ' + text;
+          // create a chat message object
+          var msgObj = {user: self.collab.collaboratorInfo.name, msg: text};
+          self.updateTextArea(msgObj);
           self.collab.sendChatMsg(text);
         }
       });
@@ -131,8 +132,10 @@ define(['jqdlgext'], function() {
      */
      chatjs.Chat.prototype.updateTextArea = function(msgObj) {
        var chatTextarea = $('.view-chat-msgarea-text', this.jqChat)[0];
-       var text = msgObj.user + ': ' + msgObj.msg;
+       var time = new Date().toLocaleTimeString();
+       var text = msgObj.user;
 
+       text += ' (' + time + '): ' + msgObj.msg;
        chatTextarea.innerHTML += '&#xA;' + text;
     };
 
