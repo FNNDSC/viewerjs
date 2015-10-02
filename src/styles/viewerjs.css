@@ -165,7 +165,6 @@ div.view-thumbnailbar{
 /*chat msg area*/
 .view-chat-msgarea-text{
   position: absolute;
-  top: 2em;
   width: 100%;
   border: 1px solid #DDE8BB;
   background-color: black;
@@ -179,8 +178,9 @@ div.view-thumbnailbar{
   width: 100%;
   bottom: 0;
   border: 1px solid #DDE8BB;
+  border-top: 2px solid #DDE8BB;
   margin: 0;
-  height: 40px;
+  height: 2em;
   background-color: black;
 }
 .view-chat-msgarea-input button{
@@ -200,4 +200,26 @@ div.view-thumbnailbar{
   color: #DDE8BB;
   padding: 0 4px;
   width: calc(100% - 130px);
+}
+/*================================================= CHAT PREFERENCES WINDOW =================== */
+.view-chat-preferences{
+  background-color: black;
+  color: #DDE8BB;
+  font-size: 0.9em;
+  width: 100%;
+  height: 100%;
+  padding: 10px;
+  overflow: auto;
+}
+.view-chat-preferences h3{
+  margin: 2px;
+  color: #C5B582;
+  font-size: 1em;
+}
+.view-chat-preferences div{
+  margin: 2px 2px 8px 6px;
+}
+.view-chat-preferences-fontsize{
+  cursor: pointer;
+  margin-right: 5px;
 }
