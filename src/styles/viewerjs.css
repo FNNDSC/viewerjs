@@ -112,7 +112,7 @@ div.view-thumbnailbar{
 /*================================================= CHAT ================================================== */
 .ui-dialog{
   padding: 0;
-  border: 2px solid #DDE8BB;
+  border: 2px solid;
   margin: 0;
 }
 .ui-dialog-titlebar{
@@ -123,6 +123,16 @@ div.view-thumbnailbar{
   margin: 0;
   padding: 0;
 }
+.view-chat-theme1{
+  border-color: #DDE8BB;
+  background-color: black;
+  color: #DDE8BB;
+}
+.view-chat-theme2{
+  border-color: #503C0C;
+  background-color: #F8FBEE;
+  color: #503C0C;
+}
 /*List of connected users*/
 .view-chat-usersarea{
   position: absolute;
@@ -130,12 +140,23 @@ div.view-thumbnailbar{
   left: 0;
   height: 100%;
   width: 180px;
-  background-color: black;
-  border: 1px solid #DDE8BB;
+  border: 1px solid;
   margin: 0;
-  color: #EC9F3A;
   font-size: 0.8em;
   padding: 4px;
+  border-color: #DDE8BB;
+  background-color: black;
+  color: #EC9F3A;
+}
+.view-chat-usersarea-theme1{
+  border-color: #DDE8BB;
+  background-color: black;
+  color: #EC9F3A;
+}
+.view-chat-usersarea-theme2{
+  border-color: #503C0C;
+  background-color: #F8FBEE;
+  color: #925109;
 }
 /*whole chat elements container to the right of the list of connected users*/
 .view-chat-msgarea{
@@ -144,7 +165,7 @@ div.view-thumbnailbar{
   right: 0;
   width: calc(100% - 180px);
   height: 100%;
-  border: 1px solid #DDE8BB;
+  border: 1px solid;
   margin: 0;
   font-size: 1em;
 }
@@ -152,38 +173,43 @@ div.view-thumbnailbar{
 .view-chat-msgarea-header{
   position: absolute;
   top: 0;
-  background-color: black;
   margin: 0;
-  border: 1px solid #DDE8BB;
+  border: 1px solid;
   border-top: 0;
   height: 2em;
   width: 100%;
   overflow: auto;
   padding: 2px 4px;
+}
+.view-chat-msgarea-header-theme1{
+  border-color: #DDE8BB;
+  background-color: black;
   color: #E4AD00;
+}
+.view-chat-msgarea-header-theme2{
+  border-color: #503C0C;
+  background-color: #F8FBEE;
+  color: #825001;
 }
 /*chat msg area*/
 .view-chat-msgarea-text{
   position: absolute;
   width: 100%;
-  border: 1px solid #DDE8BB;
-  background-color: black;
+  border: 1px solid;
   margin: 0;
   padding: 6px 4px;
-  color: #DDE8BB;
 }
 /*container of the 'send msg' button and input field*/
 .view-chat-msgarea-input{
   position: absolute;
   width: 100%;
   bottom: 0;
-  border: 1px solid #DDE8BB;
-  border-top: 2px solid #DDE8BB;
+  border: 1px solid;
+  border-top: 2px solid;
   margin: 0;
   height: 2em;
-  background-color: black;
 }
-.view-chat-msgarea-input button{
+.view-chat-msgarea-input-button{
   cursor: pointer;
   margin: 0;
   padding: 1px 2px;
@@ -191,13 +217,17 @@ div.view-thumbnailbar{
   width: 130px;
   height: 100%;
   font-size: small;
+  color: black;
+}
+.view-chat-msgarea-input-button-theme1{
   background-color: #DDE8BB;
 }
-.view-chat-msgarea-input input{
+.view-chat-msgarea-input-button-theme2{
+  background-color: #DBDCD7;
+}
+.view-chat-msgarea-input-input{
   margin: 0;
   border: 0;
-  background-color: black;
-  color: #DDE8BB;
   padding: 0 4px;
   width: calc(100% - 130px);
 }
