@@ -69,6 +69,7 @@ define(['jqdlgext'], function() {
       // convert the previous div into a floating window with minimize, collapse and expand buttons
       jqChat.dialog({
         title: "Collaboration chat",
+        closeOnEscape: false,
         minHeight: 350,
         height: 400,
         minWidth: 550,
@@ -265,7 +266,7 @@ define(['jqdlgext'], function() {
          } else {
            preferences.msgHeaderInfo = value;
          }
-         
+
          jqPreferences.data('preferences', preferences);
        });
 
