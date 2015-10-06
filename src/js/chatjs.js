@@ -207,8 +207,8 @@ define(['jqdlgext'], function() {
 
           '<h3>Font size</h3>' +
           '<div>' +
-            '<span class="view-chat-preferences-fontsize" title="decrease">Aa</span>' +
-            '<span class="view-chat-preferences-fontsize" title="increase">aA</span>' +
+            '<span class="view-chat-preferences-fontsize" title="decrease">-</span>' +
+            '<span class="view-chat-preferences-fontsize" title="increase">+</span>' +
           '</div>' +
 
           '<h3>Font family</h3>' +

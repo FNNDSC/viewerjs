@@ -247,9 +247,11 @@ div.view-thumbnailbar{
   font-size: 1em;
 }
 .view-chat-preferences div{
-  margin: 2px 2px 8px 6px;
+  margin: 2px 2px 12px 6px;
 }
 .view-chat-preferences-fontsize{
   cursor: pointer;
-  margin-right: 5px;
+  margin: 0 4px 0 6px;
+  font-size: 1.1em;
+  font-weight: bold;
 }
