@@ -115,7 +115,7 @@ define(['utiljs', 'jquery_ui'], function(util) {
      */
      thbarjs.ThumbnailBar.prototype.onBeforeStop = function(evt, ui) {
 
-       console.log('onBefore not overwritten!');
+       console.log('onBeforeStop not overwritten!');
        console.log('event obj: ', evt);
        console.log('ui obj: ', ui);
      };

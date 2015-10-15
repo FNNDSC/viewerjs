@@ -294,7 +294,7 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
 
      this.rBox.onStart = function() {
        // thumbnails' scroll bar has to be removed to make the moving helper visible
-       this.thBar.jqThBar.css({ overflow: 'visible' });
+       self.thBar.jqThBar.css({ overflow: 'visible' });
      };
 
      this.rBox.onBeforeStop = function(evt, ui) {
@@ -426,7 +426,16 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
 
       // create a thumbnail bar object
       this.thBar = new thbar.ThumbnailBar(contId, this.rBox);
-      this.thBar.init(this.imgFileArr, callback);
+      this.thBar.init(this.imgFileArr, function() {
+
+        // hide any thumbnail with a corresponding renderer (same integer id suffix) already added to the renderers box
+        for (var i=0; i<self.rBox.renders2D.length; i++) {
+          var thId = self.rBox.renders2D[i].container.id.replace(self.rBox.contId + '_render2D', contId + '_th');
+          $('#' + thId).css({ display:"none" });
+        }
+
+        if (callback) {callback();}
+      });
 
       // link the thumbnail bar with the renderers box
       this.rBox.setComplementarySortableElem(contId);
@@ -435,7 +444,7 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
       //
       // thumbnail bar event listeners
       //
-      this.rBox.onBeforeStop = function(evt, ui) {
+      this.thBar.onBeforeStop = function(evt, ui) {
 
         if (ui.placeholder.parent().attr("id") === self.rBox.contId) {
           $(evt.target).sortable("cancel");
@@ -457,7 +466,7 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
 
       // make space for the thumbnail bar
       var rendersLeftEdge = parseInt(self.thBar.jqThBar.css('left')) + parseInt(self.thBar.jqThBar.css('width')) + 5;
-      self.rBox.jqRbox.css({ width: 'calc(100% - ' + rendersLeftEdge + 'px)' });
+      self.rBox.jqRBox.css({ width: 'calc(100% - ' + rendersLeftEdge + 'px)' });
       if (self.toolBar) {
         // there is a toolbar
         self.toolBar.jqToolBar.css({ width: 'calc(100% - ' + rendersLeftEdge + 'px)' });

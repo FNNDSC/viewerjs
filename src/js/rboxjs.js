@@ -204,7 +204,6 @@ define(['utiljs', 'jszip', 'jquery_ui', 'xtk', 'dicomParser'], function(util, js
      * Get XTK volume properties for the passed orientation.
      *
      * @param {String} X, Y or Z orientation.
-     *
      * @return {Object} the volume properties.
      */
      rboxjs.RenderersBox.prototype.getVolProps = function(orientation) {
@@ -224,6 +223,8 @@ define(['utiljs', 'jszip', 'jquery_ui', 'xtk', 'dicomParser'], function(util, js
            volProps.rangeInd = 2;
          break;
        }
+
+       return volProps;
     };
 
     /**
@@ -235,12 +236,12 @@ define(['utiljs', 'jszip', 'jquery_ui', 'xtk', 'dicomParser'], function(util, js
      * @return {string} the newly created render object.
      * @public
      */
-     rboxjs.RenderersBox.prototype.create2DRender = function(containerID, orientation) {
+     rboxjs.RenderersBox.prototype.create2DRender = function(containerId, orientation) {
       var render;
 
       // create xtk object
       render = new X.renderer2D();
-      render.container = containerID;
+      render.container = containerId;
       render.bgColor = [0.2, 0.2, 0.2];
       render.orientation = orientation;
       render.init();
@@ -255,22 +256,22 @@ define(['utiljs', 'jszip', 'jquery_ui', 'xtk', 'dicomParser'], function(util, js
      * @param {Function} optional callback whose argument is the 2D renderer object.
      */
      rboxjs.RenderersBox.prototype.add2DRender = function(imgFileObj, orientation, callback) {
-      var render, vol, volProps, containerID;
+      var render, vol, volProps, containerId;
       var self = this;
 
       // the renderer's id is related to the imgFileObj's id
-      containerID = this.contID + "_render2D" + imgFileObj.id;
-      if ($('#' + containerID).length) {
+      containerId = this.contId + "_render2D" + imgFileObj.id;
+      if ($('#' + containerId).length) {
         // renderer already added
         if (callback) {
-          callback(self.renders2D.filter(function(rendr) {return rendr.container.id === containerID;})[0]);
+          callback(self.renders2D.filter(function(rendr) {return rendr.container.id === containerId;})[0]);
         }
         return;
       }
 
       // append renderer div to the renderers' container
-      $('#' + this.rendersContID).append(
-        '<div id="' + containerID + '" class="view-render">' +
+      this.jqRBox.append(
+        '<div id="' + containerId + '" class="view-render">' +
           '<div class="view-render-info view-render-info-topleft"></div>' +
           '<div class="view-render-info view-render-info-topright"></div>' +
           '<div class="view-render-info view-render-info-bottomright"></div>' +
@@ -285,8 +286,8 @@ define(['utiljs', 'jszip', 'jquery_ui', 'xtk', 'dicomParser'], function(util, js
       //
       // create xtk objects
       //
-      render = this.create2DRender(containerID, orientation);
-      volProps = this.getVolProps();
+      render = this.create2DRender(containerId, orientation);
+      volProps = this.getVolProps(orientation);
 
       // renderer's event handlers
       this.onRender2DScroll = function(evt) {
@@ -359,7 +360,7 @@ define(['utiljs', 'jszip', 'jquery_ui', 'xtk', 'dicomParser'], function(util, js
 
         // define function to set the UI mri info
         function setUIMriInfo(info) {
-          var jqR = $('#' + containerID);
+          var jqR = $('#' + containerId);
           var age = '', orient = '', direct = '';
 
           if (info.patientAge) {
@@ -429,7 +430,7 @@ define(['utiljs', 'jszip', 'jquery_ui', 'xtk', 'dicomParser'], function(util, js
           setUIMriInfo(mriInfo);
         } else {
           // just display slice number
-          $('.view-render-info-bottomleft', $('#' + containerID)).html(
+          $('.view-render-info-bottomleft', $('#' + containerId)).html(
             'slice: ' + (vol[volProps.index] + 1) + '/' + vol.range[volProps.rangeInd]);
 
           // renderer is ready
@@ -503,12 +504,12 @@ define(['utiljs', 'jszip', 'jquery_ui', 'xtk', 'dicomParser'], function(util, js
      * @param {String} renderer's container.
      * @param {Function} optional callback.
      */
-     rboxjs.RenderersBox.prototype.remove2DRender = function(containerID, callback) {
+     rboxjs.RenderersBox.prototype.remove2DRender = function(containerId, callback) {
 
       // find and destroy xtk objects and remove the renderer's div from the UI
       for (var i=0; i<this.renders2D.length; i++) {
 
-        if ($(this.renders2D[i].container).attr('id') === containerID) {
+        if ($(this.renders2D[i].container).attr('id') === containerId) {
           this.renders2D[i].remove(this.renders2D[i].volume);
           this.renders2D[i].volume.destroy();
           this.renders2D[i].interactor.removeEventListener(X.event.events.SCROLL, this.onRender2DScroll);
@@ -520,7 +521,7 @@ define(['utiljs', 'jszip', 'jquery_ui', 'xtk', 'dicomParser'], function(util, js
           this.renders2D[i].removeEventListener("onPoint", this.onRender2DPoint);
           this.renders2D[i].destroy();
           this.renders2D.splice(i, 1);
-          $('#' + containerID).remove();
+          $('#' + containerId).remove();
           --this.numOfRenders;
           this.positionRenders();
           util.documentRepaint();
@@ -535,7 +536,7 @@ define(['utiljs', 'jszip', 'jquery_ui', 'xtk', 'dicomParser'], function(util, js
      */
      rboxjs.RenderersBox.prototype.positionRenders = function() {
       // sort by id
-      var jqRenders = util.sortObjArr($('div.view-render', $('#' + this.contID)), 'id');
+      var jqRenders = util.sortObjArr($('div.view-render', this.jqRBox), 'id');
 
       switch(this.numOfRenders) {
         case 1:

@@ -108,7 +108,7 @@ require(['gcjs', 'viewerjs'], function(cjs, viewerjs) {
     // start the viewer
     view.init(imgFileArr);
     view.addThumbnailBar();
-    view.addToolBar();
+    //view.addToolBar();
   };
 
 });
