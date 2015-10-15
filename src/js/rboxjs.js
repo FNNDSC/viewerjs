@@ -29,8 +29,6 @@ define(['utiljs', 'jszip', 'jquery_ui', 'xtk', 'dicomParser'], function(util, js
       this.parentContId = "";
       // jQuery object for the box's div element (box container)
       this.jqRBox = null;
-      // the DOM id of a complementary jQuery UI sortable element
-      this.complSortableElemId = "";
       // list of currently rendered 2D renderer objects
       this.renders2D = [];
       // whether renderers' events are linked
@@ -78,7 +76,7 @@ define(['utiljs', 'jszip', 'jquery_ui', 'xtk', 'dicomParser'], function(util, js
 
          //event handlers
          helper: function(evt, target) { // visually moving element
-           self.computeMovingHelper(evt, target);
+           return self.computeMovingHelper(evt, target);
          },
 
          start: function(evt, ui) {
@@ -159,7 +157,6 @@ define(['utiljs', 'jszip', 'jquery_ui', 'xtk', 'dicomParser'], function(util, js
     rboxjs.RenderersBox.prototype.setComplementarySortableElem = function(csId) {
 
       if (this.parentContId === $('#' + csId).parent().attr('id')) {
-        this.complSortableElemId = csId;
 
         // the moving helper element can be appended to this element
         this.jqRBox.sortable( "option", "appendTo", '#' + csId);
@@ -253,11 +250,18 @@ define(['utiljs', 'jszip', 'jquery_ui', 'xtk', 'dicomParser'], function(util, js
      *
      * @param {Oject} Image file object as in rboxjs.RenderersBox.prototype.createVolume.
      * @param {String} X, Y or Z orientation.
-     * @param {Function} optional callback whose argument is the 2D renderer object.
+     * @param {Function} optional callback whose argument is the 2D renderer object if successfuly
+     * added or null otherwise.
      */
      rboxjs.RenderersBox.prototype.add2DRender = function(imgFileObj, orientation, callback) {
       var render, vol, volProps, containerId;
       var self = this;
+
+      // already reached maximum number of renderers so this renderer can not be added
+      if (this.numOfRenders === this.maxNumOfRenders) {
+        if (callback) {callback(null);}
+        return;
+      }
 
       // the renderer's id is related to the imgFileObj's id
       containerId = this.contId + "_render2D" + imgFileObj.id;

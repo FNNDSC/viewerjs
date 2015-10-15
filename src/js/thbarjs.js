@@ -28,8 +28,6 @@ define(['utiljs', 'jquery_ui'], function(util) {
       this.parentContId = "";
       // jQuery object for the bar's div element (thumbnail bar container)
       this.jqThBar = null;
-      // the DOM id of a complementary jQuery UI sortable element
-      this.complSortableElemId = "";
       // number of thumbnails in the thumbnail bar
       this.numThumbnails = 0;
       // number of currently loaded thumbnails
@@ -129,7 +127,6 @@ define(['utiljs', 'jquery_ui'], function(util) {
     thbarjs.ThumbnailBar.prototype.setComplementarySortableElem = function(csId) {
 
       if (this.parentContId === $('#' + csId).parent().attr('id')) {
-        this.complSortableElemId = csId;
 
         // the moving helper element can be appended to this element
         this.jqThBar.sortable( "option", "appendTo", '#' + csId);

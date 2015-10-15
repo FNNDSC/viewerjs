@@ -303,11 +303,7 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
        if (ui.placeholder.parent().attr('id') === self.thBar.contId) {
          $(evt.target).sortable('cancel');
          renderId = ui.item.attr('id');
-         thId = renderId.replace(self.rBox.contId + '_render2D', self.thBar.contId + '_th');
-
-         // display the dropped renderer's thumbnail
-         $('#' + thId).css({ display:'block' });
-         self.rBox.remove2DRender(renderId);
+         self.removeRender(renderId);
          self.updateCollabScene();
        }
 
@@ -320,6 +316,56 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
      };
    };
 
+   /**
+     * Add a renderer to the renderers box.
+     *
+     * @param {Number} Integer number between 0 and this.imgFileArr.length-1.
+     * @param {Function} optional callback whose argument is the renderer object or null.
+     */
+    viewerjs.Viewer.prototype.addRender = function(imgFileObjId, callback) {
+      var self = this;
+
+      self.rBox.add2DRender(self.getImgFileObject(imgFileObjId), 'Z', function(render) {
+
+        if (render) {
+          // render successfully added, so the corresponding thumbnail disappears from the thumbnail bar
+          $(self.thBar.contId + '_th' + imgFileObjId).css({ display:"none" });
+
+          if (self.rBox.numOfRenders===2) {
+            // if there are now 2 renderers in the renderers box then show the Link views button
+            $('#' + self.toolBar.contId + '_buttonlink').css({display: '' });
+          }
+        }
+
+        if (callback) {callback(render);}
+      });
+
+    };
+
+    /**
+      * Remove a renderer from the renderers box.
+      *
+      * @param {String} renderer's container.
+      */
+     viewerjs.Viewer.prototype.removeRender = function(containerId) {
+
+       this.rBox.remove2DRender(containerId);
+
+       // display the removed renderer's thumbnail
+       var thId = containerId.replace(this.rBox.contId + '_render2D', this.thBar.contId + '_th');
+       $('#' + thId).css({ display:'block' });
+
+       // if there is now a single renderer then hide the Link views button
+       if (this.rBox.numOfRenders===1) {
+
+         $('#' + this.toolBar.contId + '_buttonlink').css({display: 'none' });
+
+         if (this.rBox.rendersLinked) {
+           this.handleToolBarButtonLinkClick();
+         }
+       }
+
+     };
 
     /**
      * Create and add a toolbar to the viewer.
@@ -360,7 +406,7 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
         }
       });
       // hide this button
-      this.toolBar.hideButton(this.toolBar.contId + 'buttonlink');
+      this.toolBar.hideButton(this.toolBar.contId + '_buttonlink');
 
       this.toolBar.addButton({
         id: self.toolBar.contId + '_buttoncollab',
@@ -449,18 +495,16 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
         if (ui.placeholder.parent().attr("id") === self.rBox.contId) {
           $(evt.target).sortable("cancel");
 
-          if (self.rBox.numOfRenders < self.rBox.maxNumOfRenders) {
-
-            // a dropped thumbnail disappears from thumbnail bar
-            var id = parseInt(ui.item.css({ display:"none" }).attr("id").replace(self.thBar.contId + "_th",""));
-            // add a renderer to the UI containing a volume with the same id suffix as the thumbnail
-            self.rBox.add2DRender(self.getImgFileObject(id), 'Z', function() {
+          var id = parseInt(ui.item.attr("id").replace(self.thBar.contId + "_th",""));
+          // add a renderer to the UI containing a volume with the same id suffix as the thumbnail
+          self.addRender(id, function(render) {
+            if (render) {
               self.updateCollabScene();
-            });
-          } else {
-            alert('Reached maximum number of renders allow which is 4. You must drag a render out ' +
-             'of the viewer window and drop it into the thumbnails bar to make a render available');
-          }
+            } else {
+              alert('Reached maximum number of renders allow. You must drag a render out ' +
+               'of the viewer window and drop it into the thumbnails bar to make a render available');
+            }
+          });
         }
       };
 
@@ -532,14 +576,14 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
 
           if (renders2DIds.indexOf(id) === -1) {
             $('#' + self.thBar.contId + '_th' + id).css({ display: "block" });
-            self.rBox.remove2DRender(self.rBox.contId + "_render2D" + id);
+            self.removeRender(self.rBox.contId + "_render2D" + id);
           }
         }
 
         for (i=0; i<renders2DIds.length; i++) {
           // add a 2D renderer to the local scene that was added to the collab scene
           $('#' + self.thBar.contId + '_th' + renders2DIds[i]).css({ display: "none" });
-          self.rBox.add2DRender(self.getImgFileObject(renders2DIds[i]), 'Z', updateRender);
+          self.addRender(renders2DIds[i], updateRender);
         }
       }
 
@@ -576,7 +620,7 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
         //  collaboration is off so just load and render the first volume in this.imgFileArr
         for (var i=0; i<this.imgFileArr.length; i++) {
           if (this.imgFileArr[i].imgType==='vol' || this.imgFileArr[i].imgType==='dicom') {
-            this.rBox.add2DRender(this.imgFileArr[i], 'Z');
+            this.addRender(i);
             break;
           }
         }

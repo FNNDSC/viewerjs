@@ -26,7 +26,7 @@ define(['jquery_ui'], function() {
       // jQuery object for the bar's div element (tool bar container)
       this.jqToolBar = null;
       // associative array of button event handlers
-      this.eventHandlers = {};
+      this.eventHandlers = null;
       // scene object
       this.scene = null;
     };
@@ -43,8 +43,12 @@ define(['jquery_ui'], function() {
 
        // set jQuery obj for the tool bar
        this.jqToolBar = $('#' + this.contId);
+
        // add the appropriate classes
        this.jqToolBar.addClass("view-toolbar");
+
+       // initialize array of button event handlers
+       this.eventHandlers = {};
      };
 
     /**
@@ -61,7 +65,7 @@ define(['jquery_ui'], function() {
           btnProps.title + '">' + btnProps.caption + '</button>'
        );
 
-       this.eventHandlers[btnProps.id] = null;
+       this.eventHandlers[btnProps.id] = {};
        // set a click event handler if provided
        if (btnProps.onclick) {
          this.setButtonClickHandler(btnProps.id, btnProps.onclick);
