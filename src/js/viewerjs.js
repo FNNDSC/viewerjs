@@ -325,21 +325,24 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
     viewerjs.Viewer.prototype.addRender = function(imgFileObjId, callback) {
       var self = this;
 
+      if (self.thBar) {
+        $('#' + self.thBar.contId + '_th' + imgFileObjId).css({ display:"none" });
+      }
+
       self.rBox.add2DRender(self.getImgFileObject(imgFileObjId), 'Z', function(render) {
 
         if (render) {
-          // render successfully added, so the corresponding thumbnail disappears from the thumbnail bar
-          $(self.thBar.contId + '_th' + imgFileObjId).css({ display:"none" });
-
           if (self.rBox.numOfRenders===2) {
             // if there are now 2 renderers in the renderers box then show the Link views button
             $('#' + self.toolBar.contId + '_buttonlink').css({display: '' });
           }
+        } else if (self.thBar) {
+          // could not add renderer so restore the corresponding thumbnail if there is a thumbnail bar
+          $('#' + self.thBar.contId + '_th' + imgFileObjId).css({ display:"" });
         }
 
         if (callback) {callback(render);}
       });
-
     };
 
     /**
@@ -351,9 +354,11 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
 
        this.rBox.remove2DRender(containerId);
 
-       // display the removed renderer's thumbnail
-       var thId = containerId.replace(this.rBox.contId + '_render2D', this.thBar.contId + '_th');
-       $('#' + thId).css({ display:'block' });
+       if (this.thBar) {
+         // display the removed renderer's thumbnail
+         var thId = containerId.replace(this.rBox.contId + '_render2D', this.thBar.contId + '_th');
+         $('#' + thId).css({ display:'block' });
+       }
 
        // if there is now a single renderer then hide the Link views button
        if (this.rBox.numOfRenders===1) {
@@ -403,6 +408,7 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
         caption: 'Link views',
         onclick: function() {
           self.handleToolBarButtonLinkClick();
+          self.updateCollabScene();
         }
       });
       // hide this button
@@ -845,7 +851,7 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
           });
         } else {
           // insert initial wait text div to manage user expectatives
-          this.jqViewer.append( '<div id="' + this.contId + '_initwaittext">' +
+          $('#' + this.contId).append( '<div id="' + this.contId + '_initwaittext">' +
           'Please wait while loading the viewer...</div>' );
           $('#' + this.contId + '_initwaittext').css( {'color': 'white'} );
         }
