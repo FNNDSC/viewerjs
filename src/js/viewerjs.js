@@ -470,7 +470,9 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
       var self = this;
 
       if (this.thBar) {
-        return; // thumbnail bar already exists
+        // thumbnail bar already exists
+        if (callback) {callback();}
+        return;
       }
 
       // append a div container for the renderers box to the viewer
