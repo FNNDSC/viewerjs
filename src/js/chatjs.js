@@ -27,29 +27,10 @@ define(['jqdlgext'], function() {
       this.jqPreferences = null;
       // collaborator object
       this.collab = collab;
-
-      //
-      // Collaboration event listeners
-      //
-      var self = this;
-
-      // This method is called when a new chat msg is received from a remote collaborator
-      this.collab.onNewChatMessage = function(msgObj) {
-        self.updateTextArea(msgObj);
-      };
-
-      // This method is called everytime a remote collaborator disconnects from the collaboration
-      this.collab.onDisconnect = function(collaboratorInfo) {
-        // create a chat message object
-        var msgObj = {user: collaboratorInfo.name, msg: 'I have disconnected.'};
-
-        self.updateTextArea(msgObj);
-        self.updateCollaboratorList();
-      };
     };
 
    /**
-    * Intialize the chat.
+    * Initialize the chat.
     */
     chatjs.Chat.prototype.init = function() {
       this.initChatWindow();

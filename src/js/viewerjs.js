@@ -70,6 +70,16 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
         this.collab.onCollabObjChanged = function() {
           self.handleOnCollabObjChanged();
         };
+
+        // This method is called when a new chat msg is received from a remote collaborator
+        this.collab.onNewChatMessage = function(msgObj) {
+          self.handleOnNewChatMessage(msgObj);
+        };
+
+        // This method is called everytime a remote collaborator disconnects from the collaboration
+        this.collab.onDisconnect = function(collaboratorInfo) {
+          self.handleOnDisconnect(collaboratorInfo);
+        };
       }
 
     };
@@ -779,6 +789,23 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
     };
 
     /**
+     * Leave the realtime collaboration.
+     */
+    viewerjs.Viewer.prototype.leaveCollaboration = function() {
+
+      if (this.collab.collabIsOn) {
+        this.collab.leaveRealtimeCollaboration();
+
+        // update the UI
+        var collabButton = document.getElementById(this.toolBar.contId + '_buttoncollab');
+        collabButton.innerHTML = 'Start collab';
+        collabButton.title = 'Start collaboration';
+        this.chat.destroy();
+        this.chat = null;
+      }
+    };
+
+    /**
      * Handle the onConnect event when the collaboration has successfully started and is ready.
      *
      * @param {Obj} new collaborator info object.
@@ -905,19 +932,30 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
      };
 
     /**
-     * Leave the realtime collaboration.
+     * Handle the onNewChatMessage event when a new chat msg is received from a remote collaborator.
+     *
+     * @param {Obj} chat message object.
      */
-    viewerjs.Viewer.prototype.leaveCollaboration = function() {
+    viewerjs.Viewer.prototype.handleOnNewChatMessage = function(msgObj) {
 
-      if (this.collab.collabIsOn) {
-        this.collab.leaveRealtimeCollaboration();
+      if (this.chat) {
+        this.chat.updateTextArea(msgObj);
+      }
+    };
 
-        // update the UI
-        var collabButton = document.getElementById(this.toolBar.contId + '_buttoncollab');
-        collabButton.innerHTML = 'Start collab';
-        collabButton.title = 'Start collaboration';
-        this.chat.destroy();
-        this.chat = null;
+    /**
+     * Handle the onDisconnect event everytime a remote collaborator disconnects from the collaboration.
+     *
+     * @param {Obj} collaborator info object.
+     */
+    viewerjs.Viewer.prototype.handleOnDisconnect = function(collaboratorInfo) {
+
+      if (this.chat) {
+        // create a chat message object
+        var msgObj = {user: collaboratorInfo.name, msg: 'I have disconnected.'};
+
+        this.chat.updateTextArea(msgObj);
+        this.chat.updateCollaboratorList();
       }
     };
 
