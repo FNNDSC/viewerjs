@@ -254,22 +254,22 @@ define(['utiljs', 'jszip', 'jquery_ui', 'xtk', 'dicomParser'], function(util, js
      * added or null otherwise.
      */
      rboxjs.RenderersBox.prototype.add2DRender = function(imgFileObj, orientation, callback) {
-      var render, vol, volProps, containerId;
+      var render, vol, volProps;
       var self = this;
 
-      // already reached maximum number of renderers so this renderer can not be added
-      if (this.numOfRenders === this.maxNumOfRenders) {
-        if (callback) {callback(null);}
-        return;
-      }
-
       // the renderer's id is related to the imgFileObj's id
-      containerId = this.contId + "_render2D" + imgFileObj.id;
+      var containerId = this.contId + "_render2D" + imgFileObj.id;
       if ($('#' + containerId).length) {
         // renderer already added
         if (callback) {
           callback(self.renders2D.filter(function(rendr) {return rendr.container.id === containerId;})[0]);
         }
+        return;
+      }
+
+      if (this.numOfRenders === this.maxNumOfRenders) {
+        // already reached maximum number of renderers so this renderer can not be added
+        if (callback) {callback(null);}
         return;
       }
 
