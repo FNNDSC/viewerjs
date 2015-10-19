@@ -310,7 +310,7 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
      };
 
      this.rBox.onBeforeStop = function(evt, ui) {
-       var renderId, thId;
+       var renderId;
 
        if (ui.placeholder.parent().attr('id') === self.thBar.contId) {
          $(evt.target).sortable('cancel');
