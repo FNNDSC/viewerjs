@@ -175,6 +175,7 @@ define(['utiljs', 'jszip', 'jquery_ui', 'xtk', 'dicomParser'], function(util, js
      *  -files: Array of HTML5 File objects (it contains a single file for imgType different from 'dicom')
      *         DICOM files with the same base url/path are assumed to belong to the same volume
      *  -json: HTML5 File object (an optional json file with the mri info for imgType different from 'dicom')
+     * @return {Object} the XTK volume object.
      */
      rboxjs.RenderersBox.prototype.createVolume = function(imgFileObj) {
       var fileNames = [];
@@ -229,9 +230,7 @@ define(['utiljs', 'jszip', 'jquery_ui', 'xtk', 'dicomParser'], function(util, js
      *
      * @param {String} container id.
      * @param {String} X, Y or Z orientation.
-     *
-     * @return {string} the newly created render object.
-     * @public
+     * @return {String} the newly created render object.
      */
      rboxjs.RenderersBox.prototype.create2DRender = function(containerId, orientation) {
       var render;
@@ -246,7 +245,31 @@ define(['utiljs', 'jszip', 'jquery_ui', 'xtk', 'dicomParser'], function(util, js
     };
 
     /**
-     * Create and add a 2D renderer with a loaded volume to the renderers' container.
+     * Return a renderer's container DOM id.
+     *
+     * @param {Number} renderer's integer id.
+     * @return {String} the renderer's container DOM id.
+     */
+     rboxjs.RenderersBox.prototype.getRendererContId = function(rendererId) {
+
+       // the renderer's container DOM id is related to the renderer's integer id
+       return this.contId + "_render2D" + rendererId;
+    };
+
+    /**
+     * Returns a renderer's integer id.
+     *
+     * @param {String} the renderer's container DOM id.
+     * @return {Number} the renderer's integer id.
+     */
+     rboxjs.RenderersBox.prototype.getRendererId = function(rendererContId) {
+
+       // the renderer's integer id is related to the renderer's container DOM id
+       return  parseInt(rendererContId.replace(this.contId + "_render2D", ""));
+    };
+
+    /**
+     * Create and add a 2D renderer with a loaded volume to the renderers box.
      *
      * @param {Oject} Image file object as in rboxjs.RenderersBox.prototype.createVolume.
      * @param {String} X, Y or Z orientation.
@@ -257,8 +280,7 @@ define(['utiljs', 'jszip', 'jquery_ui', 'xtk', 'dicomParser'], function(util, js
       var render, vol, volProps;
       var self = this;
 
-      // the renderer's id is related to the imgFileObj's id
-      var containerId = this.contId + "_render2D" + imgFileObj.id;
+      var containerId = this.getRendererContId(imgFileObj.id);
       if ($('#' + containerId).length) {
         // renderer already added
         if (callback) {
@@ -503,7 +525,7 @@ define(['utiljs', 'jszip', 'jquery_ui', 'xtk', 'dicomParser'], function(util, js
     };
 
     /**
-     * Remove a 2D renderer from the UI.
+     * Remove a 2D renderer from the renderers box.
      *
      * @param {String} renderer's container.
      * @param {Function} optional callback.
@@ -536,7 +558,7 @@ define(['utiljs', 'jszip', 'jquery_ui', 'xtk', 'dicomParser'], function(util, js
     };
 
     /**
-     * Rearrange renderers in the UI layout.
+     * Rearrange renderers in the renderers box's UI layout.
      */
      rboxjs.RenderersBox.prototype.positionRenders = function() {
       // sort by id

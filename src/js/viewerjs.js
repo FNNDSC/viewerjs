@@ -282,11 +282,13 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
      this.rBox.computeMovingHelper = function(evt, target) {
        var thWidth =  $('.view-thumbnail').css('width');
        var thHeight = $('.view-thumbnail').css('height');
-       var renderId = target.attr('id');
-       var thId = renderId.replace(self.rBox.contId + '_render2D', self.thBar.contId + '_th');
+
+       // corresponding thumbnail and renderer have the same integer id
+       var id = self.rBox.getRendererId(target.attr('id'));
+       var thContId = self.thBar.getThumbnailContId(id);
 
        // the visually moving helper is a clone of the corresponding thumbnail
-       return $('#' + thId).clone().css({
+       return $('#' + thContId).clone().css({
          display:'block',
          width: thWidth,
          height: thHeight });
@@ -326,7 +328,7 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
       var self = this;
 
       if (self.thBar) {
-        $('#' + self.thBar.contId + '_th' + imgFileObjId).css({ display:"none" });
+        $('#' + self.thBar.getThumbnailContId(imgFileObjId)).css({ display:"none" });
       }
 
       self.rBox.add2DRender(self.getImgFileObject(imgFileObjId), 'Z', function(render) {
@@ -338,7 +340,7 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
           }
         } else if (self.thBar) {
           // could not add renderer so restore the corresponding thumbnail if there is a thumbnail bar
-          $('#' + self.thBar.contId + '_th' + imgFileObjId).css({ display:"" });
+          $('#' + self.thBar.getThumbnailContId(imgFileObjId)).css({ display:"" });
         }
 
         if (callback) {callback(render);}
@@ -355,9 +357,12 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
        this.rBox.remove2DRender(containerId);
 
        if (this.thBar) {
+         // corresponding thumbnail and renderer have the same integer id
+         var id = this.rBox.getRendererId(containerId);
+         var thContId = this.thBar.getThumbnailContId(id);
+
          // display the removed renderer's thumbnail
-         var thId = containerId.replace(this.rBox.contId + '_render2D', this.thBar.contId + '_th');
-         $('#' + thId).css({ display:'block' });
+         $('#' + thContId).css({ display:'block' });
        }
 
        // if there is now a single renderer then hide the Link views button
@@ -484,8 +489,12 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
 
         // hide any thumbnail with a corresponding renderer (same integer id suffix) already added to the renderers box
         for (var i=0; i<self.rBox.renders2D.length; i++) {
-          var thId = self.rBox.renders2D[i].container.id.replace(self.rBox.contId + '_render2D', contId + '_th');
-          $('#' + thId).css({ display:"none" });
+
+          // corresponding thumbnail and renderer have the same integer id
+          var id = self.rBox.getRendererId(self.rBox.renders2D[i].container.id);
+          var thContId = self.thBar.getThumbnailContId(id);
+
+          $('#' + thContId).css({ display:"none" });
         }
 
         if (callback) {callback();}
@@ -503,8 +512,9 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
         if (ui.placeholder.parent().attr("id") === self.rBox.contId) {
           $(evt.target).sortable("cancel");
 
-          var id = parseInt(ui.item.attr("id").replace(self.thBar.contId + "_th",""));
-          // add a renderer to the UI containing a volume with the same id suffix as the thumbnail
+          var id = self.thBar.getThumbnailId(ui.item.attr("id"));
+
+          // add the corresponding renderer (with the same integer id) to the UI
           self.addRender(id, function(render) {
             if (render) {
               self.updateCollabScene();
@@ -546,7 +556,7 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
         var renders2DProps = [];
 
         function updateRender(render) {
-          var id = parseInt(render.container.id.replace(self.rBox.contId + "_render2D", ""));
+          var id = self.rBox.getRendererId(render.container.id);
           var ix = renders2DIds.indexOf(id);
 
           // update the volume properties
@@ -580,17 +590,18 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
         }
         // remove the 2D renderers from the local scene that were removed from the collab scene
         for (i=0; i<self.rBox.renders2D.length; i++) {
-          var id = parseInt(self.rBox.renders2D[i].container.id.replace(self.rBox.contId + "_render2D", ""));
+          var id = self.rBox.getRendererId(self.rBox.renders2D[i].container.id);
+          var thContId = self.thBar.getThumbnailContId(id);
 
           if (renders2DIds.indexOf(id) === -1) {
-            $('#' + self.thBar.contId + '_th' + id).css({ display: "block" });
-            self.removeRender(self.rBox.contId + "_render2D" + id);
+            $('#' + thContId).css({ display: "block" });
+            self.removeRender(self.rBox.renders2D[i].container.id);
           }
         }
 
         for (i=0; i<renders2DIds.length; i++) {
           // add a 2D renderer to the local scene that was added to the collab scene
-          $('#' + self.thBar.contId + '_th' + renders2DIds[i]).css({ display: "none" });
+          $('#' + self.thBar.getThumbnailContId(renders2DIds[i])).css({ display: "none" });
           self.addRender(renders2DIds[i], updateRender);
         }
       }
@@ -663,7 +674,8 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
 
         // set general information about the renderer
         render.general = {};
-        render.general.id = parseInt(renders2D[j].container.id.replace(this.rBox.contId + '_render2D', ''));
+
+        render.general.id = this.rBox.getRendererId(renders2D[j].container.id);
         render.general.type = '2D';
 
         // set renderer specific information

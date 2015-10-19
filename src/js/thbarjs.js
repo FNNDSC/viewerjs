@@ -136,6 +136,30 @@ define(['utiljs', 'jquery_ui'], function(util) {
     };
 
     /**
+     * Return a thumbnail's container DOM id.
+     *
+     * @param {Number} thumbnail's integer id.
+     * @return {String} the thumbnail's container DOM id.
+     */
+     thbarjs.ThumbnailBar.prototype.getThumbnailContId = function(thumbnailId) {
+
+       // the thumbnail's container DOM id is related to the thumbnail's integer id
+       return this.contId + "_th" + thumbnailId;
+    };
+
+    /**
+     * Returns a thumbnail's integer id.
+     *
+     * @param {String} thumbnail's container DOM id.
+     * @return {Number} thumbnail's integer id.
+     */
+     thbarjs.ThumbnailBar.prototype.getThumbnailId = function(thumbnailContId) {
+
+       // the thumbnail's integer id is related to the thumbnail's container DOM id
+       return  parseInt(thumbnailContId.replace(this.contId + "_th", ""));
+    };
+
+    /**
      * Load the thumbnail corresponding to the imgFileObj argument. If there is a thumbnail
      * property in the imgFileObj then load it otherwise automatically create the thumbnail
      * from a renderer's canvas object
@@ -146,7 +170,6 @@ define(['utiljs', 'jquery_ui'], function(util) {
      thbarjs.ThumbnailBar.prototype.loadThumbnail = function(imgFileObj, callback) {
        var fname, info, title, jqTh, jqImg;
        var id = imgFileObj.id;
-       var contId  = this.contId;
        var jqThBar = this.jqThBar;
        var rBox = this.rBox;
 
@@ -172,12 +195,12 @@ define(['utiljs', 'jquery_ui'], function(util) {
 
        // append this thumbnail to thumbnailbar
        jqThBar.append(
-         '<div id="' + contId + '_th' + id + '" class="view-thumbnail">' +
+         '<div id="' + this.getThumbnailContId(id) + '" class="view-thumbnail">' +
            '<img class="view-thumbnail-img" title="' + title + '">' +
            '<div class="view-thumbnail-info">' + info + '</div>' +
          '</div>'
        );
-       jqTh = $('#' + contId + '_th' + id);
+       jqTh = $('#' + this.getThumbnailContId(id));
        jqImg = $('.view-thumbnail-img', jqTh);
 
        // internal function to read the thumbnail's url so it can be assigned to the src of <img>
