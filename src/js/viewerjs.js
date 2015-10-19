@@ -1,10 +1,10 @@
 /**
- * This module takes care of all image visualization and user interface as well as
- * collaboration through the collaborator object injected into viewerjs.Viewer constructor.
+ * This module takes care of laying out all user interface componentes as well as implementing the
+ * realtime collaboration through the collaborator object injected into viewerjs.Viewer constructor.
  */
 
 // define a new module
-define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, chatjs) {
+define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thbar, chat) {
 
   /**
    * Provide a namespace for the viewer module
@@ -20,31 +20,25 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
     * @param {String} HTML container's id.
     * @param {Object} Optional collaborator object to enable realtime collaboration.
     */
-    viewerjs.Viewer = function(containerID, collab) {
+    viewerjs.Viewer = function(containerId, collab) {
 
       this.version = 0.0;
-      // viewer container's ID
-      this.wholeContID = containerID;
-      // tool bar container's ID
-      this.toolbarContID = this.wholeContID + '_toolbar';
-      // thumbnail container's ID
-      this.thumbnailbarContID = this.wholeContID + '_thumbnailbar';
-      // renderers container's ID
-      this.rendersContID =  this.wholeContID + '_renders';
-      // list of currently rendered 2D renderer objects
-      this.renders2D = [];
-      // whether renderers' events are linked
-      this.rendersLinked = false;
-      // maximum number of renderers
-      this.maxNumOfRenders = 4;
-      // current number of renderers
-      this.numOfRenders = 0;
+      // viewer container's id
+      this.contId = containerId;
+      // jQuery object for the viewer's div element (viewer container)
+      this.jqViewer = null;
+      // tool bar object
+      this.toolBar = null;
+      // renderers box object
+      this.rBox = null;
+      // thumbnail bar object
+      this.thBar = null;
 
       // array of image file objects (main viewer's data structure)
       // each object contains the following properties:
       //  -id: Integer, the object's id
       //  -baseUrl: String ‘directory/containing/the/files’
-      //  -imgType: String neuroimage type. Any of the possible values returned by viewerjs.Viewer.imgType
+      //  -imgType: String neuroimage type. Any of the possible values returned by rboxjs.RenderersBox.imgType
       //  -files: Array of HTML5 or custom File objects (it contains a single file for imgType different from 'dicom')
       //   DICOM files with the same base url/path are assumed to belong to the same volume
       //  -thumbnail: HTML5 or custom File object (optional jpg file for a thumbnail image)
@@ -76,6 +70,16 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
         this.collab.onCollabObjChanged = function() {
           self.handleOnCollabObjChanged();
         };
+
+        // This method is called when a new chat msg is received from a remote collaborator
+        this.collab.onNewChatMessage = function(msgObj) {
+          self.handleOnNewChatMessage(msgObj);
+        };
+
+        // This method is called everytime a remote collaborator disconnects from the collaboration
+        this.collab.onDisconnect = function(collaboratorInfo) {
+          self.handleOnDisconnect(collaboratorInfo);
+        };
       }
 
     };
@@ -92,7 +96,7 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
      */
     viewerjs.Viewer.prototype.init = function(fObjArr) {
 
-      $('#' + this.wholeContID).css({
+      this.jqViewer = $('#' + this.contId).css({
         'position': 'relative',
         'margin': 0,
         '-webkit-box-sizing': 'border-box',
@@ -102,75 +106,17 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
 
       if (this.collab && this.collab.collabIsOn && !this.collab.collabOwner) {
         // Wipe the initial wait text in the collaborators's viewer container
-        $('#' + this.wholeContID + '_initwaittext').remove();
+        $('#' + this.contId + '_initwaittext').remove();
       }
 
-      // Insert initial html. Initially the interface only contains the renderers' container.
-      this._addRenderersContainer();
+      // Initially the interface only contains the renderers box
+      this.addRenderersBox();
+
       // Build viewer's main data structure (this.imgFileArr)
       this._buildImgFileArr(fObjArr);
+
       // Render the scene
       this.renderScene();
-    };
-
-    /**
-     * Append the renderers' container to the viewer.
-     */
-    viewerjs.Viewer.prototype._addRenderersContainer = function() {
-      var self = this;
-
-      $('#' + this.wholeContID).append( '<div id="' + this.rendersContID + '" class="view-renders ' +
-        this.wholeContID + '-sortable"></div>' );
-
-      // jQuery UI options object for sortable elems
-      // ui-sortable CSS class is by default added to the containing elem
-      // an elem being moved is assigned the ui-sortable-helper class
-      var sort_opts = {
-        cursor: 'move',
-        distance: '60', // required moving distance before the displacement is taken into account
-        containment: '#' + this.wholeContID, // CSS selector within which elem displacement is restricted
-        appendTo: '#' + this.thumbnailbarContID, // CSS selector giving the receiver container for the moving clone
-        connectWith: '.' + this.wholeContID + '-sortable', // CSS selector representing the elems in which we can insert these elems.
-        dropOnEmpty: true,
-
-        helper: function (evt, target) {
-          var thWidth =  $('.view-thumbnail').css('width');
-          var thHeight = $('.view-thumbnail').css('height');
-          var renderId = target.attr('id');
-          var thId = renderId.replace(self.rendersContID + '_render2D', self.thumbnailbarContID + '_th');
-
-          // the moving helper is a clone of the corresponding thumbnail
-          return $('#' + thId).clone().css({
-            display:'block',
-            width: thWidth,
-            height: thHeight });
-        },
-
-        //event handlers
-        start: function() {
-          // thumbnails' scroll bar has to be removed to make the moving helper visible
-          $('#' + self.thumbnailbarContID).css({ overflow: 'visible' });
-        },
-
-        beforeStop: function(evt, ui) {
-          var renderId, thId;
-
-          if (ui.placeholder.parent().attr('id') === self.thumbnailbarContID) {
-            $(this).sortable('cancel');
-            renderId = ui.item.attr('id');
-            thId = renderId.replace(self.rendersContID + '_render2D', self.thumbnailbarContID + '_th');
-            // display the dropped renderer's thumbnail
-            $('#' + thId).css({ display:'block' });
-            self.remove2DRender(renderId);
-            self.updateCollabScene();
-          }
-          // restore thumbnails' scroll bar
-          $('#' + self.thumbnailbarContID).css({ overflow: 'auto' });
-        }
-      };
-
-      // make the renderers' container sortable
-      $('#' + this.rendersContID).sortable(sort_opts);
     };
 
     /**
@@ -208,7 +154,7 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
           }
        }
 
-       imgType = viewerjs.Viewer.imgType(file);
+       imgType = rbox.RenderersBox.imgType(file);
 
        if (imgType === 'dicom') {
          if (!dicoms[baseUrl]) {
@@ -320,489 +266,213 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
      }
    };
 
-    /**
-     * Create and add a 2D renderer with a loaded volume to the renderers' container.
+   /**
+    * Append a renderers box to the viewer.
+    */
+   viewerjs.Viewer.prototype.addRenderersBox = function() {
+     var fileManager = null; // cloud file manager
+     var contId = this.contId + '_renders';
+     var self = this;
+
+     if (this.rBox) {
+       return; // renderers box already exists
+     }
+
+     // append a div container for the renderers box to the viewer
+     this.jqViewer.append('<div id="' + contId + '"></div>');
+
+     // create a renderers box object
+     if (this.collab) {fileManager = this.collab.fileManager;}
+     this.rBox = new rbox.RenderersBox(contId, fileManager);
+     this.rBox.init();
+
+     //
+     // renderers box event listeners
+     //
+     this.rBox.computeMovingHelper = function(evt, target) {
+       var thWidth =  $('.view-thumbnail').css('width');
+       var thHeight = $('.view-thumbnail').css('height');
+
+       // corresponding thumbnail and renderer have the same integer id
+       var id = self.rBox.getRendererId(target.attr('id'));
+       var thContId = self.thBar.getThumbnailContId(id);
+
+       // the visually moving helper is a clone of the corresponding thumbnail
+       return $('#' + thContId).clone().css({
+         display:'block',
+         width: thWidth,
+         height: thHeight });
+     };
+
+     this.rBox.onStart = function() {
+       // thumbnails' scroll bar has to be removed to make the moving helper visible
+       self.thBar.jqThBar.css({ overflow: 'visible' });
+     };
+
+     this.rBox.onBeforeStop = function(evt, ui) {
+       var renderId, thId;
+
+       if (ui.placeholder.parent().attr('id') === self.thBar.contId) {
+         $(evt.target).sortable('cancel');
+         renderId = ui.item.attr('id');
+         self.removeRender(renderId);
+         self.updateCollabScene();
+       }
+
+       // restore thumbnails' scroll bar
+       self.thBar.jqThBar.css({ overflow: 'auto' });
+     };
+
+     this.rBox.onRenderChange = function() {
+       self.updateCollabScene();
+     };
+   };
+
+   /**
+     * Add a renderer to the renderers box.
      *
-     * @param {Oject} Image file object.
-     * @param {String} X, Y or Z orientation.
-     * @param {Function} optional callback whose argument is the 2D renderer object.
+     * @param {Number} Integer number between 0 and this.imgFileArr.length-1.
+     * @param {Function} optional callback whose argument is the renderer object or null.
      */
-    viewerjs.Viewer.prototype.add2DRender = function(imgFileObj, orientation, callback) {
-      var render, vol, containerID;
-      var volProps = {};
+    viewerjs.Viewer.prototype.addRender = function(imgFileObjId, callback) {
       var self = this;
 
-      // the renderer's id is related to the imgFileObj's id
-      containerID = this.rendersContID + "_render2D" + imgFileObj.id;
-      if ($('#' + containerID).length) {
-        // renderer already added
-        if (callback) {
-          callback(self.renders2D.filter(function(rendr) {return rendr.container.id === containerID;})[0]);
-        }
-        return;
+      if (self.thBar) {
+        $('#' + self.thBar.getThumbnailContId(imgFileObjId)).css({ display:"none" });
       }
 
-      // append renderer div to the renderers' container
-      $('#' + this.rendersContID).append(
-        '<div id="' + containerID + '" class="view-render">' +
-          '<div class="view-render-info view-render-info-topleft"></div>' +
-          '<div class="view-render-info view-render-info-topright"></div>' +
-          '<div class="view-render-info view-render-info-bottomright"></div>' +
-          '<div class="view-render-info view-render-info-bottomleft"></div>' +
-        '</div>'
-      );
+      self.rBox.add2DRender(self.getImgFileObject(imgFileObjId), 'Z', function(render) {
 
-      // rearrange layout
-      ++this.numOfRenders;
-      // if there is now two renderers then show the Link views button
-      if (this.numOfRenders===2) {
-        $('#' + this.toolbarContID + '_buttonlink').css({display: '' });
-      }
-      this.positionRenders();
-
-      //
-      // create xtk objects
-      //
-
-      render = this.create2DRender(containerID, orientation);
-
-      // define XTK volume properties for the passed orientation
-      volProps.index = 'index' + orientation;
-      switch(orientation) {
-        case 'X':
-          volProps.rangeInd = 0;
-        break;
-        case 'Y':
-          volProps.rangeInd = 1;
-        break;
-        case 'Z':
-          volProps.rangeInd = 2;
-        break;
-      }
-
-      // renderer's event handlers
-      this.onRender2DScroll = function(evt) {
-
-        function updateSliceInfoHTML(render) {
-          $('.view-render-info-bottomleft', $(render.container)).html(
-            'slice: ' + (render.volume[volProps.index] + 1) + '/' + render.volume.range[volProps.rangeInd]);
+        if (render) {
+          if (self.rBox.numOfRenders===2) {
+            // if there are now 2 renderers in the renderers box then show the Link views button
+            $('#' + self.toolBar.contId + '_buttonlink').css({display: '' });
+          }
+        } else if (self.thBar) {
+          // could not add renderer so restore the corresponding thumbnail if there is a thumbnail bar
+          $('#' + self.thBar.getThumbnailContId(imgFileObjId)).css({ display:"" });
         }
 
-        if (self.rendersLinked) {
-          for (var i=0; i<self.renders2D.length; i++) {
-            if (self.renders2D[i].interactor !== evt.target) {
-              if (evt.up) {
-                self.renders2D[i].volume[volProps.index]++;
-              } else {
-                self.renders2D[i].volume[volProps.index]--;
-              }
-            }
-            updateSliceInfoHTML(self.renders2D[i]);
-          }
-        } else {
-          updateSliceInfoHTML(self.renders2D.filter(function(rendr) {return rendr.interactor === evt.target;})[0]);
-        }
-
-        self.updateCollabScene();
-      };
-
-      this.onRender2DZoom = function() {
-        self.updateCollabScene();
-      };
-
-      this.onRender2DPan = function() {
-        self.updateCollabScene();
-      };
-
-      this.onRender2DRotate = function() {
-        self.updateCollabScene();
-      };
-
-      this.onRender2DFlipColumns = function() {
-        // press W to trigger this event
-        render.flipColumns = !render.flipColumns;
-        self.updateCollabScene();
-      };
-
-      this.onRender2DFlipRows = function() {
-        // press Q to trigger this event
-        render.flipRows = !render.flipRows;
-        self.updateCollabScene();
-      };
-
-      this.onRender2DPoint = function() {
-        self.updateCollabScene();
-      };
-
-      // bind event handler callbacks with the renderer's interactor
-      render.interactor.addEventListener(X.event.events.SCROLL, this.onRender2DScroll);
-      render.interactor.addEventListener(X.event.events.ZOOM, this.onRender2DZoom);
-      render.interactor.addEventListener(X.event.events.PAN, this.onRender2DPan);
-      render.interactor.addEventListener(X.event.events.ROTATE, this.onRender2DRotate);
-      render.interactor.addEventListener("flipColumns", this.onRender2DFlipColumns);
-      render.interactor.addEventListener("flipRows", this.onRender2DFlipRows);
-
-      // called every time the pointing position is changed with shift+left-mouse
-      render.addEventListener("onPoint", this.onRender2DPoint);
-
-      // the onShowtime event handler gets executed after all files were fully loaded and
-      // just before the first rendering attempt
-      render.onShowtime = function() {
-
-        // define function to set the UI mri info
-        function setUIMriInfo(info) {
-          var jqR = $('#' + containerID);
-          var age = '', orient = '', direct = '';
-
-          if (info.patientAge) {
-            age =  'AGE: ' + info.patientAge + '<br>';
-          }
-          $('.view-render-info-topleft', jqR).html(
-            info.patientName + '<br>' +
-            info.patientId + '<br>' +
-            'BIRTHDATE: ' + info.patientBirthDate + '<br>' +
-            age +
-            'SEX: ' + info.patientSex );
-
-          $('.view-render-info-topright', jqR).html(
-            'SERIES: ' + info.seriesDescription + '<br>' +
-            info.manufacturer + '<br>' +
-            info.studyDate + '<br>' +
-            info.dimensions + '<br>' +
-            info.voxelSizes );
-
-          if (info.orientation) {
-              orient = info.orientation + '<br>';
-          }
-          if (info.primarySliceDirection) {
-            direct = info.primarySliceDirection;
-          }
-          $('.view-render-info-bottomright', jqR).html(
-            orient + direct );
-
-          $('.view-render-info-bottomleft', jqR).html(
-            'slice: ' + (vol[volProps.index] + 1) + '/' + vol.range[volProps.rangeInd]);
-
-          // renderer is ready
-          if (callback) {callback(render);}
-        }
-
-        // define function to read the json file
-        function readJson(file, callback) {
-          self.readFile(file, 'readAsText', function(data) {
-            callback(JSON.parse(data));
-          });
-        }
-
-        if (imgFileObj.json) {
-          // if there is a json file then read it
-          readJson(imgFileObj.json, function(jsonObj) {
-            var mriInfo = {
-              patientName: jsonObj.PatientName,
-              patientId: jsonObj.PatientID,
-              patientBirthDate: jsonObj.PatientBirthDate,
-              patientSex: jsonObj.PatientSex,
-              seriesDescription: jsonObj.SeriesDescription,
-              manufacturer: jsonObj.Manufacturer,
-              studyDate: jsonObj.StudyDate,
-              orientation: jsonObj.mri_info.orientation,
-              primarySliceDirection: jsonObj.mri_info.primarySliceDirection,
-              dimensions: jsonObj.mri_info.dimensions,
-              voxelSizes: jsonObj.mri_info.voxelSizes
-            };
-            setUIMriInfo(mriInfo);
-          });
-        } else if (imgFileObj.dicomInfo) {
-          // if instead there is dicom information then use it
-          var mriInfo = imgFileObj.dicomInfo;
-          mriInfo.dimensions = (vol.range[0]) + ' x ' + (vol.range[1]) + ' x ' + (vol.range[2]);
-          mriInfo.voxelSizes = vol.spacing[0].toPrecision(4) + ', ' + vol.spacing[1].toPrecision(4) +
-          ', ' + vol.spacing[2].toPrecision(4);
-          setUIMriInfo(mriInfo);
-        } else {
-          // just display slice number
-          $('.view-render-info-bottomleft', $('#' + containerID)).html(
-            'slice: ' + (vol[volProps.index] + 1) + '/' + vol.range[volProps.rangeInd]);
-
-          // renderer is ready
-          if (callback) {callback(render);}
-        }
-      };
-
-      // create xtk volume and link it to its render
-      vol = this.createVolume(imgFileObj);
-      render.volume = vol;
-
-      // add xtk 2D renderer to the list of current UI renders
-      this.renders2D.push(render);
-
-      // function to read an MRI file
-      var numFiles = 0;
-      var filedata = [];
-      function readMriFile(file, pos) {
-
-        self.readFile(file, 'readAsArrayBuffer', function(data) {
-          filedata[pos] = data;
-          ++numFiles;
-
-          if (numFiles===imgFileObj.files.length) {
-
-            if (imgFileObj.imgType === 'dicom' || imgFileObj.imgType === 'dicomzip') {
-
-              // if the files are zip files of dicoms then unzip them and sort the resultant files
-              if (imgFileObj.imgType === 'dicomzip') {
-                var fDataArr = [];
-
-                for (var i=0; i<filedata.length; i++) {
-                  fDataArr = fDataArr.concat(self.unzipFileData(filedata[i]));
-                }
-                fDataArr = viewerjs.sortObjArr(fDataArr, 'name');
-
-                filedata = [];
-                var urls = [];
-                for (i=0; i<fDataArr.length; i++) {
-                  filedata.push(fDataArr[i].data);
-                  urls.push(imgFileObj.baseUrl + fDataArr[i].name);
-                }
-                vol.file = urls;
-              }
-
-              try {
-                imgFileObj.dicomInfo = viewerjs.Viewer.parseDicom(filedata[0]);
-              } catch(err) {
-                console.log('Could not parse dicom ' + imgFileObj.baseUrl + ' Error - ' + err);
-              }
-            }
-
-            vol.filedata = filedata;
-            render.add(vol);
-            // start the rendering
-            render.render();
-            viewerjs.documentRepaint();
-          }
-        });
-      }
-
-      // read all neuroimage files in imgFileObj.files
-      for (var i=0; i<imgFileObj.files.length; i++) {
-        readMriFile(imgFileObj.files[i], i);
-      }
-
+        if (callback) {callback(render);}
+      });
     };
 
     /**
-     * Remove a 2D renderer from the UI.
-     *
-     * @param {String} renderer's container.
-     */
-    viewerjs.Viewer.prototype.remove2DRender = function(containerID) {
+      * Remove a renderer from the renderers box.
+      *
+      * @param {String} renderer's container.
+      */
+     viewerjs.Viewer.prototype.removeRender = function(containerId) {
 
-      // find and destroy xtk objects and remove the renderer's div from the UI
-      for (var i=0; i<this.renders2D.length; i++) {
-        if ($(this.renders2D[i].container).attr('id') === containerID) {
-          this.renders2D[i].remove(this.renders2D[i].volume);
-          this.renders2D[i].volume.destroy();
-          this.renders2D[i].interactor.removeEventListener(X.event.events.SCROLL, this.onRender2DScroll);
-          this.renders2D[i].interactor.removeEventListener(X.event.events.ZOOM, this.onRender2DZoom);
-          this.renders2D[i].interactor.removeEventListener(X.event.events.PAN, this.onRender2DPan);
-          this.renders2D[i].interactor.removeEventListener(X.event.events.ROTATE, this.onRender2DRotate);
-          this.renders2D[i].interactor.removeEventListener("flipColumns", this.onRender2DFlipColumns);
-          this.renders2D[i].interactor.removeEventListener("flipRows", this.onRender2DFlipRows);
-          this.renders2D[i].removeEventListener("onPoint", this.onRender2DPoint);
-          this.renders2D[i].destroy();
-          this.renders2D.splice(i, 1);
-          $('#' + containerID).remove();
-          --this.numOfRenders;
-          // if there is now a single renderer then hide the Link views button
-          if (this.numOfRenders===1) {
-            $('#' + this.toolbarContID + '_buttonlink').css({display: 'none' });
-            if (this.rendersLinked) {
-              this.handleToolBarButtonLinkClick();
-            }
-          }
-          this.positionRenders();
-          viewerjs.documentRepaint();
-          break;
-        }
-      }
+       this.rBox.remove2DRender(containerId);
 
-    };
+       if (this.thBar) {
+         // corresponding thumbnail and renderer have the same integer id
+         var id = this.rBox.getRendererId(containerId);
+         var thContId = this.thBar.getThumbnailContId(id);
 
-    /**
-     * Create an xtk 2D renderer object.
-     *
-     * @param {String} container id.
-     * @param {String} X, Y or Z orientation.
-     *
-     * @return {string} the newly created render object.
-     * @public
-     */
-    viewerjs.Viewer.prototype.create2DRender = function(containerID, orientation) {
-      var render;
+         // display the removed renderer's thumbnail
+         $('#' + thContId).css({ display:'block' });
+       }
 
-      // create xtk object
-      render = new X.renderer2D();
-      render.container = containerID;
-      render.bgColor = [0.2, 0.2, 0.2];
-      render.orientation = orientation;
-      render.init();
-      return render;
-    };
+       // if there is now a single renderer then hide the Link views button
+       if (this.rBox.numOfRenders===1) {
 
-    /**
-     * Create an xtk volume object.
-     *
-     * @param {Object} image file object
-     */
-    viewerjs.Viewer.prototype.createVolume = function(imgFileObj) {
-      var fileNames = [];
+         $('#' + this.toolBar.contId + '_buttonlink').css({display: 'none' });
 
-      if (imgFileObj.imgType === 'dicomzip') {
-        for (var i=0; i<imgFileObj.files.length; i++) {
-          fileNames[i] = imgFileObj.files[i].name.replace('.zip', '');
-        }
-      } else {
-        for (var j=0; j<imgFileObj.files.length; j++) {
-          fileNames[j] = imgFileObj.files[j].name;
-        }
-      }
-      // create xtk object
-      var vol = new X.volume();
-      vol.reslicing = 'false';
-      vol.file = fileNames.sort().map(function(str) {
-        return imgFileObj.baseUrl + str;});
+         if (this.rBox.rendersLinked) {
+           this.handleToolBarButtonLinkClick();
+         }
+       }
 
-      return vol;
-    };
-
-    /**
-     * Rearrange renderers in the UI layout.
-     */
-    viewerjs.Viewer.prototype.positionRenders = function() {
-      // sort by id
-      var jqRenders = viewerjs.sortObjArr($('div.view-render', $('#' + this.rendersContID)), 'id');
-
-      switch(this.numOfRenders) {
-        case 1:
-          jqRenders.css({
-            width: '100%',
-            height: '100%',
-            top: 0,
-            left: 0
-          });
-        break;
-
-        case 2:
-          jqRenders.css({
-            width: '50%',
-            height: '100%',
-            top: 0,
-            left:0
-          });
-          jqRenders[1].style.left = '50%';
-        break;
-
-        case 3:
-          jqRenders.css({
-            width: '50%',
-            height: '50%',
-          });
-          jqRenders[0].style.top = 0;
-          jqRenders[0].style.left = 0;
-          jqRenders[1].style.top = 0;
-          jqRenders[1].style.left = '50%';
-          jqRenders[2].style.top = '50%';
-          jqRenders[2].style.left = 0;
-          jqRenders[2].style.width = '100%';
-        break;
-
-        case 4:
-          jqRenders.css({
-            width: '50%',
-            height: '50%',
-          });
-          jqRenders[0].style.top = 0;
-          jqRenders[0].style.left = 0;
-          jqRenders[1].style.top = 0;
-          jqRenders[1].style.left = '50%';
-          jqRenders[2].style.top = '50%';
-          jqRenders[2].style.left = 0;
-          jqRenders[3].style.top = '50%';
-          jqRenders[3].style.left = '50%';
-        break;
-      }
-    };
+     };
 
     /**
      * Create and add a toolbar to the viewer.
      */
     viewerjs.Viewer.prototype.addToolBar = function() {
+      var contId = this.contId + '_toolbar';
       var self = this;
 
-      if ($('#' + this.toolbarContID).length) {
-        return; // toolbar already exists
+      if (this.toolBar) {
+        return; // tool bar already exists
       }
 
-      // append toolbar div and it's buttons to the whole container
-      $('#' + this.wholeContID).append(
-        '<div id="' + this.toolbarContID + '" class="view-toolbar">' +
-          '<button id="' + this.toolbarContID + '_buttonhelp" class="view-toolbar-button" type="button" title="Wiki help">Help</button>' +
-          '<button id="' + this.toolbarContID + '_buttonlink" class="view-toolbar-button" type="button" title="Link views">Link views</button>' +
-          '<button id="' + this.toolbarContID + '_buttoncollab" class="view-toolbar-button" type="button" title="Start collaboration">Start collab</button>' +
-          '<button id="' + this.toolbarContID + '_buttonauth" class="view-toolbar-button" type="button" title="Authorize">Authorize</button>' +
-        '<div>'
-      );
+      // append a div container for the tool bar to the viewer
+      this.jqViewer.append('<div id="' + contId + '"></div>');
 
-      // hide the authorize button
-      $('#' + this.toolbarContID + '_buttonauth').css({display: 'none' });
-      // hide the Link views button
-      $('#' + this.toolbarContID + '_buttonlink').css({display: 'none' });
-
-      // make space for the toolbar
-      var jqToolCont = $('#' + this.toolbarContID);
-      var rendersTopEdge = parseInt(jqToolCont.css('top')) + parseInt(jqToolCont.css('height')) + 5;
-      $('#' + this.rendersContID).css({ height: 'calc(100% - ' + rendersTopEdge + 'px)' });
-      if ($('#' + this.thumbnailbarContID).length) {
-        // there is a thumbnail bar so make space for it
-        var jqThCont = $('#' + this.thumbnailbarContID);
-        var toolLeftEdge = parseInt(jqThCont.css('left')) + parseInt(jqThCont.css('width')) + 5;
-        jqToolCont.css({ width: 'calc(100% - ' + toolLeftEdge + 'px)' });
-      }
+      // create a tool bar object
+      this.toolBar = new toolbar.ToolBar(contId);
+      this.toolBar.init();
 
       //
-      // event handlers
+      // add buttons to the tool bar
       //
+      this.toolBar.addButton({
+        id: self.toolBar.contId + '_buttonhelp',
+        title: 'Wiki help',
+        caption: 'Help',
+        onclick: function() {
+          window.open('https://github.com/FNNDSC/viewerjs/wiki');
+        }
+      });
+
+      this.toolBar.addButton({
+        id: self.toolBar.contId + '_buttonlink',
+        title: 'Link views',
+        caption: 'Link views',
+        onclick: function() {
+          self.handleToolBarButtonLinkClick();
+          self.updateCollabScene();
+        }
+      });
+      // hide this button
+      this.toolBar.hideButton(this.toolBar.contId + '_buttonlink');
+
+      this.toolBar.addButton({
+        id: self.toolBar.contId + '_buttoncollab',
+        title: 'Start collaboration',
+        caption: 'Start collab',
+        onclick: function() {
+          if (self.collab.collabIsOn) {
+            self.leaveCollaboration();
+          } else {
+            self.startCollaboration();
+          }
+        }
+      });
+
+      this.toolBar.addButton({
+        id: self.toolBar.contId + '_buttonauth',
+        title: 'Authorize',
+        caption: 'Authorize',
+      });
+      // hide this button
+      this.toolBar.hideButton(this.toolBar.contId + '_buttonauth');
+
+      // tool bar event listeners
       this.handleToolBarButtonLinkClick = function() {
-        var jqButton = $('#' + this.toolbarContID + '_buttonlink');
+        var jqButton = $('#' + self.toolBar.contId + '_buttonlink');
 
-        if (self.rendersLinked) {
-          self.rendersLinked = false;
+        if (self.rBox.rendersLinked) {
+          self.rBox.rendersLinked = false;
           jqButton.text('Link views');
           jqButton.attr('title', 'Link views');
         } else {
-          self.rendersLinked = true;
+          self.rBox.rendersLinked = true;
           jqButton.text('Unlink views');
           jqButton.attr('title', 'Unlink views');
         }
       };
 
-      $('#' + this.toolbarContID + '_buttonlink').click(function() {
-        //handle the event
-        self.handleToolBarButtonLinkClick();
-        self.updateCollabScene();
-      });
-
-      $('#' + this.toolbarContID + '_buttoncollab').click(function() {
-        if (self.collab.collabIsOn) {
-          self.leaveCollaboration();
-        } else {
-          self.startCollaboration();
-        }
-      });
-
-      $('#' + this.toolbarContID + '_buttonhelp').click(function() {
-        window.open('https://github.com/FNNDSC/viewerjs/wiki');
-      });
+      // make space for the toolbar
+      var rendersTopEdge = parseInt(self.toolBar.jqToolBar.css('top')) + parseInt(self.toolBar.jqToolBar.css('height')) + 5;
+      self.rBox.jqRBox.css({ height: 'calc(100% - ' + rendersTopEdge + 'px)' });
+      if (self.thBar) {
+        // there is a thumbnail bar so make space for it
+        var toolLeftEdge = parseInt(self.thBar.jqThBar.css('left')) + parseInt(self.thBar.jqThBar.css('width')) + 5;
+        self.toolBar.jqToolBar.css({ width: 'calc(100% - ' + toolLeftEdge + 'px)' });
+      }
     };
 
     /**
@@ -811,234 +481,68 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
      * @param {Function} optional callback to be called when the thumbnail bar is ready
      */
     viewerjs.Viewer.prototype.addThumbnailBar = function(callback) {
-      var numLoadedThumbnails = 0;
+      var contId = this.contId + '_thumbnailbar';
       var self = this;
 
-      // return if less than 2 files (doesn't need a thumbnail bar) or if thumbnail bar already exists
-      if ((this.imgFileArr.length<2) || $('#' + this.thumbnailbarContID).length) {
+      if (this.thBar) {
+        // thumbnail bar already exists
         if (callback) {callback();}
         return;
       }
 
-      // append thumbnailbar to the whole container
-      $('#' + this.wholeContID).append(
-        '<div id="' + this.thumbnailbarContID + '" class="view-thumbnailbar ' + this.wholeContID + '-sortable"></div>'
-      );
+      // append a div container for the renderers box to the viewer
+      this.jqViewer.append('<div id="' + contId + '"></div>');
 
-      // make the thumbnails container sortable
-      var sort_opts = {
-        cursor: 'move',
-        containment: '#' + this.wholeContID,
-        helper: 'clone',
-        appendTo: '#' + this.rendersContID,
-        connectWith: '.' + this.wholeContID + '-sortable',
-        dropOnEmpty: true,
+      // create a thumbnail bar object
+      this.thBar = new thbar.ThumbnailBar(contId, this.rBox);
+      this.thBar.init(this.imgFileArr, function() {
 
-        //event handlers
-        // beforeStop is called when the placeholder is still in the list
-        beforeStop: function(event, ui) {
-          if (ui.placeholder.parent().attr("id") === self.rendersContID) {
-            $(this).sortable("cancel");
-            if (self.numOfRenders < self.maxNumOfRenders) {
-              // a dropped thumbnail disappears from thumbnail bar
-              var id = parseInt(ui.item.css({ display:"none" }).attr("id").replace(self.thumbnailbarContID + "_th",""));
-              // add a renderer to the UI containing a volume with the same id suffix as the thumbnail
-              self.add2DRender(self.getImgFileObject(id), 'Z', function() {
-                self.updateCollabScene();
-              });
+        // hide any thumbnail with a corresponding renderer (same integer id suffix) already added to the renderers box
+        for (var i=0; i<self.rBox.renders2D.length; i++) {
+
+          // corresponding thumbnail and renderer have the same integer id
+          var id = self.rBox.getRendererId(self.rBox.renders2D[i].container.id);
+          var thContId = self.thBar.getThumbnailContId(id);
+
+          $('#' + thContId).css({ display:"none" });
+        }
+
+        if (callback) {callback();}
+      });
+
+      // link the thumbnail bar with the renderers box
+      this.rBox.setComplementarySortableElem(contId);
+      this.thBar.setComplementarySortableElem(this.rBox.contId);
+
+      //
+      // thumbnail bar event listeners
+      //
+      this.thBar.onBeforeStop = function(evt, ui) {
+
+        if (ui.placeholder.parent().attr("id") === self.rBox.contId) {
+          $(evt.target).sortable("cancel");
+
+          var id = self.thBar.getThumbnailId(ui.item.attr("id"));
+
+          // add the corresponding renderer (with the same integer id) to the UI
+          self.addRender(id, function(render) {
+            if (render) {
+              self.updateCollabScene();
             } else {
-              alert('Reached maximum number of renders allow which is 4. You must drag a render out ' +
+              alert('Reached maximum number of renders allow. You must drag a render out ' +
                'of the viewer window and drop it into the thumbnails bar to make a render available');
-            }
-          }
-        }
-      };
-
-      $('#' + this.thumbnailbarContID).sortable(sort_opts);
-
-      // make space for the thumbnail bar
-      var jqThBarCont = $('#' + this.thumbnailbarContID);
-      var rendersLeftEdge = parseInt(jqThBarCont.css('left')) + parseInt(jqThBarCont.css('width')) + 5;
-      $('#' + this.rendersContID).css({ width: 'calc(100% - ' + rendersLeftEdge + 'px)' });
-      if ($('#' + this.toolbarContID).length) {
-        // there is a toolbar
-        $('#' + this.toolbarContID).css({ width: 'calc(100% - ' + rendersLeftEdge + 'px)' });
-      }
-
-      // function to load the thumbnail corresponding to the imgFileObj argument
-      // if there is a thumbnail property in the imgFileObj then load it otherwise
-      // automatically create the thumbnail from a renderer's canvas object
-      function loadThumbnail(imgFileObj) {
-        var fname, info, title, thContJq, imgJq;
-        var id = imgFileObj.id;
-
-        // we assume the name of the thumbnail can be of the form:
-        // 1.3.12.2.1107.5.2.32.35288.30000012092602261631200043880-AXIAL_RFMT_MPRAGE-Sag_T1_MEMPRAGE_1_mm_4e_nomoco.jpg
-        if (imgFileObj.thumbnail) {
-          fname = imgFileObj.thumbnail.name;
-        } else if (imgFileObj.imgType !== 'dicom'){
-          fname = imgFileObj.files[0].name;
-        } else {
-          fname = ''; title = ''; info = '';
-        }
-        if (fname) {
-          if (fname.lastIndexOf('-') !== -1) {
-            title = fname.substring(0, fname.lastIndexOf('.'));
-            title = title.substring(title.lastIndexOf('-') + 1);
-            info = title.substr(0, 10);
-          } else {
-            title = fname;
-            info = fname.substring(0, fname.lastIndexOf('.')).substr(-10);
-          }
-        }
-
-        // append this thumbnail to thumbnailbar
-        $('#' + self.thumbnailbarContID).append(
-          '<div id="' + self.thumbnailbarContID + '_th' + id + '" class="view-thumbnail">' +
-            '<img class="view-thumbnail-img" title="' + title + '">' +
-            '<div class="view-thumbnail-info">' + info + '</div>' +
-          '</div>'
-        );
-        thContJq = $('#' + self.thumbnailbarContID + '_th' + id);
-        imgJq = $('.view-thumbnail-img', thContJq);
-
-        // internal function to read the thumbnail's url so it can be assigned to the src of <img>
-        function readThumbnailUrl(thumbnail) {
-          self.readFile(thumbnail, 'readAsDataURL', function(data) {
-            imgJq.attr('src', data);
-            // if there is a corresponding renderer window already in the UI then hide this thumbnail
-            if ($('#' + self.rendersContID + '_render2D' + id).length) {
-              thContJq.css({ display:"none" });
-            }
-            if (++numLoadedThumbnails === self.imgFileArr.length) {
-              // all thumbnails loaded
-              if (callback) {callback();}
             }
           });
         }
+      };
 
-        // internal function to create and read the thumbnails' url so it can be assigned to the src of <img>
-        function createAndReadThumbnailUrl() {
-          var filedata = [];
-          var numFiles = 0;
-          var vol = self.createVolume(imgFileObj);
-          var render;
-          var tempRenderContId = thContJq.attr('id') + '_temp';
-          var imgWidth = imgJq.css('width');
-          var imgHeight = imgJq.css('height');
-
-          // hide the <img> and prepend a div for a renderer canvas with the same size as the hidden <img>
-          imgJq.css({ display:'none' });
-          thContJq.prepend('<div id="' + tempRenderContId + '"></div>');
-          $('#' + tempRenderContId).css({ width: imgWidth, height: imgHeight });
-          render = self.create2DRender(tempRenderContId, 'Z');
-
-          render.afterRender = function() {
-            var canvas = $('#' + tempRenderContId + ' > canvas')[0];
-
-            self.readFile(viewerjs.dataURItoJPGBlob(canvas.toDataURL('image/jpeg')), 'readAsDataURL', function(data) {
-              imgJq.attr('src', data);
-              render.remove(vol);
-              vol.destroy();
-              $('#' + tempRenderContId).remove();
-              render.destroy();
-              // restore the hidden <img>
-              imgJq.css({ display:'block' });
-              // if there is a corresponding renderer window already in the UI then hide this thumbnail
-              if ($('#' + self.rendersContID + '_render2D' + id).length) {
-                thContJq.css({ display:'none' });
-              }
-              if (++numLoadedThumbnails === self.imgFileArr.length) {
-                // all thumbnails loaded
-                if (callback) {callback();}
-              }
-            });
-          };
-
-          function readFile(file, pos) {
-            self.readFile(file, 'readAsArrayBuffer', function(data) {
-              filedata[pos] = data;
-
-              if (++numFiles === imgFileObj.files.length) {
-                // all files have been read
-                if (imgFileObj.imgType === 'dicom' || imgFileObj.imgType === 'dicomzip') {
-
-                  // if the files are zip files of dicoms then unzip them and sort the resultant files
-                  if (imgFileObj.imgType === 'dicomzip') {
-                    var fDataArr = [];
-
-                    for (var i=0; i<filedata.length; i++) {
-                      fDataArr = fDataArr.concat(self.unzipFileData(filedata[i]));
-                    }
-                    fDataArr = viewerjs.sortObjArr(fDataArr, 'name');
-
-                    filedata = [];
-                    var urls = [];
-                    for (i=0; i<fDataArr.length; i++) {
-                      filedata.push(fDataArr[i].data);
-                      urls.push(imgFileObj.baseUrl + fDataArr[i].name);
-                    }
-                    vol.file = urls;
-                  }
-
-                  //update the thumbnail info with the series description
-                  var byteArray = new Uint8Array(filedata[0]);
-                  try {
-                    var dataSet = dicomParser.parseDicom(byteArray);
-                    title = dataSet.string('x0008103e');
-                    info = title.substr(0, 10);
-                    imgJq.attr('title', title);
-                    $('.view-thumbnail-info', thContJq).text(info);
-                  } catch(err) {
-                    console.log('Could not parse dicom ' + imgFileObj.baseUrl + ' Error - ' + err);
-                  }
-                }
-
-                vol.filedata = filedata;
-                render.add(vol);
-                // start the rendering
-                render.render();
-              }
-            });
-          }
-
-          // read all files belonging to the volume
-          for (var i=0; i<imgFileObj.files.length; i++) {
-            readFile(imgFileObj.files[i], i);
-          }
-        }
-
-        if (imgFileObj.thumbnail) {
-          readThumbnailUrl(imgFileObj.thumbnail);
-        } else {
-          createAndReadThumbnailUrl();
-        }
-
+      // make space for the thumbnail bar
+      var rendersLeftEdge = parseInt(self.thBar.jqThBar.css('left')) + parseInt(self.thBar.jqThBar.css('width')) + 5;
+      self.rBox.jqRBox.css({ width: 'calc(100% - ' + rendersLeftEdge + 'px)' });
+      if (self.toolBar) {
+        // there is a toolbar
+        self.toolBar.jqToolBar.css({ width: 'calc(100% - ' + rendersLeftEdge + 'px)' });
       }
-
-      // load thumbnail images and create their UIs when ready
-      for (var i=0; i<this.imgFileArr.length; i++) {
-        loadThumbnail(this.imgFileArr[i]);
-      }
-
-    };
-
-    /**
-     * Destroy all objects and remove html interface
-     */
-    viewerjs.Viewer.prototype.destroy = function() {
-
-      if (this.collab && this.collab.collabIsOn) {
-        this.leaveCollaboration();
-      }
-
-      // destroy XTK renderers
-      for (var i=0; i<this.renders2D.length; i++) {
-        this.remove2DRender($(this.renders2D[i].container).attr("id"));
-      }
-
-      // remove html
-      $('#' + this.wholeContID).empty();
     };
 
     /**
@@ -1062,7 +566,7 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
         var renders2DProps = [];
 
         function updateRender(render) {
-          var id = parseInt(render.container.id.replace(self.rendersContID + "_render2D", ""));
+          var id = self.rBox.getRendererId(render.container.id);
           var ix = renders2DIds.indexOf(id);
 
           // update the volume properties
@@ -1095,33 +599,34 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
           }
         }
         // remove the 2D renderers from the local scene that were removed from the collab scene
-        for (i=0; i<self.renders2D.length; i++) {
-          var id = parseInt(self.renders2D[i].container.id.replace(self.rendersContID + "_render2D", ""));
+        for (i=0; i<self.rBox.renders2D.length; i++) {
+          var id = self.rBox.getRendererId(self.rBox.renders2D[i].container.id);
+          var thContId = self.thBar.getThumbnailContId(id);
 
           if (renders2DIds.indexOf(id) === -1) {
-            $('#' + self.thumbnailbarContID + '_th' + id).css({ display: "block" });
-            self.remove2DRender(self.rendersContID + "_render2D" + id);
+            $('#' + thContId).css({ display: "block" });
+            self.removeRender(self.rBox.renders2D[i].container.id);
           }
         }
 
         for (i=0; i<renders2DIds.length; i++) {
           // add a 2D renderer to the local scene that was added to the collab scene
-          $('#' + self.thumbnailbarContID + '_th' + renders2DIds[i]).css({ display: "none" });
-          self.add2DRender(self.getImgFileObject(renders2DIds[i]), 'Z', updateRender);
+          $('#' + self.thBar.getThumbnailContId(renders2DIds[i])).css({ display: "none" });
+          self.addRender(renders2DIds[i], updateRender);
         }
       }
 
       function renderToolbar() {
         if (scene.toolBar) {
-          if ($('#' + self.toolbarContID).length===0) {
+          if (!self.toolBar) {
             // no local toolbar so add a toolbar
             self.addToolBar();
             // Update the toolbar's UI
-            var collabButton = document.getElementById(self.toolbarContID + '_buttoncollab');
+            var collabButton = document.getElementById(self.toolBar.contId + '_buttoncollab');
             collabButton.innerHTML = 'End collab';
             collabButton.title = 'End collaboration';
           }
-          if (self.rendersLinked !== scene.toolBar.rendersLinked) {
+          if (self.rBox.rendersLinked !== scene.toolBar.rendersLinked) {
             self.handleToolBarButtonLinkClick();
           }
         }
@@ -1144,7 +649,7 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
         //  collaboration is off so just load and render the first volume in this.imgFileArr
         for (var i=0; i<this.imgFileArr.length; i++) {
           if (this.imgFileArr[i].imgType==='vol' || this.imgFileArr[i].imgType==='dicom') {
-            this.add2DRender(this.imgFileArr[i], 'Z');
+            this.addRender(i);
             break;
           }
         }
@@ -1156,14 +661,17 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
      */
     viewerjs.Viewer.prototype.getLocalScene = function() {
       var scene = {};
+      var renders2D = this.rBox.renders2D;
 
       // set thumbnailbar's properties
-      scene.thumbnailBar = $('#' + this.thumbnailbarContID).length;
+      if (this.thBar) {
+        scene.thumbnailBar = true;
+      }
 
       // set toolbar's properties
-      if ($('#' + this.toolbarContID).length) {
+      if (this.toolBar) {
         scene.toolBar = {};
-        scene.toolBar.rendersLinked = this.rendersLinked;
+        scene.toolBar.rendersLinked = this.rBox.rendersLinked;
       }
 
       // set renderers' properties
@@ -1171,32 +679,33 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
       scene.renders = [];
 
       // parse each renderer and get information to be synchronized
-      for (var j=0; j<this.renders2D.length; j++) {
+      for (var j=0; j<renders2D.length; j++) {
         var render = {};
 
         // set general information about the renderer
         render.general = {};
-        render.general.id = parseInt(this.renders2D[j].container.id.replace(this.rendersContID + '_render2D', ''));
+
+        render.general.id = this.rBox.getRendererId(renders2D[j].container.id);
         render.general.type = '2D';
 
         // set renderer specific information
         render.renderer = {};
-        render.renderer.viewMatrix = JSON.stringify(this.renders2D[j].camera.view);
-        render.renderer.flipColumns = this.renders2D[j].flipColumns;
-        render.renderer.flipRows = this.renders2D[j].flipRows;
-        render.renderer.pointer = this.renders2D[j].pointer;
+        render.renderer.viewMatrix = JSON.stringify(renders2D[j].camera.view);
+        render.renderer.flipColumns = renders2D[j].flipColumns;
+        render.renderer.flipRows = renders2D[j].flipRows;
+        render.renderer.pointer = renders2D[j].pointer;
 
         // set volume specific information
         // only supports 1 volume for now....
         render.volume = {};
-        render.volume.file = this.renders2D[j].volume.file;
-        render.volume.lowerThreshold = this.renders2D[j].volume.lowerThreshold;
-        render.volume.upperThreshold = this.renders2D[j].volume.upperThreshold;
-        render.volume.lowerWindowLevel = this.renders2D[j].volume.windowLow;
-        render.volume.upperWindowLevel = this.renders2D[j].volume.windowHigh;
-        render.volume.indexX = this.renders2D[j].volume.indexX;
-        render.volume.indexY = this.renders2D[j].volume.indexY;
-        render.volume.indexZ = this.renders2D[j].volume.indexZ;
+        render.volume.file = renders2D[j].volume.file;
+        render.volume.lowerThreshold = renders2D[j].volume.lowerThreshold;
+        render.volume.upperThreshold = renders2D[j].volume.upperThreshold;
+        render.volume.lowerWindowLevel = renders2D[j].volume.windowLow;
+        render.volume.upperWindowLevel = renders2D[j].volume.windowHigh;
+        render.volume.indexX = renders2D[j].volume.indexX;
+        render.volume.indexY = renders2D[j].volume.indexY;
+        render.volume.indexZ = renders2D[j].volume.indexZ;
 
         // set interactor specific information
         render.interactor = {};
@@ -1239,8 +748,8 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
 
       if (this.collab) {
         var self = this;
-        var collabButton = document.getElementById(this.toolbarContID + '_buttoncollab');
-        var authButton = document.getElementById(this.toolbarContID + '_buttonauth');
+        var collabButton = document.getElementById(this.toolBar.contId + '_buttoncollab');
+        var authButton = document.getElementById(this.toolBar.contId + '_buttonauth');
 
         this.collab.authorizeAndLoadApi(true, function(granted) {
           if (granted) {
@@ -1274,8 +783,25 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
 
       if (this.collab && this.collab.collabIsOn) {
 
-        this.chat = new chatjs.Chat(this.collab);
+        this.chat = new chat.Chat(this.collab);
         this.chat.init();
+      }
+    };
+
+    /**
+     * Leave the realtime collaboration.
+     */
+    viewerjs.Viewer.prototype.leaveCollaboration = function() {
+
+      if (this.collab.collabIsOn) {
+        this.collab.leaveRealtimeCollaboration();
+
+        // update the UI
+        var collabButton = document.getElementById(this.toolBar.contId + '_buttoncollab');
+        collabButton.innerHTML = 'Start collab';
+        collabButton.title = 'Start collaboration';
+        this.chat.destroy();
+        this.chat = null;
       }
     };
 
@@ -1307,7 +833,7 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
         function writeToGdrive(url, data) {
           var name = url.substring(url.lastIndexOf('/') + 1);
 
-          self.collab.driveFm.writeFile(self.collab.dataFilesBaseDir + '/' + name, data, function(fileResp) {
+          self.collab.fileManager.writeFile(self.collab.dataFilesBaseDir + '/' + name, data, function(fileResp) {
             fObjArr.push({id: fileResp.id, url: url});
             if (fObjArr.length===totalNumFiles) {
               // all data files have been uploaded to GDrive
@@ -1317,9 +843,9 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
         }
 
         if (fUrl.search(/.dcm.zip$/i) !== -1) {
+
           // fData is an array of arrayBuffer so instead of one file now fData.length files need to be uploaded
           totalNumFiles += fData.length-1;
-
           writeToGdrive(fUrl, fData[0]);
 
           for (var j=1; j<fData.length; j++) {
@@ -1335,15 +861,15 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
 
         if (this.collab.collabOwner) {
           // Update the UI
-          var collabButton = document.getElementById(this.toolbarContID + '_buttoncollab');
+          var collabButton = document.getElementById(this.toolBar.contId + '_buttoncollab');
           collabButton.style.display = '';
           collabButton.innerHTML = 'End collab';
           collabButton.title = 'End collaboration';
-          var authButton = document.getElementById(this.toolbarContID + '_buttonauth');
+          var authButton = document.getElementById(this.toolBar.contId + '_buttonauth');
           authButton.style.display = 'none';
 
           // Asyncronously load all files to GDrive
-          this.collab.driveFm.createPath(this.collab.dataFilesBaseDir, function() {
+          this.collab.fileManager.createPath(this.collab.dataFilesBaseDir, function() {
 
             for (var i=0; i<self.imgFileArr.length; i++) {
               var imgFileObj = self.imgFileArr[i];
@@ -1351,28 +877,29 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
 
               if (imgFileObj.json) {
                 url = imgFileObj.baseUrl + imgFileObj.json.name;
-                self.readFile(imgFileObj.json, 'readAsArrayBuffer', loadFile.bind(null, url));
+                self.rBox.readFile(imgFileObj.json, 'readAsArrayBuffer', loadFile.bind(null, url));
               }
 
               if (imgFileObj.files.length > 1) {
                 // if there are many files (dicoms) then compress them into a single .zip file before uploading
                 url = imgFileObj.baseUrl + imgFileObj.files[0].name + '.zip';
-                self.zipFiles(imgFileObj.files, loadFile.bind(null, url));
+                self.rBox.zipFiles(imgFileObj.files, loadFile.bind(null, url));
               } else {
                 url = imgFileObj.baseUrl + imgFileObj.files[0].name;
-                self.readFile(imgFileObj.files[0], 'readAsArrayBuffer', loadFile.bind(null, url));
+                self.rBox.readFile(imgFileObj.files[0], 'readAsArrayBuffer', loadFile.bind(null, url));
               }
             }
           });
         } else {
           // insert initial wait text div to manage user expectatives
-          $('#' + this.wholeContID).append( '<div id="' + this.wholeContID + '_initwaittext">' +
+          $('#' + this.contId).append( '<div id="' + this.contId + '_initwaittext">' +
           'Please wait while loading the viewer...</div>' );
-          $('#' + this.wholeContID + '_initwaittext').css( {'color': 'white'} );
+          $('#' + this.contId + '_initwaittext').css( {'color': 'white'} );
         }
 
         this.startCollaborationChat();
       } else {
+
         this.chat.updateCollaboratorList();
       }
     };
@@ -1399,302 +926,66 @@ define(['jszip', 'chatjs', 'jquery_ui', 'dicomParser', 'xtk'], function(jszip, c
 
     /**
      * Handle the onCollabObjChanged event when the scene object has been modified by a remote collaborator.
-     *
      */
      viewerjs.Viewer.prototype.handleOnCollabObjChanged = function() {
        this.renderScene();
      };
 
     /**
-     * Leave the realtime collaboration.
+     * Handle the onNewChatMessage event when a new chat msg is received from a remote collaborator.
+     *
+     * @param {Obj} chat message object.
      */
-    viewerjs.Viewer.prototype.leaveCollaboration = function() {
+    viewerjs.Viewer.prototype.handleOnNewChatMessage = function(msgObj) {
 
-      if (this.collab.collabIsOn) {
-        this.collab.leaveRealtimeCollaboration();
-
-        // update the UI
-        var collabButton = document.getElementById(this.toolbarContID + '_buttoncollab');
-        collabButton.innerHTML = 'Start collab';
-        collabButton.title = 'Start collaboration';
-        this.chat.destroy();
-        this.chat = null;
+      if (this.chat) {
+        this.chat.updateTextArea(msgObj);
       }
     };
 
     /**
-     * Read a local or remote file.
+     * Handle the onDisconnect event everytime a remote collaborator disconnects from the collaboration.
      *
-     * @param {Object} HTML5 file object or an object containing properties:
-     *  -remote: a boolean indicating whether the file has not been read locally (with a filepicker)
-     *  -url the file's url
-     *  -clouId: the id of the file in a cloud storage system if stored in the cloud
-     * @param {String} reading method.
-     * @param {Function} callback whose argument is the file data.
+     * @param {Obj} collaborator info object.
      */
-    viewerjs.Viewer.prototype.readFile = function(file, readingMethod, callback) {
-      var reader = new FileReader();
-      var self = this;
+    viewerjs.Viewer.prototype.handleOnDisconnect = function(collaboratorInfo) {
 
-      reader.onload = function() {
-        callback(reader.result);
-      };
+      if (this.chat) {
+        // create a chat message object
+        var msgObj = {user: collaboratorInfo.name, msg: 'I have disconnected.'};
 
-      if (file.remote) {
-        if (file.cloudId) {
-          self.collab.driveFm.getFileBlob(file.cloudId, function(blob) {
-            reader[readingMethod](blob);
-          });
-        } else {
-          viewerjs.urlToBlob(file.url, function(blob) {
-            reader[readingMethod](blob);
-          });
-        }
-      } else {
-        reader[readingMethod](file);
+        this.chat.updateTextArea(msgObj);
+        this.chat.updateCollaboratorList();
       }
     };
 
     /**
-     * Zip the contents of several files into a few zip file contents. Maximum size for
-     * each resultant zip file contents is 20 MB.
-     *
-     * @param {Array} Array of HTML5 file objects or objects containing properties:
-     *  -remote: a boolean indicating whether the file has not been read locally (with a filepicker)
-     *  -url the file's url
-     *  -cloudId: the id of the file in a cloud storage system if stored in the cloud
-     * @param {Function} callback whose argument is an array of arrayBuffer. Each entry of the
-     * array contains the data for a single zip file.
+     * Destroy all objects and remove html interface
      */
-    viewerjs.Viewer.prototype.zipFiles = function(fileArr, callback) {
-      var url, fileName;
-      var fileDataArr = [];
+    viewerjs.Viewer.prototype.destroy = function() {
 
-      function zipFiles() {
-        var zip = jszip();
-        var zipDataArr = [];
-        var contents;
-        var byteLength = 0;
-
-        for (var i=0; i<fileDataArr.length; i++) {
-          // maximum zip file size is 20 MB
-          if (byteLength + fileDataArr[i].data.byteLength <= 20971520) {
-            byteLength += fileDataArr[i].data.byteLength;
-            zip.file(fileDataArr[i].name, fileDataArr[i].data);
-          } else {
-            // generate the zip file contents for the current chunk of files
-            contents = zip.generate({type:"arraybuffer"});
-            zipDataArr.push(contents);
-            // create a new zip for the next chunk of files
-            zip = jszip();
-            byteLength = fileDataArr[i].data.byteLength;
-            zip.file(fileDataArr[i].name, fileDataArr[i].data);
-          }
-          // generate the zip file contents for the last chunk of files
-          if (i+1>=fileDataArr.length) {
-            contents = zip.generate({type:"arraybuffer"});
-            zipDataArr.push(contents);
-          }
-        }
-
-        return zipDataArr;
+      if (this.collab && this.collab.collabIsOn) {
+        this.leaveCollaboration();
       }
 
-      function addFile(fName, fData) {
-        fileDataArr.push({name: fName, data: fData});
-
-        if (fileDataArr.length === fileArr.length) {
-          // all files have been read so generate the zip files' contents
-          callback(zipFiles());
-        }
+      // destroy objects
+      this.rBox.destroy();
+      this.rBox = null;
+      if (this.toolBar) {
+        this.toolBar.destroy();
+        this.toolBar = null;
       }
-
-      for (var i=0; i<fileArr.length; i++) {
-        if (fileArr[i].remote) {
-          url = fileArr[i].url;
-          fileName = url.substring(url.lastIndexOf('/') + 1);
-        } else {
-          fileName = fileArr[i].name;
-        }
-        this.readFile(fileArr[i], 'readAsArrayBuffer', addFile.bind(null, fileName));
+      if (this.thBar) {
+        this.thBar.destroy();
+        this.thBar = null;
       }
+      this.jqViewer = null;
+      this.imgFileArr = [];
+
+      // remove html
+      $('#' + this.contId).empty();
     };
 
-    /**
-     * Unzip the contents of a zip file.
-     *
-     * @param {Array} ArrayBuffer corresponding to the zip file data.
-     * @return {Array} array of objects where each object has the properties name: the file
-     * name and data: the file's data.
-     */
-    viewerjs.Viewer.prototype.unzipFileData = function(zData) {
-      var zip = jszip(zData);
-      var fileDataArr = [];
-
-      for (var name in zip.files) {
-        fileDataArr.push({name: name, data: zip.file(name).asArrayBuffer()});
-      }
-      return fileDataArr;
-    };
-
-    /**
-     * Static method to determine if a File object is a supported neuroimage type.
-     *
-     * @param {Object} HTML5 File object
-     * @return {String} the type of the image: 'dicom', 'dicomzip', 'vol', 'fibers', 'mesh',
-     * 'thumbnail', 'json' or 'unsupported'
-     */
-    viewerjs.Viewer.imgType = function(file) {
-      var ext = {};
-      var type;
-
-      // dicom extensions
-      ext.DICOM = ['.dcm', '.ima', '.DCM', '.IMA'];
-      // zipped dicom extensions
-      ext.DICOMZIP = ['.dcm.zip', '.DCM.zip'];
-      // volume extensions
-      ext.VOL = ['.mgh', '.mgz', '.nrrd', '.nii', '.nii.gz'];
-      // fibers extension is .trk
-      ext.FIBERS = ['.trk'];
-      // geometric model extensions
-      ext.MESH = ['.obj', '.vtk', '.stl'];
-      // thumbnail extensions
-      ext.THUMBNAIL = ['.png', '.gif', '.jpg'];
-      // json extensions
-      ext.JSON = ['.json'];
-
-      if (viewerjs.strEndsWith(file.name, ext.DICOM)) {
-        type = 'dicom';
-      } else if (viewerjs.strEndsWith(file.name, ext.DICOMZIP)) {
-        type = 'dicomzip';
-      } else if (viewerjs.strEndsWith(file.name, ext.VOL)) {
-        type = 'vol';
-      } else if (viewerjs.strEndsWith(file.name, ext.FIBERS)) {
-        type = 'fibers';
-      } else if (viewerjs.strEndsWith(file.name, ext.MESH)) {
-        type = 'mesh';
-      } else if (viewerjs.strEndsWith(file.name, ext.THUMBNAIL)) {
-        type = 'thumbnail';
-      } else if (viewerjs.strEndsWith(file.name, ext.JSON)) {
-        type = 'json';
-      } else {
-        type = 'unsupported';
-      }
-
-      return type;
-    };
-
-    /**
-     * Static method to parse a dicom file. Raises an exception if the parsing fails.
-     *
-     * @return {Object} the dicom info object
-     */
-    viewerjs.Viewer.parseDicom = function(dicomFileData) {
-
-      // Here we use Chafey's dicomParser: https://github.com/chafey/dicomParser.
-      // dicomParser requires as input a Uint8Array so we create it here
-      var byteArray = new Uint8Array(dicomFileData);
-      // Invoke the parseDicom function and get back a DataSet object with the contents
-      var dataSet = dicomParser.parseDicom(byteArray);
-
-      // Access any desire property using its tag
-      return {
-        patientName: dataSet.string('x00100010'),
-        patientId: dataSet.string('x00100020'),
-        patientBirthDate: dataSet.string('x00100030'),
-        patientAge: dataSet.string('x00101010'),
-        patientSex: dataSet.string('x00100040'),
-        seriesDescription: dataSet.string('x0008103e'),
-        manufacturer: dataSet.string('x00080070'),
-        studyDate: dataSet.string('x00080020')
-      };
-    };
-
-    /**
-     * Module utility function. Return true if the string str ends with any of the
-     * specified suffixes in arrayOfStr otherwise return false.
-     *
-     * @param {String} input string
-     * @param {Array} array of string suffixes
-     * @return {boolean}
-     */
-    viewerjs.strEndsWith = function(str, arrayOfStr) {
-      var index;
-
-      for (var i=0; i<arrayOfStr.length; i++) {
-        index = str.lastIndexOf(arrayOfStr[i]);
-        if ((index !== -1) && ((str.length-index) === arrayOfStr[i].length)) {
-          return true;
-        }
-      }
-      return false;
-    };
-
-    /**
-     * Module utility function. Sort an array of objects with a string property prop.
-     * The ordering is based on that property.
-     *
-     * @param {Array} array of string suffixes
-     * @param {String} the objects' ordering property
-     * @return {Array} Sorted array
-     */
-     viewerjs.sortObjArr = function(objArr, prop) {
-
-       return objArr.sort(function(o1, o2) {
-         var values = [o1[prop], o2[prop]].sort();
-
-         if (values[0] === values[1]) {
-           return 0;
-         } else if (values[0] === o1[prop]) {
-           return -1;
-         } else {
-           return 1;
-         }
-       });
-     };
-
-    /**
-     * Module utility function. Create a Blob object containing a JPG image from a data URI.
-     *
-     * @param {String} a data URI such as the one returned by the toDataURL() of
-     * a canvas element
-     * @return {Object} Blob object containing the JPG image
-     */
-     viewerjs.dataURItoJPGBlob = function(dataURI) {
-       var binary = atob(dataURI.split(',')[1]);
-       var array = [];
-
-       for(var i = 0; i < binary.length; i++) {
-         array.push(binary.charCodeAt(i));
-       }
-       return new Blob([new Uint8Array(array)], {type: 'image/jpeg'});
-     };
-
-    /**
-     * Module utility function. Make an Ajax request to get a Blob from a url.
-     *
-     * @param {String} a url
-     * @param {Function} callback whose argument is the Blob object
-     */
-     viewerjs.urlToBlob = function(url, callback) {
-       var xhr = new XMLHttpRequest();
-
-       xhr.open('GET', url);
-       xhr.responseType = 'blob';//force the HTTP response, response-type header to be blob
-       xhr.onload = function() {
-           callback(xhr.response);//xhr.response is now a blob object
-       };
-       xhr.send();
-     };
-
-    /**
-     * Module utility function. Repaint the document
-     */
-    viewerjs.documentRepaint = function() {
-      var ev = document.createEvent('Event');
-      ev.initEvent('resize', true, true);
-      window.dispatchEvent(ev);
-    };
 
   return viewerjs;
 });

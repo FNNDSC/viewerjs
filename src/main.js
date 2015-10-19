@@ -16,9 +16,13 @@ require.config({
     gapi: 'https://apis.google.com/js/api',
     jszip: 'jszip/dist/jszip',
     dicomParser: 'dicomParser/dist/dicomParser.min',
+    xtk: '../lib/xtk',
+    utiljs: 'utiljs/src/js/utiljs',
     fmjs: 'fmjs/src/js/fmjs',
     gcjs: 'gcjs/src/js/gcjs',
-    xtk: '../lib/xtk',
+    rboxjs: '../rboxjs',
+    thbarjs: '../thbarjs',
+    toolbarjs: '../toolbarjs',
     chatjs: '../chatjs',
     viewerjs: '../viewerjs'
   }
