@@ -4,7 +4,7 @@
  */
 
 // define a new module
-define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thbar, chat) {
+define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rbox, toolbar, thbar, chat) {
 
   /**
    * Provide a namespace for the viewer module
@@ -142,13 +142,16 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
        var dashIndex;
 
        if (fileObj.file) {
+
          // get the HTML5 File object
          file = fileObj.file;
        } else {
+
          // build a dummy File object with a property remote
          file = {name: path.substring(path.lastIndexOf('/')+1),
                 url: path,
                 remote: true};
+
           if (fileObj.cloudId) {
             file.cloudId = fileObj.cloudId;
           }
@@ -221,7 +224,7 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
        self.imgFileArr.push({
         'baseUrl': baseUrl,
         'imgType': 'dicom',
-        'files': viewerjs.sortObjArr(dicoms[baseUrl], 'name')
+        'files': util.sortObjArr(dicoms[baseUrl], 'name')
        });
      }
 
@@ -230,7 +233,7 @@ define(['rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(rbox, toolbar, thb
        self.imgFileArr.push({
         'baseUrl': baseUrl,
         'imgType': 'dicomzip',
-        'files': viewerjs.sortObjArr(dicomZips[baseUrl], 'name')
+        'files': util.sortObjArr(dicomZips[baseUrl], 'name')
        });
      }
 
