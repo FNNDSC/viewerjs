@@ -1,5 +1,5 @@
 /**
- * This module implements a renderers's container box
+ * This module implements a renderers' container box
  */
 
 // define a new module
@@ -40,8 +40,6 @@ define(['utiljs', 'jszip', 'jquery_ui', 'xtk', 'dicomParser'], function(util, js
       // file manager object
       this.fileManager = null;
       if (fileManager) {this.fileManager = fileManager;}
-      // scene object
-      this.scene = null;
     };
 
     /**

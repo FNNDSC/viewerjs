@@ -27,8 +27,6 @@ define(['jquery_ui'], function() {
       this.jqToolBar = null;
       // associative array of button event handlers
       this.eventHandlers = null;
-      // scene object
-      this.scene = null;
     };
 
     /**

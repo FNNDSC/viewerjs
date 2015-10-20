@@ -34,8 +34,6 @@ define(['utiljs', 'jquery_ui'], function(util) {
       this.numOfLoadedThumbnails = 0;
       // renderers box object
       this.rBox = rBox;
-      // scene object
-      this.scene = null;
     };
 
     /**
