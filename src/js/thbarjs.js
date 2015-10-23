@@ -3,7 +3,7 @@
  */
 
 // define a new module
-define(['utiljs', 'jquery_ui'], function(util) {
+define(['utiljs', 'rboxjs', 'jquery_ui'], function(util, rbox) {
 
   /**
    * Provide a namespace for the thumbnail bar module
@@ -17,9 +17,10 @@ define(['utiljs', 'jquery_ui'], function(util) {
     *
     * @constructor
     * @param {String} HTML container's id.
-    * @param {Object} associated renderers box object.
+    * @param {Object} optional file manager object to enable reading of files from the cloud or HTML5
+    * sandboxed filesystem.
     */
-    thbarjs.ThumbnailBar = function(containerId, rBox) {
+    thbarjs.ThumbnailBar = function(containerId, fileManager) {
 
       this.version = 0.0;
       // thumbnail container's ID
@@ -32,8 +33,9 @@ define(['utiljs', 'jquery_ui'], function(util) {
       this.numThumbnails = 0;
       // number of currently loaded thumbnails
       this.numOfLoadedThumbnails = 0;
-      // renderers box object
-      this.rBox = rBox;
+      // file manager object
+      this.fileManager = null;
+      if (fileManager) {this.fileManager = fileManager;}
     };
 
     /**
@@ -62,6 +64,11 @@ define(['utiljs', 'jquery_ui'], function(util) {
        // set jQuery obj for the thumbnail bar
        this.jqThBar = jqThBar = $('#' + this.contId);
 
+       // append a temporal renderer box
+       jqThBar.append('<div id="' + this.contId + '_temprbox"></div>');
+       this.rBox = new rbox.RenderersBox(this.contId + '_temprbox', this.fileManager);
+       this.rBox.init();
+       
        // set parent container's id
        this.parentContId = pContId = jqThBar.parent().attr('id');
 
@@ -89,8 +96,14 @@ define(['utiljs', 'jquery_ui'], function(util) {
       jqThBar.sortable(sort_opts);
 
       var checkIfThumbnailBarIsReady =  function() {
+
         if (++self.numOfLoadedThumbnails === self.numThumbnails) {
           // all thumbnails loaded
+
+          // destroy and remove temporal renderer box
+          self.rBox.destroy();
+          $('#' + self.contId + '_temprbox').remove();
+
           if (callback) {callback();}
         }
       };

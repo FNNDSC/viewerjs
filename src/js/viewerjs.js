@@ -484,6 +484,7 @@ define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rb
      * @param {Function} optional callback to be called when the thumbnail bar is ready
      */
     viewerjs.Viewer.prototype.addThumbnailBar = function(callback) {
+      var fileManager = null; // cloud file manager
       var contId = this.contId + '_thumbnailbar';
       var self = this;
 
@@ -497,7 +498,9 @@ define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rb
       this.jqViewer.append('<div id="' + contId + '"></div>');
 
       // create a thumbnail bar object
-      this.thBar = new thbar.ThumbnailBar(contId, this.rBox);
+      if (this.collab) {fileManager = this.collab.fileManager;}
+      this.thBar = new thbar.ThumbnailBar(contId, fileManager);
+
       this.thBar.init(this.imgFileArr, function() {
 
         // hide any thumbnail with a corresponding renderer (same integer id suffix) already added to the renderers box

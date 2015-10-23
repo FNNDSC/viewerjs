@@ -103,10 +103,15 @@ module.exports = function(grunt) {
       }
     },
 
+    cssmin: {
+      dist: {
+        files: {
+          'dist/styles/viewerjs.css': ['src/styles/**/*.css']
+        }
+      }
+    },
+
     copy: {
-      styles: {
-        files: [{expand: true, cwd: 'src/', src: ['styles/**'], dest: 'dist/'}]
-      },
       components: { // copy requiered bower components which were not concatenated
         files: [
           { expand: true,
@@ -136,6 +141,7 @@ module.exports = function(grunt) {
   });
 
   // These plugins provide necessary tasks.
+  grunt.loadNpmTasks('grunt-contrib-cssmin');
   grunt.loadNpmTasks('grunt-contrib-copy');
   grunt.loadNpmTasks('grunt-contrib-jasmine');
   grunt.loadNpmTasks('grunt-contrib-jshint');
@@ -161,7 +167,7 @@ module.exports = function(grunt) {
   // Test task.
   grunt.registerTask('test', ['jshint', 'jasmine']);
   // Build task.
-  grunt.registerTask('build', ['jshint', 'jasmine', 'requirejs', 'copy']);
+  grunt.registerTask('build', ['cssmin', 'jshint', 'jasmine', 'requirejs', 'copy']);
   // Default task.
   grunt.registerTask('default', ['build']);
 
