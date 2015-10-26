@@ -15,7 +15,6 @@ module.exports = function(grunt) {
     // Custome Paths
     srcFiles: ['src/js/*.js'], // source files
     testFiles: ['spec/*.spec.js'], // test files (jasmine specs)
-    libDir: 'src/js/lib', // libraries that cannot be installed through bower
     componentsDir: 'src/js/components', // bower components
 
     // Task configuration.
@@ -55,9 +54,8 @@ module.exports = function(grunt) {
         eqnull: true,
         browser: true,
         globals: {
-          jQuery: true, $: true, viewerjs: true, X: true, dicomParser: true, console: true,
-          alert: true, require: true, describe: true, it: true, expect: true, define: true,
-          beforeEach: true, afterEach: true, document: true
+          jQuery: true, $: true, console: true, alert: true, require: true, describe: true,
+          it: true, expect: true, define: true, beforeEach: true, afterEach: true, document: true
         }
       },
       source: {
@@ -96,7 +94,7 @@ module.exports = function(grunt) {
             jquery: 'empty:', // does not include jquery in the output
             jquery_ui: 'empty:' // does not include jquery_ui in the output
           },
-          name: 'viewerjs',
+          name: '<%= pkg.name %>',
           mainConfigFile: 'src/main.js',
           out: 'dist/js/<%= pkg.name %>.min.js'
         }
@@ -106,7 +104,10 @@ module.exports = function(grunt) {
     cssmin: {
       dist: {
         files: {
-          'dist/styles/viewerjs.css': ['src/styles/**/*.css']
+          'dist/styles/<%= pkg.name %>.css': ['<%= componentsDir %>/rboxjs/src/styles/*.css',
+          '<%= componentsDir %>/thbarjs/src/styles/*.css',
+          '<%= componentsDir %>/toolbarjs/src/styles/*.css',
+          '<%= componentsDir %>/chatjs/src/styles/*.css']
         }
       }
     },

@@ -22,12 +22,9 @@
     "tests"
   ],
   "dependencies": {
-    "jquery-ui": "~1.11.2",
-    "jquery": "~2.1.3",
-    "requirejs": "~2.1.15",
-    "dicomParser": "~1.0.1",
-    "utiljs": "https://github.com/FNNDSC/utiljs.git#master",
-    "gcjs": "https://github.com/FNNDSC/gcjs.git#master",
-    "jszip": "Stuk/jszip#~2.5.0"
+    "rboxjs": "https://github.com/FNNDSC/rboxjs.git#master",
+    "thbarjs": "https://github.com/FNNDSC/thbarjs.git#master",
+    "toolbarjs": "https://github.com/FNNDSC/toolbarjs.git#master",
+    "chatjs": "https://github.com/FNNDSC/chatjs.git#master"
   }
 }
