@@ -494,12 +494,21 @@ define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rb
         return;
       }
 
-      // append a div container for the renderers box to the viewer
+      // append a div container for the thumbnail bar to the viewer
       this.jqViewer.append('<div id="' + contId + '"></div>');
 
-      // create a thumbnail bar object
+      // thumbnail bar's options object
+      var options = {
+        contId: contId,
+        layout: 'vertical',
+        position: {
+          top: '5px',
+          left: '5px'
+        }
+      }
+      // create the thumbnail bar object
       if (this.collab) {fileManager = this.collab.fileManager;}
-      this.thBar = new thbar.ThumbnailBar(contId, fileManager);
+      this.thBar = new thbar.ThumbnailBar(options, fileManager);
 
       this.thBar.init(this.imgFileArr, function() {
 
