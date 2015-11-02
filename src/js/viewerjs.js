@@ -33,6 +33,9 @@ define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rb
       this.rBox = null;
       // thumbnail bar object
       this.thBar = null;
+      // Array of strings containing the ids of the renderers box and thumbnail bar in their
+      // horizontal visual order
+      this.compIdsX = [];
 
       // array of image file objects (main viewer's data structure)
       // each object contains the following properties:
@@ -284,10 +287,22 @@ define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rb
      // append a div container for the renderers box to the viewer
      this.jqViewer.append('<div id="' + contId + '"></div>');
 
+     // renderers box options object
+     var options = {
+       contId: contId,
+       position: {
+         bottom: 0,
+         left: 0
+       }
+     };
+
      // create a renderers box object
      if (this.collab) {fileManager = this.collab.fileManager;}
-     this.rBox = new rbox.RenderersBox(contId, fileManager);
+     this.rBox = new rbox.RenderersBox(options, fileManager);
      this.rBox.init();
+
+     // Insert renderers box's id in the array of component's id in a predefined position
+     this.compIdsX.push(contId);
 
      //
      // renderers box event listeners
@@ -404,8 +419,17 @@ define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rb
       // append a div container for the tool bar to the viewer
       this.jqViewer.append('<div id="' + contId + '"></div>');
 
+      // toolbar options object
+      var options = {
+        contId: contId,
+        position: {
+          top: '5px',
+          left: 0
+        }
+      };
+
       // create a tool bar object
-      this.toolBar = new toolbar.ToolBar(contId);
+      this.toolBar = new toolbar.ToolBar(options);
       this.toolBar.init();
 
       //
@@ -470,10 +494,12 @@ define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rb
 
       // make space for the toolbar
       var rendersTopEdge = parseInt(self.toolBar.jqToolBar.css('top')) + parseInt(self.toolBar.jqToolBar.css('height')) + 5;
+      self.rBox.jqRBox.css({ top: rendersTopEdge + 'px' });
       self.rBox.jqRBox.css({ height: 'calc(100% - ' + rendersTopEdge + 'px)' });
       if (self.thBar) {
         // there is a thumbnail bar so make space for it
         var toolLeftEdge = parseInt(self.thBar.jqThBar.css('left')) + parseInt(self.thBar.jqThBar.css('width')) + 5;
+        self.toolBar.jqToolBar.css({left: toolLeftEdge + 'px' });
         self.toolBar.jqToolBar.css({ width: 'calc(100% - ' + toolLeftEdge + 'px)' });
       }
     };
@@ -525,6 +551,9 @@ define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rb
         if (callback) {callback();}
       });
 
+      // Insert thumbnail bar's id in the array of component's id in a predefined position
+      this.compIdsX.splice(0,0,contId);
+
       // link the thumbnail bar with the renderers box
       this.rBox.setComplementarySortableElem(contId);
       this.thBar.setComplementarySortableElem(this.rBox.contId);
@@ -553,6 +582,7 @@ define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rb
 
       // make space for the thumbnail bar
       var rendersLeftEdge = parseInt(self.thBar.jqThBar.css('left')) + parseInt(self.thBar.jqThBar.css('width')) + 5;
+      self.rBox.jqRBox.css({ left: rendersLeftEdge + 'px' });
       self.rBox.jqRBox.css({ width: 'calc(100% - ' + rendersLeftEdge + 'px)' });
       if (self.toolBar) {
         // there is a toolbar
