@@ -98,6 +98,7 @@ define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rb
      *           are gotten from a cloud storage like GDrive)
      */
     viewerjs.Viewer.prototype.init = function(fObjArr) {
+      var self = this;
 
       this.jqViewer = $('#' + this.contId).css({
         'position': 'relative',
@@ -105,6 +106,29 @@ define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rb
         '-webkit-box-sizing': 'border-box',
         '-moz-box-sizing': 'border-box',
         'box-sizing': 'border-box'
+
+      }).sortable({  // this makes it possible for the thumbnail bar to move around
+        cursor: 'move',
+        containment: self.jqViewer,
+        distance: '150',
+        axis: 'x',
+
+        stop: function(evt, ui) {
+          var targetId = ui.item.attr('id');
+          var ix = self.compIdsX.indexOf(targetId);
+
+          targetId = self.compIdsX.splice(ix,1);
+
+          if (ui.offset.left > ui.originalPosition.left) {
+            // moved from left to right so position it at the right end
+            self.compIdsX = self.compIdsX.concat(targetId);
+          } else {
+            // moved from right to left so position it at the left end
+            self.compIdsX = targetId.concat(self.compIdsX);
+          }
+
+          self.layoutComponentsX();
+        }
       });
 
       if (this.collab && this.collab.collabIsOn && !this.collab.collabOwner) {
@@ -287,6 +311,9 @@ define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rb
      // append a div container for the renderers box to the viewer
      this.jqViewer.append('<div id="' + contId + '"></div>');
 
+     // the renderers box doesn't move around
+     this.jqViewer.sortable( "option", "cancel", '#' + contId);
+
      // renderers box options object
      var options = {
        contId: contId,
@@ -330,7 +357,7 @@ define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rb
      this.rBox.onBeforeStop = function(evt, ui) {
        var renderId;
 
-       if (ui.placeholder.parent().attr('id') === self.thBar.contId) {
+       if (ui.placeholder.parent().parent().attr('id') === self.thBar.contId) {
          $(evt.target).sortable('cancel');
          renderId = ui.item.attr('id');
          self.removeRender(renderId);
@@ -419,6 +446,9 @@ define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rb
       // append a div container for the tool bar to the viewer
       this.jqViewer.append('<div id="' + contId + '"></div>');
 
+      // the renderers box and toolbar don't move around
+      this.jqViewer.sortable( "option", "cancel", '#' + contId + ', ' +  '#' + this.rBox.contId);
+
       // toolbar options object
       var options = {
         contId: contId,
@@ -492,16 +522,14 @@ define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rb
         }
       };
 
+      // toolbar's width is the same as the renderers box's
+      self.toolBar.jqToolBar.css({ width: self.rBox.jqRBox.css('width') });
+
       // make space for the toolbar
-      var rendersTopEdge = parseInt(self.toolBar.jqToolBar.css('top')) + parseInt(self.toolBar.jqToolBar.css('height')) + 5;
-      self.rBox.jqRBox.css({ top: rendersTopEdge + 'px' });
-      self.rBox.jqRBox.css({ height: 'calc(100% - ' + rendersTopEdge + 'px)' });
-      if (self.thBar) {
-        // there is a thumbnail bar so make space for it
-        var toolLeftEdge = parseInt(self.thBar.jqThBar.css('left')) + parseInt(self.thBar.jqThBar.css('width')) + 5;
-        self.toolBar.jqToolBar.css({left: toolLeftEdge + 'px' });
-        self.toolBar.jqToolBar.css({ width: 'calc(100% - ' + toolLeftEdge + 'px)' });
-      }
+      var rendersTopEdge = parseInt(this.toolBar.jqToolBar.css('top')) + parseInt(this.toolBar.jqToolBar.css('height')) + 5;
+      this.rBox.jqRBox.css({ top: rendersTopEdge + 'px' });
+      this.rBox.jqRBox.css({ height: 'calc(100% - ' + rendersTopEdge + 'px)' });
+      this.layoutComponentsX();
     };
 
     /**
@@ -551,12 +579,9 @@ define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rb
         if (callback) {callback();}
       });
 
-      // Insert thumbnail bar's id in the array of component's id in a predefined position
-      this.compIdsX.splice(0,0,contId);
-
       // link the thumbnail bar with the renderers box
-      this.rBox.setComplementarySortableElem(contId);
-      this.thBar.setComplementarySortableElem(this.rBox.contId);
+      this.rBox.setComplementarySortableElems('#' + contId + ' .view-thumbnailbar-sortable');
+      this.thBar.setComplementarySortableElems('#' + this.rBox.contId);
 
       //
       // thumbnail bar event listeners
@@ -580,14 +605,36 @@ define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rb
         }
       };
 
+      // Insert thumbnail bar's id in the array of horizontal component's id in a predefined position
+      this.compIdsX.splice(0,0,contId);
+
       // make space for the thumbnail bar
       var rendersLeftEdge = parseInt(self.thBar.jqThBar.css('left')) + parseInt(self.thBar.jqThBar.css('width')) + 5;
-      self.rBox.jqRBox.css({ left: rendersLeftEdge + 'px' });
       self.rBox.jqRBox.css({ width: 'calc(100% - ' + rendersLeftEdge + 'px)' });
       if (self.toolBar) {
-        // there is a toolbar
-        self.toolBar.jqToolBar.css({ width: 'calc(100% - ' + rendersLeftEdge + 'px)' });
+        self.toolBar.jqToolBar.css({ width: self.rBox.jqRBox.css('width') });
       }
+      self.layoutComponentsX();
+    };
+
+    /**
+     * Layout viewer's components along the horizontal axis.
+     */
+    viewerjs.Viewer.prototype.layoutComponentsX = function() {
+      var self = this;
+      var left = 5;
+
+      self.compIdsX.forEach( function(el) {
+        var jqEl = $('#' + el);
+console.log(left);
+        if (self.toolBar && (el === self.rBox.contId)) {
+          // toolbar is on the same column as renderers box
+          self.toolBar.jqToolBar.css({ left: left + 'px' });
+        }
+
+        jqEl.css({ left: left + 'px' });
+        left += parseInt(jqEl.css('width')) + 5 ;
+      });
     };
 
     /**
@@ -887,14 +934,14 @@ define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rb
           });
         }
 
-        if (fUrl.search(/.dcm.zip$/i) !== -1) {
+        if (fUrl.search(/.dcm.zip$|.ima.zip$|.zip$/i) !== -1) {
 
           // fData is an array of arrayBuffer so instead of one file now fData.length files need to be uploaded
           totalNumFiles += fData.length-1;
           writeToGdrive(fUrl, fData[0]);
 
           for (var j=1; j<fData.length; j++) {
-            writeToGdrive(fUrl.replace(/.dcm.zip$/i, j+'.dcm.zip'), fData[j]);
+            writeToGdrive(fUrl.replace(/.dcm.zip$|.ima.zip$|.zip$/i, j+'$&'), fData[j]);
           }
         } else {
           // fData is just a single arrayBuffer
