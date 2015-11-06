@@ -559,7 +559,7 @@ define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rb
           top: '5px',
           left: '5px'
         }
-      }
+      };
       // create the thumbnail bar object
       if (this.collab) {fileManager = this.collab.fileManager;}
       this.thBar = new thbar.ThumbnailBar(options, fileManager);
@@ -641,7 +641,7 @@ define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rb
         left += parseInt(jqEl.css('width')) + 5 ;
       });
 
-      // position  elements to the right of the renderers box 
+      // position  elements to the right of the renderers box
       comps = self.compIdsX.slice(rBIx + 1);
 
       comps.reverse().forEach( function(el) {
