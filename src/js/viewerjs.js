@@ -109,11 +109,11 @@ define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rb
 
       }).sortable({  // this makes it possible for the thumbnail bar to move around
         cursor: 'move',
-        containment: self.jqViewer,
+        containment: 'parent',
         distance: '150',
         axis: 'x',
 
-        stop: function(evt, ui) {
+        beforeStop: function(evt, ui) {
           var targetId = ui.item.attr('id');
           var ix = self.compIdsX.indexOf(targetId);
 
@@ -522,13 +522,13 @@ define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rb
         }
       };
 
-      // toolbar's width is the same as the renderers box's
-      self.toolBar.jqToolBar.css({ width: self.rBox.jqRBox.css('width') });
-
       // make space for the toolbar
       var rendersTopEdge = parseInt(this.toolBar.jqToolBar.css('top')) + parseInt(this.toolBar.jqToolBar.css('height')) + 5;
       this.rBox.jqRBox.css({ top: rendersTopEdge + 'px' });
       this.rBox.jqRBox.css({ height: 'calc(100% - ' + rendersTopEdge + 'px)' });
+      if (this.thBar) {
+        this.toolBar.jqToolBar.css({ width: 'calc(100% - ' + this.rBox.jqRBox.css('left') + ')'});
+      }
       this.layoutComponentsX();
     };
 
@@ -612,7 +612,7 @@ define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rb
       var rendersLeftEdge = parseInt(self.thBar.jqThBar.css('left')) + parseInt(self.thBar.jqThBar.css('width')) + 5;
       self.rBox.jqRBox.css({ width: 'calc(100% - ' + rendersLeftEdge + 'px)' });
       if (self.toolBar) {
-        self.toolBar.jqToolBar.css({ width: self.rBox.jqRBox.css('width') });
+        self.toolBar.jqToolBar.css({ width: 'calc(100% - ' + rendersLeftEdge + 'px)' });
       }
       self.layoutComponentsX();
     };
@@ -623,17 +623,32 @@ define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rb
     viewerjs.Viewer.prototype.layoutComponentsX = function() {
       var self = this;
       var left = 5;
+      var right = 0;
+      var rBIx = self.compIdsX.indexOf(self.rBox.contId);
 
-      self.compIdsX.forEach( function(el) {
+      // position elements to the left of the renderers box including it
+      var comps = self.compIdsX.slice(0, rBIx + 1);
+
+      comps.forEach( function(el) {
         var jqEl = $('#' + el);
-console.log(left);
+
         if (self.toolBar && (el === self.rBox.contId)) {
           // toolbar is on the same column as renderers box
-          self.toolBar.jqToolBar.css({ left: left + 'px' });
+          self.toolBar.jqToolBar.css({ left: left + 'px', right: 'auto' });
         }
 
-        jqEl.css({ left: left + 'px' });
+        jqEl.css({ left: left + 'px', right: 'auto' });
         left += parseInt(jqEl.css('width')) + 5 ;
+      });
+
+      // position  elements to the right of the renderers box 
+      comps = self.compIdsX.slice(rBIx + 1);
+
+      comps.reverse().forEach( function(el) {
+        var jqEl = $('#' + el);
+
+        jqEl.css({ left: 'auto', right: right + 'px' });
+        right += parseInt(jqEl.css('width')) + 5 ;
       });
     };
 
