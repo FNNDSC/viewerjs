@@ -339,7 +339,7 @@ define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rb
        var thHeight = $('.view-thumbnail').css('height');
 
        // corresponding thumbnail and renderer have the same integer id
-       var id = self.rBox.getRendererId(target.attr('id'));
+       var id = self.rBox.getRendererId(target.find('.view-render-content').attr('id'));
        var thContId = self.thBar.getThumbnailContId(id);
 
        // the visually moving helper is a clone of the corresponding thumbnail
@@ -359,9 +359,8 @@ define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rb
 
        if (ui.placeholder.parent().parent().attr('id') === self.thBar.contId) {
          $(evt.target).sortable('cancel');
-         renderId = ui.item.attr('id');
+         renderId = ui.item.find('.view-render-content').attr('id');
          self.removeRender(renderId);
-         self.updateCollabScene();
        }
 
        // restore thumbnails' scroll bar
@@ -369,6 +368,11 @@ define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rb
      };
 
      this.rBox.onRenderChange = function() {
+       self.updateCollabScene();
+     };
+
+     this.rBox.onRenderRemove = function(containerId) {
+       self.handleOnRenderRemove(containerId);
        self.updateCollabScene();
      };
    };
@@ -410,6 +414,14 @@ define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rb
      viewerjs.Viewer.prototype.removeRender = function(containerId) {
 
        this.rBox.remove2DRender(containerId);
+     };
+
+     /**
+       * Handle the onRemoveRender event when a renderer has been removed from the renderers box.
+       *
+       * @param {String} renderer's container.
+       */
+     viewerjs.Viewer.prototype.handleOnRenderRemove = function(containerId) {
 
        if (this.thBar) {
          // corresponding thumbnail and renderer have the same integer id
@@ -429,7 +441,6 @@ define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rb
            this.handleToolBarButtonLinkClick();
          }
        }
-
      };
 
     /**
