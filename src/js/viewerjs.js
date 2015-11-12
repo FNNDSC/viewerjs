@@ -553,8 +553,8 @@ define(['utiljs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, rb
       var contId = this.contId + '_thumbnailbar';
       var self = this;
 
-      if (this.thBar) {
-        // thumbnail bar already exists
+      if (this.thBar || this.imgFileArr.length<2) {
+        // thumbnail bar already exists or there are less than 2 image volumes 
         if (callback) {callback();}
         return;
       }
