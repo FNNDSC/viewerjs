@@ -22,6 +22,7 @@
     "tests"
   ],
   "dependencies": {
+    "rendererjs": "https://github.com/FNNDSC/rendererjs.git#master",
     "rboxjs": "https://github.com/FNNDSC/rboxjs.git#master",
     "thbarjs": "https://github.com/FNNDSC/thbarjs.git#master",
     "toolbarjs": "https://github.com/FNNDSC/toolbarjs.git#master",

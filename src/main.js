@@ -18,12 +18,13 @@ require.config({
     utiljs: 'utiljs/src/js/utiljs',
     fmjs: 'fmjs/src/js/fmjs',
     gcjs: 'gcjs/src/js/gcjs',
-    xtk: 'rboxjs/src/js/lib/xtk',
+    rendererjs: 'rendererjs/src/js/rendererjs',
+    xtk: 'rendererjs/src/js/lib/xtk',
     rboxjs: 'rboxjs/src/js/rboxjs',
     thbarjs: 'thbarjs/src/js/thbarjs',
     toolbarjs: 'toolbarjs/src/js/toolbarjs',
-    jqdlgext: 'chatjs/src/js/lib/jquery.dialogextend',
     chatjs: 'chatjs/src/js/chatjs',
+    jqdlgext: 'chatjs/src/js/lib/jquery.dialogextend',
     viewerjs: '../viewerjs'
   }
 });
@@ -33,6 +34,7 @@ require(['gcjs', 'viewerjs'], function(cjs, viewerjs) {
   // Client ID from the Google's developer console
   var CLIENT_ID = '1050768372633-ap5v43nedv10gagid9l70a2vae8p9nah.apps.googleusercontent.com';
   var collaborator = new cjs.GDriveCollab(CLIENT_ID);
+
   // Create a new viewerjs.Viewer object
   // A collaborator object is only required if we want to enable realtime collaboration.
   var view = new viewerjs.Viewer('viewercontainer', collaborator);
@@ -44,28 +46,38 @@ require(['gcjs', 'viewerjs'], function(cjs, viewerjs) {
     $('.collab > .collab-input').slideToggle("fast");
 
     if ($(this).text()==='Hide collab window') {
+
       $(this).text('Enter existing collab room');
+
     } else {
+
       $(this).text('Hide collab window');
       $('#roomId').focus();
 
       // Request GDrive authorization and load the realtime Api, hide the input section and
       // start the collaboration as an additional collaborator
       view.collab.authorizeAndLoadApi(true, function(granted) {
+
         var goButton = document.getElementById('gobutton');
         var roomIdInput = document.getElementById('roomId');
 
         if (granted && roomIdInput.value) {
+
           // realtime API ready.
           goButton.onclick = function() {
             document.getElementById('inputcontainer').style.display = 'none';
             view.collab.joinRealtimeCollaboration(roomIdInput.value);
           };
+
         } else {
+
           // show the button to start the authorization flow.
           goButton.onclick = function() {
+
             view.collab.authorizeAndLoadApi(false, function(granted) {
+
               if (granted && roomIdInput.value) {
+
                 // realtime API ready.
                 document.getElementById('inputcontainer').style.display = 'none';
                 view.collab.joinRealtimeCollaboration(roomIdInput.value);
@@ -85,16 +97,23 @@ require(['gcjs', 'viewerjs'], function(cjs, viewerjs) {
   dirBtn.onchange = function(e) {
     var files = e.target.files;
     var fileObj;
+
     // Source data array for the new Viewer object
     var imgFileArr = [];
 
     for (var i=0; i<files.length; i++) {
+
       fileObj = files[i];
+
       if ('webkitRelativePath' in fileObj) {
+
         fileObj.fullPath = fileObj.webkitRelativePath;
+
       } else if (!('fullPath' in fileObj)) {
+
         fileObj.fullPath = fileObj.name;
       }
+
       imgFileArr.push({
         'url': fileObj.fullPath,
         'file': fileObj
@@ -107,7 +126,7 @@ require(['gcjs', 'viewerjs'], function(cjs, viewerjs) {
 
     // start the viewer
     view.init(imgFileArr);
-    view.addThumbnailBar();
+    view.addThumbnailsBar();
     view.addToolBar();
   };
 
