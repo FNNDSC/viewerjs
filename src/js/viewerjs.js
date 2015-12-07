@@ -24,6 +24,8 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
       this.version = 0.0;
 
+      this.containerId = containerId;
+
       // viewer's container
       this.container = $('#' + containerId);
 
