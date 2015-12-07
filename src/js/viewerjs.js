@@ -660,7 +660,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       if (self.collab) { fileManager = self.collab.fileManager; }
 
       // create the thumbnails bar object
-      self.thBar = new thbar.ThumbnailBar(options, fileManager);
+      self.thBar = new thbar.ThumbnailsBar(options, fileManager);
 
       self.thBar.init(self.imgFileArr, function() {
 
@@ -724,12 +724,13 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       var self = this;
       var left = 5;
       var right = 0;
+      var rBIx;
 
       // find the position of the renderers box
       for (var i=0; i<self.componentsX.length; i++) {
 
         if (self.componentsX[i].renderers) {
-          var rBIx = i;
+          rBIx = i;
           break;
         }
       }
@@ -877,9 +878,9 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         // collaboration is on, so get and render the scene
         scene = this.getCollabScene();
 
-        if (scene.thumbnailBar) {
+        if (scene.thumbnailsBar) {
 
-          this.addThumbnailBar(function() {
+          this.addThumbnailsBar(function() {
             renderToolbar();
             renderRenderers();
           });
@@ -910,9 +911,9 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       var scene = {};
       var renderers = this.rBox.renderers;
 
-      // set thumbnailbar's properties
+      // set thumbnailsbar's properties
       if (this.thBar) {
-        scene.thumbnailBar = true;
+        scene.thumbnailsBar = true;
       }
 
       // set toolbar's properties
@@ -1111,34 +1112,40 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
           for (var j=1; j<fData.length; j++) {
             writeToGdrive(fUrl.replace(/.dcm.zip$|.ima.zip$|.zip$/i, j+'$&'), fData[j]);
           }
+
         } else {
+
           // fData is just a single arrayBuffer
           writeToGdrive(fUrl, fData);
         }
       }
 
-      if (this.collab.collaboratorInfo.id === collaboratorInfo.id) {
+      if (self.collab.collaboratorInfo.id === collaboratorInfo.id) {
 
-        if (this.collab.collabOwner) {
+        if (self.collab.collabOwner) {
 
           // Update the UI
-          var collabButton = document.getElementById(this.toolBarBtnsIdPrefix + 'collab');
+          var collabButton = document.getElementById(self.toolBarBtnsIdPrefix + 'collab');
           collabButton.style.display = '';
           collabButton.innerHTML = 'End collab';
           collabButton.title = 'End collaboration';
-          var authButton = document.getElementById(this.toolBarBtnsIdPrefix + 'auth');
+          var authButton = document.getElementById(self.toolBarBtnsIdPrefix + 'auth');
           authButton.style.display = 'none';
 
           // Asyncronously load all files to GDrive
-          this.collab.fileManager.createPath(this.collab.dataFilesBaseDir, function() {
+          self.collab.fileManager.createPath(self.collab.dataFilesBaseDir, function() {
+
+            // create a rendererjs.Renderer object to use its readFile method
+            var r = new render.Renderer({ container: null, rendererId: "" }, self.collab);
 
             for (var i=0; i<self.imgFileArr.length; i++) {
               var imgFileObj = self.imgFileArr[i];
               var url;
 
               if (imgFileObj.json) {
+
                 url = imgFileObj.baseUrl + imgFileObj.json.name;
-                self.rBox.readFile(imgFileObj.json, 'readAsArrayBuffer', loadFile.bind(null, url));
+                r.readFile(imgFileObj.json, 'readAsArrayBuffer', loadFile.bind(null, url));
               }
 
               if (imgFileObj.files.length > 1) {
@@ -1150,7 +1157,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
               } else {
 
                 url = imgFileObj.baseUrl + imgFileObj.files[0].name;
-                self.rBox.readFile(imgFileObj.files[0], 'readAsArrayBuffer', loadFile.bind(null, url));
+                r.readFile(imgFileObj.files[0], 'readAsArrayBuffer', loadFile.bind(null, url));
               }
             }
           });
@@ -1158,16 +1165,17 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         } else {
 
           // insert initial wait text div to manage user expectatives
-          this.container.append( '<div class="view-initialwaittext">' +
+          self.container.append( '<div class="view-initialwaittext">' +
           'Please wait while loading the viewer...</div>' );
-          $('.view-initialwaittext', this.container).css( {'color': 'white'} );
+
+          $('.view-initialwaittext', self.container).css( {'color': 'white'} );
         }
 
-        this.startCollaborationChat();
+        self.startCollaborationChat();
 
       } else {
 
-        this.chat.updateCollaboratorList();
+        self.chat.updateCollaboratorList();
       }
     };
 
