@@ -698,9 +698,6 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
             if (renderer) {
               self.updateCollabScene();
-            } else {
-              alert('Reached maximum number of renderers allow. You must drag a renderer out ' +
-               'of the viewer window and drop it into the thumbnails bar to make a renderer available');
             }
           });
         }
