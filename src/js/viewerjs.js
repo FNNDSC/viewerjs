@@ -41,8 +41,8 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       // prefix string for the DOM ids used for the internal XTK renderers' containers
       this.renderersIdPrefix = containerId + '_renderer';
 
-      // thumbnails bar object
-      this.thBar = null;
+      // thumbnails bars
+      this.thBars = [];
 
       // prefix string for the DOM ids used for the thumbnails' containers.
       this.thumbnailsIdPrefix = containerId + '_thumbnail';
@@ -106,16 +106,9 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     };
 
     /**
-     * Build viewer's main data structure and initiliaze the UI's html.
-     *
-     * @param {Array} array of file objects. Each object contains the following properties:
-     * -url:     String representing the file url
-     * -file:    HTML5 File object (optional but neccesary when the files are gotten through a
-     *           local filepicker or dropzone)
-     * -cloudId: String representing the file cloud id (optional but neccesary when the files
-     *           are gotten from a cloud storage like GDrive)
+     * Initiliaze the UI's html.
      */
-    viewerjs.Viewer.prototype.init = function(fObjArr) {
+    viewerjs.Viewer.prototype.init = function() {
       var self = this;
 
       self.container.css({
@@ -125,7 +118,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         '-moz-box-sizing': 'border-box',
         'box-sizing': 'border-box'
 
-      }).sortable({ // a sortable viewer makes it possible for the thumbnails bar to move around
+      }).sortable({ // a sortable viewer makes it possible for the thumbnails bars to move around
         cursor: 'move',
         containment: 'parent',
         distance: '150',
@@ -164,14 +157,34 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         $('.view-initialwaittext', self.container).remove();
       }
 
-      // Initially the interface only contains the renderers box
       self.addRenderersBox();
-
-      // Build viewer's main data structure (this.imgFileArr)
-      self.imgFileArr = self.buildImgFileArr(fObjArr);
+      self.addToolBar();
 
       // Render the scene
       self.renderScene();
+    };
+
+    /**
+     * Add new data to the viewer. A new thumbnails bar is adde to the UI for the new data.
+     *
+     * @param {Array} array of file objects. Each object contains the following properties:
+     * -url:     String representing the file url
+     * -file:    HTML5 File object (optional but neccesary when the files are gotten through a
+     *           local filepicker or dropzone)
+     * -cloudId: String representing the file cloud id (optional but neccesary when the files
+     *           are gotten from a cloud storage like GDrive)
+     * @param {Function} optional callback to be called when the viewer is ready.
+     */
+    viewerjs.Viewer.prototype.addData = function(fObjArr, callback) {
+
+      var imgFileArr = this.buildImgFileArr(fObjArr);
+
+      this.imgFileArr = this.imgFileArr.concat(imgFileArr);
+
+      this.addThumbnailsBar(imgFileArr, function() {
+
+        if (callback) { callback(); }
+      });
     };
 
     /**
@@ -403,7 +416,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
        // corresponding thumbnail and renderer have the same integer id
        var id = self.rBox.getRendererId(target.find('.view-renderer-content').attr('id'));
-       var thContId = self.thBar.getThumbnailContId(id);
+       var thContId = self.getThumbnailsBarObject(id).getThumbnailContId(id);
 
        // the visually moving helper is a clone of the corresponding thumbnail
        return $('#' + thContId).clone().css({
@@ -414,27 +427,33 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
      this.rBox.onStart = function() {
 
-       // thumbnails' scroll bar has to be removed to make the moving helper visible
-       self.thBar.container.css({ overflow: 'visible' });
+       // thumbnails bars' scroll bars have to be removed to make the moving helper visible
+       self.thBars.forEach( function(thBar) {
+
+         thBar.container.css({ overflow: 'visible' });
+       });
      };
 
      this.rBox.onBeforeStop = function(evt, ui) {
 
-       if (ui.placeholder.parent().parent()[0] === self.thBar.container[0]) {
+       var id = self.rBox.getRendererId(ui.item.find('.view-renderer-content').attr('id'));
+
+       if (ui.placeholder.parent().parent()[0] === self.getThumbnailsBarObject(id).container[0]) {
 
          $(evt.target).sortable('cancel');
 
-         var rendererId = ui.item.find('.view-renderer-content').attr('id');
-
          var rArr = self.rBox.renderers.filter( function(el) {
-           return el.rendererId === rendererId;
+           return el.id === id;
          });
 
          self.rBox.removeRenderer(rArr[0]);
        }
 
-       // restore thumbnails' scroll bar
-       self.thBar.container.css({ overflow: 'auto' });
+       // restore thumbnails bars' scroll bars
+       self.thBars.forEach( function(thBar) {
+
+         thBar.container.css({ overflow: 'auto' });
+       });
      };
 
      this.rBox.onRendererChange = function() {
@@ -468,9 +487,9 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     viewerjs.Viewer.prototype.addRenderer = function(imgFileObj, callback) {
       var self = this;
 
-      if (self.thBar) {
-        $('#' + self.thBar.getThumbnailContId(imgFileObj.id)).css({ display:"none" });
-      }
+      var thBar = self.thBars.getThumbnailsBarObject(imgFileObj.id);
+
+      $('#' + thBar.getThumbnailContId(imgFileObj.id)).css({ display:"none" });
 
       self.rBox.addRenderer(imgFileObj, 'Z', function(renderer) {
 
@@ -482,10 +501,10 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
             $('#' + self.toolBarBtnsIdPrefix + 'link').css({display: '' });
           }
 
-        } else if (self.thBar) {
+        } else {
 
-          // could not add renderer so restore the corresponding thumbnail if there is a thumbnails bar
-          $('#' + self.thBar.getThumbnailContId(imgFileObj.id)).css({ display:"" });
+          // could not add renderer so restore the corresponding thumbnail
+          $('#' + thBar.getThumbnailContId(imgFileObj.id)).css({ display:"" });
         }
 
         if (callback) {callback(renderer);}
@@ -499,14 +518,11 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       */
      viewerjs.Viewer.prototype.handleOnRendererRemove = function(id) {
 
-       if (this.thBar) {
+       // corresponding thumbnail and renderer have the same integer id
+       var thContId = this.thBars.getThumbnailsBarObject(id).getThumbnailContId(id);
 
-         // corresponding thumbnail and renderer have the same integer id
-         var thContId = this.thBar.getThumbnailContId(id);
-
-         // display the removed renderer's thumbnail
-         $('#' + thContId).css({ display:'block' });
-       }
+       // display the removed renderer's thumbnail
+       $('#' + thContId).css({ display:'block' });
 
        // if there is now a single renderer then hide the Link views button
        if (this.rBox.numOfRenderers===1) {
@@ -618,34 +634,31 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       var renderersTopEdge = parseInt(self.toolBar.container.css('top')) + parseInt(self.toolBar.container.css('height')) + 5;
       self.rBox.container.css({ top: renderersTopEdge + 'px' });
       self.rBox.container.css({ height: 'calc(100% - ' + renderersTopEdge + 'px)' });
-      if (self.thBar) {
-        self.toolBar.container.css({ width: 'calc(100% - ' + self.rBox.container.css('left') + ')'});
-      }
-      self.layoutComponentsX();
     };
 
     /**
      * Create and add a thumbnails bar to the viewer.
      *
+     * @return {Array} array of image file objects, each object contains the following properties:
+     *  -id: Integer, the object's id
+     *  -baseUrl: String ‘directory/containing/the/files’
+     *  -imgType: String neuroimage type. Any of the possible values returned by rendererjs.Renderer.imgType
+     *  -files: Array of HTML5 File objects or custom file objects with properties:
+     *     -remote: a boolean indicating whether the file has not been read locally (with a filepicker)
+     *     -url the file's url
+     *     -cloudId: the id of the file in a cloud storage system if stored in the cloud
+     *     -name: file name
+     *  The files array contains a single file for imgType different from 'dicom' or 'dicomzip'
+     *  -thumbnail: Optional HTML5 File or custom file object (optional jpg file for a thumbnail image)
      * @param {Function} optional callback to be called when the thumbnails bar is ready.
      */
-    viewerjs.Viewer.prototype.addThumbnailsBar = function(callback) {
+    viewerjs.Viewer.prototype.addThumbnailsBar = function(imgFileArr, callback) {
       var fileManager = null; // cloud file manager
       var self = this;
-
-      if (self.thBar || self.imgFileArr.length<2) {
-
-        // thumbnails bar already exists or there are less than 2 image volumes
-        if (callback) { callback(); }
-        return;
-      }
 
       // append a div container for the thumbnails bar to the viewer
       var thBarCont = $('<div></div>');
       self.container.append(thBarCont);
-
-      // the toolbar doesn't move around
-      self.container.sortable( 'option', 'cancel', '.view-thumbnailsbar');
 
       // thumbnails bar's options object
       var options = {
@@ -662,16 +675,16 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       if (self.collab) { fileManager = self.collab.fileManager; }
 
       // create the thumbnails bar object
-      self.thBar = new thbar.ThumbnailsBar(options, fileManager);
+      var thBar = new thbar.ThumbnailsBar(options, fileManager);
 
-      self.thBar.init(self.imgFileArr, function() {
+      thBar.init(imgFileArr, function() {
 
         // hide any thumbnail with a corresponding renderer (same integer id suffix) already added to the renderers box
         for (var i=0; i<self.rBox.renderers.length; i++) {
 
           // corresponding thumbnail and renderer have the same integer id
           var id = self.rBox.renderers[i].id;
-          var thContId = self.thBar.getThumbnailContId(id);
+          var thContId = thBar.getThumbnailContId(id);
 
           $('#' + thContId).css({ display:"none" });
         }
@@ -681,40 +694,42 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
       // link the thumbnails bar with the renderers box
       self.rBox.setComplementarySortableElems('#' + self.container.attr('id') + ' .view-thumbnailsbar-sortable');
-      self.thBar.setComplementarySortableElems('#' + self.container.attr('id') + ' .view-renderers');
+      thBar.setComplementarySortableElems('#' + self.container.attr('id') + ' .view-renderers');
 
       //
       // thumbnails bar event listeners
       //
-      this.thBar.onBeforeStop = function(evt, ui) {
+      thBar.onBeforeStop = function(evt, ui) {
 
         if (ui.placeholder.parent()[0] === self.rBox.container[0]) {
           $(evt.target).sortable("cancel");
 
-          var id = self.thBar.getThumbnailId(ui.item.attr("id"));
+          var id = thBar.getThumbnailId(ui.item.attr("id"));
 
           // add the corresponding renderer (with the same integer id) to the UI
           self.addRenderer(self.getImgFileObject(id), function(renderer) {
 
             if (renderer) {
+
               self.updateCollabScene();
-            } else {
-              alert('Reached maximum number of renderers allow. You must drag a renderer out ' +
-               'of the viewer window and drop it into the thumbnails bar to make a renderer available');
             }
           });
         }
       };
 
+      // push thumbnails bar in the array of thumbnails bar object
+      self.thBars.push(thBar);
+
       // insert thumbnails bar in front of the array of horizontal components
-      self.componentsX.unshift(self.thBar);
+      self.componentsX.unshift(thBar);
 
       // make space for the thumbnails bar
-      var renderersLeftEdge = parseInt(self.thBar.container.css('left')) + parseInt(self.thBar.container.css('width')) + 5;
-      self.rBox.container.css({ width: 'calc(100% - ' + renderersLeftEdge + 'px)' });
-      if (self.toolBar) {
-        self.toolBar.container.css({ width: 'calc(100% - ' + renderersLeftEdge + 'px)' });
-      }
+      var thBarSpace = parseInt(thBar.container.css('left')) + parseInt(thBar.container.css('width')) + 5;
+
+      var rBoxCSSWidth = 'calc(100% - ' + (thBarSpace * self.thBars.length) + 'px)';
+      self.rBox.container.css({ width: rBoxCSSWidth });
+
+      self.toolBar.container.css({ width: rBoxCSSWidth });
 
       self.layoutComponentsX();
     };
@@ -780,7 +795,29 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
      *  -json: Optional HTML5 or custom File object (optional json file with the mri info for imgType different from 'dicom')
      */
     viewerjs.Viewer.prototype.getImgFileObject = function(id) {
+
       return this.imgFileArr[id];
+    };
+
+    /**
+     * Given an image file object id get the thumnails bar object that contains the associated thumbnail image.
+     *
+     * @param {Number} Integer number between 0 and this.imgFileArr.length-1.
+     */
+    viewerjs.Viewer.prototype.getThumbnailsBarObject = function(id) {
+      var start = 0;
+      var end = this.thBars[0].numThumbnails-1;
+
+      for (var i=1; i<this.thBars.length; i++) {
+
+        if (id>=start && id<=end) {
+
+          return this.thBars[i-1];
+        }
+
+        start = end + 1;
+        end += this.thBars[i].numThumbnails;
+      }
     };
 
     /**
@@ -837,7 +874,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         for (i=0; i<self.rBox.renderers.length; i++) {
 
           var id = self.rBox.renderers[i].id;
-          var thContId = self.thBar.getThumbnailContId(id);
+          var thContId = self.getThumbnailsBarObject(id).getThumbnailContId(id);
 
           if (renderers2DIds.indexOf(id) === -1) {
 
@@ -850,8 +887,11 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         for (i=0; i<renderers2DIds.length; i++) {
 
           // add a 2D renderer to the local scene that was added to the collab scene
-          $('#' + self.thBar.getThumbnailContId(renderers2DIds[i])).css({ display: "none" });
-          self.addRenderer(self.getImgFileObject(renderers2DIds[i]), updateRenderer);
+          id = renderers2DIds[i];
+
+          $('#' + self.getThumbnailsBarObject(id).getThumbnailContId(id)).css({ display: "none" });
+
+          self.addRenderer(self.getImgFileObject(id), updateRenderer);
         }
       }
 
@@ -913,16 +953,9 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       var scene = {};
       var renderers = this.rBox.renderers;
 
-      // set thumbnailsbar's properties
-      if (this.thBar) {
-        scene.thumbnailsBar = true;
-      }
-
       // set toolbar's properties
-      if (this.toolBar) {
-        scene.toolBar = {};
-        scene.toolBar.renderersLinked = this.rBox.renderersLinked;
-      }
+      scene.toolBar = {};
+      scene.toolBar.renderersLinked = this.rBox.renderersLinked;
 
       // set renderers' properties
       // https://docs.google.com/document/d/1GHT7DtSq1ds4TyplA0E2Efy4fuv2xf17APcorqzBZjc/edit
@@ -1250,14 +1283,13 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       this.rBox.destroy();
       this.rBox = null;
 
-      if (this.toolBar) {
-        this.toolBar.destroy();
-        this.toolBar = null;
-      }
+      this.toolBar.destroy();
+      this.toolBar = null;
 
-      if (this.thBar) {
-        this.thBar.destroy();
-        this.thBar = null;
+      for (var i=this.thBars.length-1; i>=0; i--) {
+
+        this.thBars[i].destroy();
+        this.thBars.splice(i, 1);
       }
 
       this.imgFileArr = [];
