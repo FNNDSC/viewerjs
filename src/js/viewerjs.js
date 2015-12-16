@@ -178,11 +178,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
         var imgFileArr = self.buildImgFileArr(fObjArr);
 
-        self.imgFileArr = self.imgFileArr.concat(imgFileArr);
-
         self.addThumbnailsBar(imgFileArr, function() {
-
-          self.updateCollabScene();
 
           if (callback) { callback(); }
         });
@@ -494,7 +490,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     viewerjs.Viewer.prototype.addRenderer = function(imgFileObj, callback) {
       var self = this;
 
-      var thBar = self.thBars.getThumbnailsBarObject(imgFileObj.id);
+      var thBar = self.getThumbnailsBarObject(imgFileObj.id);
 
       $('#' + thBar.getThumbnailContId(imgFileObj.id)).css({ display:"none" });
 
@@ -526,7 +522,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
      viewerjs.Viewer.prototype.handleOnRendererRemove = function(id) {
 
        // corresponding thumbnail and renderer have the same integer id
-       var thContId = this.thBars.getThumbnailsBarObject(id).getThumbnailContId(id);
+       var thContId = this.getThumbnailsBarObject(id).getThumbnailContId(id);
 
        // display the removed renderer's thumbnail
        $('#' + thContId).css({ display:'block' });
@@ -736,6 +732,14 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         }
       };
 
+      // append a thumbnails bar id to each array elem
+      for (var i=0; i<imgFileArr.length; i++) {
+        imgFileArr[i].thBarId = self.thBars.length;
+      }
+
+      // add the new data array to the viewer's main array
+      self.imgFileArr = self.imgFileArr.concat(imgFileArr);
+
       // push thumbnails bar in the array of thumbnails bar object
       self.thBars.push(thBar);
 
@@ -825,7 +829,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     };
 
     /**
-     * Given an image file object id get the thumnails bar object that contains the associated thumbnail image.
+     * Given an image file object id get the thumbnails bar object that contains the associated thumbnail image.
      *
      * @param {Number} Integer number between 0 and this.imgFileArr.length-1.
      * @return {Object} thumbnails bar object or null.
@@ -837,19 +841,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         return null;
       }
 
-      var start = 0;
-      var end = this.thBars[0].numThumbnails-1;
-
-      for (var i=1; i<this.thBars.length; i++) {
-
-        if (id>=start && id<=end) {
-
-          return this.thBars[i-1];
-        }
-
-        start = end + 1;
-        end += this.thBars[i].numThumbnails;
-      }
+      return this.thBars[this.getImgFileObject(id).thBarId];
     };
 
     /**
@@ -1129,15 +1121,16 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
       // function to load a file into GDrive
       var fObjArr = [];
-      function loadFile(fUrl, fData) {
+      function loadFile(fInfo, fData) {
 
-        function writeToGdrive(url, data) {
+        function writeToGdrive(info, data) {
 
-          var name = url.substring(url.lastIndexOf('/') + 1);
+          var url = info.url;
+          var name = info.url.substring(info.url.lastIndexOf('/') + 1);
 
           self.collab.fileManager.writeFile(self.collab.dataFilesBaseDir + '/' + name, data, function(fileResp) {
 
-            fObjArr.push({id: fileResp.id, url: url});
+            fObjArr.push({id: fileResp.id, url: info.url, thBarId: info.thBarId});
 
             if (fObjArr.length===totalNumFiles) {
 
@@ -1147,20 +1140,22 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
           });
         }
 
-        if (fUrl.search(/.dcm.zip$|.ima.zip$|.zip$/i) !== -1) {
+        if (fInfo.url.search(/.dcm.zip$|.ima.zip$|.zip$/i) !== -1) {
 
           // fData is an array of arrayBuffer so instead of one file now fData.length files need to be uploaded
           totalNumFiles += fData.length-1;
-          writeToGdrive(fUrl, fData[0]);
+          writeToGdrive(fInfo, fData[0]);
 
           for (var j=1; j<fData.length; j++) {
-            writeToGdrive(fUrl.replace(/.dcm.zip$|.ima.zip$|.zip$/i, j+'$&'), fData[j]);
+
+            fInfo.url = fInfo.url.replace(/.dcm.zip$|.ima.zip$|.zip$/i, j+'$&')
+            writeToGdrive(fInfo, fData[j]);
           }
 
         } else {
 
           // fData is just a single arrayBuffer
-          writeToGdrive(fUrl, fData);
+          writeToGdrive(fInfo, fData);
         }
       }
 
@@ -1186,25 +1181,27 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
             var r = new render.Renderer({ container: null, rendererId: "" }, self.collab);
 
             for (var i=0; i<self.imgFileArr.length; i++) {
+
               var imgFileObj = self.imgFileArr[i];
+              var thBarId = imgFileObj.thBarId;
               var url;
 
               if (imgFileObj.json) {
 
                 url = imgFileObj.baseUrl + imgFileObj.json.name;
-                r.readFile(imgFileObj.json, 'readAsArrayBuffer', loadFile.bind(null, url));
+                r.readFile(imgFileObj.json, 'readAsArrayBuffer', loadFile.bind(null, {url: url, thBarId: thBarId}));
               }
 
               if (imgFileObj.files.length > 1) {
 
                 // if there are many files (dicoms) then compress them into a single .zip file before uploading
                 url = imgFileObj.baseUrl + imgFileObj.files[0].name + '.zip';
-                self.rBox.zipFiles(imgFileObj.files, loadFile.bind(null, url));
+                self.rBox.zipFiles(imgFileObj.files, loadFile.bind(null, {url: url, thBarId: thBarId}));
 
               } else {
 
                 url = imgFileObj.baseUrl + imgFileObj.files[0].name;
-                r.readFile(imgFileObj.files[0], 'readAsArrayBuffer', loadFile.bind(null, url));
+                r.readFile(imgFileObj.files[0], 'readAsArrayBuffer', loadFile.bind(null, {url: url, thBarId: thBarId}));
               }
             }
           });
@@ -1236,11 +1233,18 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
       if (this.collab.collaboratorInfo.id === collaboratorInfo.id) {
 
-        var fileArr = [];
+        // GDrive files have been shared with this collaborator
+
+        var fileArr = []; // two dimensional array data arrays
 
         for (var i=0; i<fObjArr.length; i++) {
 
-          fileArr.push({url: fObjArr[i].url, cloudId: fObjArr[i].id});
+          if (fObjArr[i].thBarId > fileArr.length-1) {
+
+            fileArr[fObjArr[i].thBarId] = [];
+          }
+
+          fileArr[fObjArr[i].thBarId].push({url: fObjArr[i].url, cloudId: fObjArr[i].id});
         }
 
         // wipe the initial wait text in the collaborators's viewer container
@@ -1249,14 +1253,16 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         // start the viewer
         this.init();
 
-        
-
-        this.addData(fileArr);
-
         // update the toolbar's UI
         var collabButton = document.getElementById(this.toolBarBtnsIdPrefix + 'collab');
         collabButton.innerHTML = 'End collab';
         collabButton.title = 'End collaboration';
+
+        for (i=0; i<fileArr.length; i++) {
+
+          // add data files
+          this.addData(fileArr[i]);
+        }
       }
     };
 

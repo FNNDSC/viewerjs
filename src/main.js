@@ -125,9 +125,8 @@ require(['gcjs', 'viewerjs'], function(cjs, viewerjs) {
     dirBtn.disabled = true;
 
     // start the viewer
-    view.init(imgFileArr);
-    view.addThumbnailsBar();
-    view.addToolBar();
+    view.init();
+    view.addData(imgFileArr);
   };
 
 });
