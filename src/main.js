@@ -127,6 +127,7 @@ require(['gcjs', 'viewerjs'], function(cjs, viewerjs) {
     // start the viewer
     view.init();
     view.addData(imgFileArr);
+    view.addData(imgFileArr);
   };
 
 });

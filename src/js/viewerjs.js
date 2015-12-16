@@ -450,6 +450,10 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
          });
 
          self.rBox.removeRenderer(rArr[0]);
+         
+       } else if (ui.placeholder.parent()[0] !== evt.target) {
+
+         $(evt.target).sortable('cancel');
        }
 
        // restore thumbnails bars' scroll bars
