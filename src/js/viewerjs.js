@@ -182,7 +182,6 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
           if (callback) { callback(); }
         });
-
       }
     };
 
@@ -450,7 +449,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
          });
 
          self.rBox.removeRenderer(rArr[0]);
-         
+
        } else if (ui.placeholder.parent()[0] !== evt.target) {
 
          $(evt.target).sortable('cancel');
@@ -1230,8 +1229,8 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     /**
      * Handle the onDataFilesShared event when the collaboration owner has shared all data files with this collaborator.
      *
-     * @param {Object} collaborator info object with a mail property (collaborator's mail)
-     * @param {Object} array of file objects with properties: url and cloudId.
+     * @param {Object} collaborator info object with a mail property (collaborator's mail).
+     * @param {Object} array of file objects with properties: url, cloudId and thBarId (thumbnails bar's id).
      */
      viewerjs.Viewer.prototype.handleOnDataFilesShared = function(collaboratorInfo, fObjArr) {
 
@@ -1239,11 +1238,11 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
         // GDrive files have been shared with this collaborator
 
-        var fileArr = []; // two dimensional array data arrays
+        var fileArr = []; // two dimensional array of data arrays
 
         for (var i=0; i<fObjArr.length; i++) {
 
-          if (fObjArr[i].thBarId > fileArr.length-1) {
+          if (!fileArr[fObjArr[i].thBarId]) {
 
             fileArr[fObjArr[i].thBarId] = [];
           }
@@ -1264,9 +1263,12 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
         for (i=0; i<fileArr.length; i++) {
 
-          // add data files
-          this.addData(fileArr[i]);
+          // add thumbnails bars
+          var imgFileArr = this.buildImgFileArr(fileArr[i]);
+          this.addThumbnailsBar(imgFileArr);
         }
+
+        this.renderScene();
       }
     };
 
