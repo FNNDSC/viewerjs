@@ -153,6 +153,170 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
       self.addRenderersBox();
       self.addToolBar();
+      self.addDropzone(self.containerId);
+    };
+
+    /**
+     * Add a files dropzone to the viewer.
+     *
+     * @param {String|Object} dropzone's container's DOM id or DOM object.
+     */
+    viewerjs.Viewer.prototype.addDropzone = function(container) {
+      var self = this;
+      var dropzone;
+
+      if (typeof container === 'string') {
+
+        // a DOM id was passed
+        dropzone = document.getElementById(container);
+
+      } else {
+
+        // a DOM object was passed
+        dropzone = container;
+      }
+
+      //
+      // Event handlers for the dropzone
+      //
+      dropzone.ondragenter = function(e) {
+
+        e.preventDefault();
+      };
+
+      dropzone.ondragover = function(e) {
+
+        e.preventDefault();
+      };
+
+      dropzone.ondrop = function(e) {
+
+        e.preventDefault();
+
+        var files = [];
+        var fObjArr = [];
+
+        if (!e.dataTransfer.items) {
+
+          // browser is not chrome
+          if (e.dataTransfer.files) {
+
+            files = e.dataTransfer.files;
+
+            for (var i=0; i<files.length; i++) {
+
+              if ((!files[i].size) && (!files[i].type)) {
+
+                alert('It seems that a folder has been dropped: "'+ files[i].name +
+                '". Only the Chrome bowser supports dropping of folders. Files inside will be ignored!');
+
+              } else {
+
+                if (!('fullPath' in files[i])) {
+
+                  files[i].fullPath = files[i].name;
+                }
+
+                fObjArr.push({
+                  'url': files[i].fullPath,
+                  'file': files[i]
+                });
+              }
+            }
+
+            self.addData(fObjArr);
+          }
+
+          return;
+        }
+
+        // chrome browser
+
+        // array to control when the entire directory tree has been read. This
+        // happens when all it's entries are different from zero
+        var hasBeenRead = [];
+
+        // define function to read an entire directory tree
+        var readFiles = function (entry) {
+
+          var pos = hasBeenRead.length;
+          var dirEntries = [];
+
+          hasBeenRead[pos] = 0;
+
+          function readingDone() {
+
+            hasBeenRead[pos] = 1;
+
+            //check whether all files in the directory tree have already been added
+            for (var i=0; i<hasBeenRead.length; i++) {
+
+              if (hasBeenRead[i] === 0) {
+                break;
+              }
+            }
+
+            if (i >= hasBeenRead.length) {
+
+              // all files have been read
+              for (var j=0; j<files.length; j++) {
+
+                fObjArr.push({
+                  'url': files[j].fullPath,
+                  'file': files[j]
+                });
+              }
+
+              self.addData(fObjArr);
+            }
+          }
+
+          function read(dirReader) {
+
+            dirReader.readEntries(function(entries) {
+
+              if (entries.length) {
+
+                dirEntries = dirEntries.concat(entries);
+                read(dirReader); //keep calling read recursively untill receiving an empty array
+
+              } else {
+
+                var idx = dirEntries.length; //manage empty dir
+
+                while (idx--) { //recursively read last entry until all have been read
+                  readFiles(dirEntries[idx]);
+                }
+
+                readingDone();
+              }
+            });
+          }
+
+          if (entry.isFile) {
+
+            entry.file(function(file){
+
+              file.fullPath = entry.fullPath;
+              files.push(file);
+              readingDone();
+            });
+
+          } else if (entry.isDirectory) {
+
+            var reader = entry.createReader();
+
+            //read all entries within this directory
+            read(reader);
+          }
+        };
+
+
+        for (var i=0; i<e.dataTransfer.items.length; i++) {
+
+          readFiles(e.dataTransfer.items[i].webkitGetAsEntry());
+        }
+      };
     };
 
     /**
@@ -174,7 +338,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         // no new data can be added during a realtime collaboration session so just call the callback
         if (callback) { callback(); }
 
-      } else {
+      } else if (fObjArr.length) {
 
         var imgFileArr = self.buildImgFileArr(fObjArr);
 
@@ -673,6 +837,12 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     viewerjs.Viewer.prototype.addThumbnailsBar = function(imgFileArr, callback) {
       var self = this;
 
+      if(!imgFileArr.length) {
+
+        if (callback) { callback(); }
+        return;
+      }
+
       // append a div container for the thumbnails bar to the viewer
       var thBarCont = $('<div></div>');
       self.container.append(thBarCont);
@@ -707,7 +877,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
           $('#' + thContId).css({ display:"none" });
         }
 
-        if (callback) {callback();}
+        if (callback) { callback(); }
       });
 
       // link the thumbnails bar with the renderers box

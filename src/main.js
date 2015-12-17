@@ -95,6 +95,7 @@ require(['gcjs', 'viewerjs'], function(cjs, viewerjs) {
   var dirBtn = document.getElementById('dirbtn');
 
   dirBtn.onchange = function(e) {
+    
     var files = e.target.files;
     var fileObj;
 
@@ -126,7 +127,6 @@ require(['gcjs', 'viewerjs'], function(cjs, viewerjs) {
 
     // start the viewer
     view.init();
-    view.addData(imgFileArr);
     view.addData(imgFileArr);
   };
 
