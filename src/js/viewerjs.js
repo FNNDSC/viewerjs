@@ -338,14 +338,21 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         // no new data can be added during a realtime collaboration session so just call the callback
         if (callback) { callback(); }
 
-      } else if (fObjArr.length) {
+      } else {
 
-        var imgFileArr = self.buildImgFileArr(fObjArr);
+        if (fObjArr.length) {
 
-        self.addThumbnailsBar(imgFileArr, function() {
+          var imgFileArr = self.buildImgFileArr(fObjArr);
+
+          self.addThumbnailsBar(imgFileArr, function() {
+
+            if (callback) { callback(); }
+          });
+
+        } else {
 
           if (callback) { callback(); }
-        });
+        }
       }
     };
 
