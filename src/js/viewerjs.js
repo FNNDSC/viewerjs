@@ -312,9 +312,9 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         };
 
 
-        for (var i=0; i<e.dataTransfer.items.length; i++) {
+        for (var k=0; k<e.dataTransfer.items.length; k++) {
 
-          readFiles(e.dataTransfer.items[i].webkitGetAsEntry());
+          readFiles(e.dataTransfer.items[k].webkitGetAsEntry());
         }
       };
     };
@@ -1022,17 +1022,19 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
      */
     viewerjs.Viewer.prototype.renderScene = function() {
       var self = this;
+
       var scene;
 
       // define function to render the renderers in the renderers box
       function renderRenderers() {
 
+        var id;
         var renderers2DIds = [];
         var renderers2DProps = [];
 
-        function updateRenderer(renderer) {
-          var id = renderer.id;
-          var ix = renderers2DIds.indexOf(id);
+        var updateRenderer = function(renderer) {
+
+          var ix = renderers2DIds.indexOf(renderer.id);
 
           // update the volume properties
           renderer.volume.lowerThreshold = renderers2DProps[ix].volume.lowerThreshold;
@@ -1057,7 +1059,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
           // update the slice info HTML
           renderer.updateUISliceInfo();
-        }
+        };
 
         // get the collab scene's 2D renderer ids
         for (var i=0; i<scene.renderers.length; i++) {
@@ -1072,7 +1074,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         // remove the 2D renderers from the local scene that were removed from the collab scene
         for (i=0; i<self.rBox.renderers.length; i++) {
 
-          var id = self.rBox.renderers[i].id;
+          id = self.rBox.renderers[i].id;
 
           if (renderers2DIds.indexOf(id) === -1) {
 
@@ -1298,7 +1300,6 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
         function writeToGdrive(info, data) {
 
-          var url = info.url;
           var name = info.url.substring(info.url.lastIndexOf('/') + 1);
 
           self.collab.fileManager.writeFile(self.collab.dataFilesBaseDir + '/' + name, data, function(fileResp) {
@@ -1321,7 +1322,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
           for (var j=1; j<fData.length; j++) {
 
-            fInfo.url = fInfo.url.replace(/.dcm.zip$|.ima.zip$|.zip$/i, j+'$&')
+            fInfo.url = fInfo.url.replace(/.dcm.zip$|.ima.zip$|.zip$/i, j+'$&');
             writeToGdrive(fInfo, fData[j]);
           }
 
