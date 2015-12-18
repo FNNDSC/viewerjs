@@ -1200,7 +1200,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
           // asyncronously load all files to GDrive
           self.collab.fileManager.createPath(self.collab.dataFilesBaseDir, function() {
 
-            // create a rendererjs.Renderer object to use its readFile method
+            // create a rendererjs.Renderer object to use its methods
             var r = new render.Renderer({ container: null, rendererId: "" }, self.collab);
 
             for (var i=0; i<self.imgFileArr.length; i++) {
@@ -1219,7 +1219,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
                 // if there are many files (dicoms) then compress them into a single .zip file before uploading
                 url = imgFileObj.baseUrl + imgFileObj.files[0].name + '.zip';
-                self.rBox.zipFiles(imgFileObj.files, loadFile.bind(null, {url: url, thBarId: thBarId}));
+                r.zipFiles(imgFileObj.files, loadFile.bind(null, {url: url, thBarId: thBarId}));
 
               } else {
 
