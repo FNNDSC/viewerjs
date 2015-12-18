@@ -7,9 +7,8 @@ VObj's HTML interface is inserted. The following code shows the simplicity of th
 
 ````
 var view = new viewerjs.Viewer(divId);
-view.init(imgFileArr);
-view.addThumbnailBar();
-view.addToolBar();
+view.init();
+view.addData(imgFileArr);
 ````
 
 The VObj can asynchronously load more than one neuroimage volume specified by the <tt>imgFileArr</tt> variable
