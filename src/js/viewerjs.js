@@ -41,8 +41,8 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       // prefix string for the DOM ids used for the internal XTK renderers' containers
       this.renderersIdPrefix = containerId + '_renderer';
 
-      // thumbnails bar object
-      this.thBar = null;
+      // thumbnails bars
+      this.thBars = [];
 
       // prefix string for the DOM ids used for the thumbnails' containers.
       this.thumbnailsIdPrefix = containerId + '_thumbnail';
@@ -106,16 +106,9 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     };
 
     /**
-     * Build viewer's main data structure and initiliaze the UI's html.
-     *
-     * @param {Array} array of file objects. Each object contains the following properties:
-     * -url:     String representing the file url
-     * -file:    HTML5 File object (optional but neccesary when the files are gotten through a
-     *           local filepicker or dropzone)
-     * -cloudId: String representing the file cloud id (optional but neccesary when the files
-     *           are gotten from a cloud storage like GDrive)
+     * Initiliaze the UI's html.
      */
-    viewerjs.Viewer.prototype.init = function(fObjArr) {
+    viewerjs.Viewer.prototype.init = function() {
       var self = this;
 
       self.container.css({
@@ -125,7 +118,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         '-moz-box-sizing': 'border-box',
         'box-sizing': 'border-box'
 
-      }).sortable({ // a sortable viewer makes it possible for the thumbnails bar to move around
+      }).sortable({ // a sortable viewer makes it possible for the thumbnails bars to move around
         cursor: 'move',
         containment: 'parent',
         distance: '150',
@@ -158,20 +151,51 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         }
       });
 
-      if (self.collab && self.collab.collabIsOn && !self.collab.collabOwner) {
-
-        // Wipe the initial wait text in the collaborators's viewer container
-        $('.view-initialwaittext', self.container).remove();
-      }
-
-      // Initially the interface only contains the renderers box
       self.addRenderersBox();
+      self.addToolBar();
 
-      // Build viewer's main data structure (this.imgFileArr)
-      self.imgFileArr = self.buildImgFileArr(fObjArr);
+      // set a dropzone
+      util.setDropzone(self.containerId, function(fObjArr) {
 
-      // Render the scene
-      self.renderScene();
+        self.addData(fObjArr);
+      });
+    };
+
+    /**
+     * Add new data to the viewer. A new thumbnails bar is adde to the UI for the new data.
+     *
+     * @param {Array} array of file objects. Each object contains the following properties:
+     * -url:     String representing the file url
+     * -file:    HTML5 File object (optional but neccesary when the files are gotten through a
+     *           local filepicker or dropzone)
+     * -cloudId: String representing the file cloud id (optional but neccesary when the files
+     *           are gotten from a cloud storage like GDrive)
+     * @param {Function} optional callback to be called when the viewer is ready.
+     */
+    viewerjs.Viewer.prototype.addData = function(fObjArr, callback) {
+      var self = this;
+
+      if (self.collab && self.collab.collabIsOn) {
+
+        // no new data can be added during a realtime collaboration session so just call the callback
+        if (callback) { callback(); }
+
+      } else {
+
+        if (fObjArr.length) {
+
+          var imgFileArr = self.buildImgFileArr(fObjArr);
+
+          self.addThumbnailsBar(imgFileArr, function() {
+
+            if (callback) { callback(); }
+          });
+
+        } else {
+
+          if (callback) { callback(); }
+        }
+      }
     };
 
     /**
@@ -192,6 +216,9 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
      *  -json: Optional HTML5 File or custom file object (optional json file with the mri info for imgType different from 'dicom')
      */
     viewerjs.Viewer.prototype.buildImgFileArr = function(fObjArr) {
+      var self = this;
+
+      // define internal data structures
       var imgFileArr = [];
       var thumbnails = {}; // associative array of thumbnail image files
       var jsons = {}; // associative array of json files
@@ -199,10 +226,10 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       var dicomZips = {}; // associative array of arrays with zipped DICOM files
       var nonDcmData = []; // array of non-DICOM data
       var path, name;
-      var self = this;
 
       // function to add a file object into the proper internal data structure
       function addFile(fileObj) {
+
        var path = fileObj.url;
        var baseUrl = path.substring(0, path.lastIndexOf('/') + 1);
        var file;
@@ -360,7 +387,6 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     * Append a renderers box to the viewer.
     */
    viewerjs.Viewer.prototype.addRenderersBox = function() {
-     var fileManager = null; // cloud file manager
      var self = this;
 
      if (self.rBox) {
@@ -382,6 +408,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
      };
 
      // check if there is a cloud file manager available
+     var fileManager = null;
      if (self.collab) { fileManager = self.collab.fileManager; }
 
      // create a renderers box object
@@ -398,12 +425,13 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
      // renderers box event listeners
      //
      this.rBox.computeMovingHelper = function(evt, target) {
+
        var thWidth =  $('.view-thumbnail').css('width');
        var thHeight = $('.view-thumbnail').css('height');
 
        // corresponding thumbnail and renderer have the same integer id
        var id = self.rBox.getRendererId(target.find('.view-renderer-content').attr('id'));
-       var thContId = self.thBar.getThumbnailContId(id);
+       var thContId = self.getThumbnailsBarObject(id).getThumbnailContId(id);
 
        // the visually moving helper is a clone of the corresponding thumbnail
        return $('#' + thContId).clone().css({
@@ -414,27 +442,37 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
      this.rBox.onStart = function() {
 
-       // thumbnails' scroll bar has to be removed to make the moving helper visible
-       self.thBar.container.css({ overflow: 'visible' });
+       // thumbnails bars' scroll bars have to be removed to make the moving helper visible
+       self.thBars.forEach( function(thBar) {
+
+         thBar.container.css({ overflow: 'visible' });
+       });
      };
 
      this.rBox.onBeforeStop = function(evt, ui) {
 
-       if (ui.placeholder.parent().parent()[0] === self.thBar.container[0]) {
+       var id = self.rBox.getRendererId(ui.item.find('.view-renderer-content').attr('id'));
+
+       if (ui.placeholder.parent().parent()[0] === self.getThumbnailsBarObject(id).container[0]) {
 
          $(evt.target).sortable('cancel');
 
-         var rendererId = ui.item.find('.view-renderer-content').attr('id');
-
          var rArr = self.rBox.renderers.filter( function(el) {
-           return el.rendererId === rendererId;
+           return el.id === id;
          });
 
          self.rBox.removeRenderer(rArr[0]);
+
+       } else if (ui.placeholder.parent()[0] !== evt.target) {
+
+         $(evt.target).sortable('cancel');
        }
 
-       // restore thumbnails' scroll bar
-       self.thBar.container.css({ overflow: 'auto' });
+       // restore thumbnails bars' scroll bars
+       self.thBars.forEach( function(thBar) {
+
+         thBar.container.css({ overflow: 'auto' });
+       });
      };
 
      this.rBox.onRendererChange = function() {
@@ -468,9 +506,9 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     viewerjs.Viewer.prototype.addRenderer = function(imgFileObj, callback) {
       var self = this;
 
-      if (self.thBar) {
-        $('#' + self.thBar.getThumbnailContId(imgFileObj.id)).css({ display:"none" });
-      }
+      var thBar = self.getThumbnailsBarObject(imgFileObj.id);
+
+      $('#' + thBar.getThumbnailContId(imgFileObj.id)).css({ display:"none" });
 
       self.rBox.addRenderer(imgFileObj, 'Z', function(renderer) {
 
@@ -482,10 +520,10 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
             $('#' + self.toolBarBtnsIdPrefix + 'link').css({display: '' });
           }
 
-        } else if (self.thBar) {
+        } else {
 
-          // could not add renderer so restore the corresponding thumbnail if there is a thumbnails bar
-          $('#' + self.thBar.getThumbnailContId(imgFileObj.id)).css({ display:"" });
+          // could not add renderer so restore the corresponding thumbnail
+          $('#' + thBar.getThumbnailContId(imgFileObj.id)).css({ display:"" });
         }
 
         if (callback) {callback(renderer);}
@@ -499,14 +537,11 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       */
      viewerjs.Viewer.prototype.handleOnRendererRemove = function(id) {
 
-       if (this.thBar) {
+       // corresponding thumbnail and renderer have the same integer id
+       var thContId = this.getThumbnailsBarObject(id).getThumbnailContId(id);
 
-         // corresponding thumbnail and renderer have the same integer id
-         var thContId = this.thBar.getThumbnailContId(id);
-
-         // display the removed renderer's thumbnail
-         $('#' + thContId).css({ display:'block' });
-       }
+       // display the removed renderer's thumbnail
+       $('#' + thContId).css({ display:'block' });
 
        // if there is now a single renderer then hide the Link views button
        if (this.rBox.numOfRenderers===1) {
@@ -558,7 +593,9 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         id: btnsIdsPrefix + 'help',
         title: 'Wiki help',
         caption: 'Help',
+
         onclick: function() {
+
           window.open('https://github.com/FNNDSC/viewerjs/wiki');
         }
       });
@@ -567,22 +604,30 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         id: btnsIdsPrefix + 'link',
         title: 'Link views',
         caption: 'Link views',
+
         onclick: function() {
+
           self.handleToolBarButtonLinkClick();
           self.updateCollabScene();
         }
       });
-      // hide this button
+
+      // hide the button
       self.toolBar.hideButton(btnsIdsPrefix + 'link');
 
       self.toolBar.addButton({
         id: btnsIdsPrefix + 'collab',
         title: 'Start collaboration',
         caption: 'Start collab',
+
         onclick: function() {
+
           if (self.collab.collabIsOn) {
+
             self.leaveCollaboration();
+
           } else {
+
             self.startCollaboration();
           }
         }
@@ -593,11 +638,13 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         title: 'Authorize',
         caption: 'Authorize',
       });
-      // hide this button
+
+      // hide the button
       self.toolBar.hideButton(btnsIdsPrefix + 'auth');
 
       // tool bar event listeners
       this.handleToolBarButtonLinkClick = function() {
+
         var jqButton = $('#' +  btnsIdsPrefix + 'link');
 
         if (self.rBox.renderersLinked) {
@@ -618,24 +665,29 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       var renderersTopEdge = parseInt(self.toolBar.container.css('top')) + parseInt(self.toolBar.container.css('height')) + 5;
       self.rBox.container.css({ top: renderersTopEdge + 'px' });
       self.rBox.container.css({ height: 'calc(100% - ' + renderersTopEdge + 'px)' });
-      if (self.thBar) {
-        self.toolBar.container.css({ width: 'calc(100% - ' + self.rBox.container.css('left') + ')'});
-      }
-      self.layoutComponentsX();
     };
 
     /**
      * Create and add a thumbnails bar to the viewer.
      *
+     * @return {Array} array of image file objects, each object contains the following properties:
+     *  -id: Integer, the object's id
+     *  -baseUrl: String ‘directory/containing/the/files’
+     *  -imgType: String neuroimage type. Any of the possible values returned by rendererjs.Renderer.imgType
+     *  -files: Array of HTML5 File objects or custom file objects with properties:
+     *     -remote: a boolean indicating whether the file has not been read locally (with a filepicker)
+     *     -url the file's url
+     *     -cloudId: the id of the file in a cloud storage system if stored in the cloud
+     *     -name: file name
+     *  The files array contains a single file for imgType different from 'dicom' or 'dicomzip'
+     *  -thumbnail: Optional HTML5 File or custom file object (optional jpg file for a thumbnail image)
      * @param {Function} optional callback to be called when the thumbnails bar is ready.
      */
-    viewerjs.Viewer.prototype.addThumbnailsBar = function(callback) {
-      var fileManager = null; // cloud file manager
+    viewerjs.Viewer.prototype.addThumbnailsBar = function(imgFileArr, callback) {
       var self = this;
 
-      if (self.thBar || self.imgFileArr.length<2) {
+      if(!imgFileArr.length) {
 
-        // thumbnails bar already exists or there are less than 2 image volumes
         if (callback) { callback(); }
         return;
       }
@@ -643,9 +695,6 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       // append a div container for the thumbnails bar to the viewer
       var thBarCont = $('<div></div>');
       self.container.append(thBarCont);
-
-      // the toolbar doesn't move around
-      self.container.sortable( 'option', 'cancel', '.view-thumbnailsbar');
 
       // thumbnails bar's options object
       var options = {
@@ -659,59 +708,73 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       };
 
       // check if there is a cloud file manager available
+      var fileManager = null;
       if (self.collab) { fileManager = self.collab.fileManager; }
 
       // create the thumbnails bar object
-      self.thBar = new thbar.ThumbnailsBar(options, fileManager);
+      var thBar = new thbar.ThumbnailsBar(options, fileManager);
 
-      self.thBar.init(self.imgFileArr, function() {
+      thBar.init(imgFileArr, function() {
 
         // hide any thumbnail with a corresponding renderer (same integer id suffix) already added to the renderers box
         for (var i=0; i<self.rBox.renderers.length; i++) {
 
           // corresponding thumbnail and renderer have the same integer id
           var id = self.rBox.renderers[i].id;
-          var thContId = self.thBar.getThumbnailContId(id);
+          var thContId = thBar.getThumbnailContId(id);
 
           $('#' + thContId).css({ display:"none" });
         }
 
-        if (callback) {callback();}
+        if (callback) { callback(); }
       });
 
       // link the thumbnails bar with the renderers box
       self.rBox.setComplementarySortableElems('#' + self.container.attr('id') + ' .view-thumbnailsbar-sortable');
-      self.thBar.setComplementarySortableElems('#' + self.container.attr('id') + ' .view-renderers');
+      thBar.setComplementarySortableElems('#' + self.container.attr('id') + ' .view-renderers');
 
       //
       // thumbnails bar event listeners
       //
-      this.thBar.onBeforeStop = function(evt, ui) {
+      thBar.onBeforeStop = function(evt, ui) {
 
         if (ui.placeholder.parent()[0] === self.rBox.container[0]) {
           $(evt.target).sortable("cancel");
 
-          var id = self.thBar.getThumbnailId(ui.item.attr("id"));
+          var id = thBar.getThumbnailId(ui.item.attr("id"));
 
           // add the corresponding renderer (with the same integer id) to the UI
           self.addRenderer(self.getImgFileObject(id), function(renderer) {
 
             if (renderer) {
+
               self.updateCollabScene();
             }
           });
         }
       };
 
+      // append a thumbnails bar id to each array elem
+      for (var i=0; i<imgFileArr.length; i++) {
+        imgFileArr[i].thBarId = self.thBars.length;
+      }
+
+      // add the new data array to the viewer's main array
+      self.imgFileArr = self.imgFileArr.concat(imgFileArr);
+
+      // push thumbnails bar in the array of thumbnails bar object
+      self.thBars.push(thBar);
+
       // insert thumbnails bar in front of the array of horizontal components
-      self.componentsX.unshift(self.thBar);
+      self.componentsX.unshift(thBar);
 
       // make space for the thumbnails bar
-      var renderersLeftEdge = parseInt(self.thBar.container.css('left')) + parseInt(self.thBar.container.css('width')) + 5;
-      self.rBox.container.css({ width: 'calc(100% - ' + renderersLeftEdge + 'px)' });
-      if (self.toolBar) {
-        self.toolBar.container.css({ width: 'calc(100% - ' + renderersLeftEdge + 'px)' });
-      }
+      var thBarSpace = parseInt(thBar.container.css('left')) + parseInt(thBar.container.css('width')) + 5;
+
+      var rBoxCSSWidth = 'calc(100% - ' + (thBarSpace * self.thBars.length) + 'px)';
+      self.rBox.container.css({ width: rBoxCSSWidth });
+
+      self.toolBar.container.css({ width: rBoxCSSWidth });
 
       self.layoutComponentsX();
     };
@@ -721,6 +784,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
      */
     viewerjs.Viewer.prototype.layoutComponentsX = function() {
       var self = this;
+
       var left = 5;
       var right = 0;
       var rBIx;
@@ -763,7 +827,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
      * Return image file object given its id.
      *
      * @param {Number} Integer number between 0 and this.imgFileArr.length-1.
-     * @return {Object} image file object with the following properties:
+     * @return {Object} null or image file object with the following properties:
      *  -id: Integer id
      *  -baseUrl: String ‘directory/containing/the/files’
      *  -imgType: String neuroimage type. Any of the possible values returned by rendererjs.Renderer.imgType
@@ -777,23 +841,49 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
      *  -json: Optional HTML5 or custom File object (optional json file with the mri info for imgType different from 'dicom')
      */
     viewerjs.Viewer.prototype.getImgFileObject = function(id) {
+
+      if (id<0 || id>=this.imgFileArr.length) {
+
+        return null;
+      }
+
       return this.imgFileArr[id];
+    };
+
+    /**
+     * Given an image file object id get the thumbnails bar object that contains the associated thumbnail image.
+     *
+     * @param {Number} Integer number between 0 and this.imgFileArr.length-1.
+     * @return {Object} thumbnails bar object or null.
+     */
+    viewerjs.Viewer.prototype.getThumbnailsBarObject = function(id) {
+
+      if (id<0 || id>=this.imgFileArr.length) {
+
+        return null;
+      }
+
+      return this.thBars[this.getImgFileObject(id).thBarId];
     };
 
     /**
      * Render the current scene.
      */
     viewerjs.Viewer.prototype.renderScene = function() {
-      var scene;
       var self = this;
 
+      var scene;
+
+      // define function to render the renderers in the renderers box
       function renderRenderers() {
+
+        var id;
         var renderers2DIds = [];
         var renderers2DProps = [];
 
-        function updateRenderer(renderer) {
-          var id = renderer.id;
-          var ix = renderers2DIds.indexOf(id);
+        var updateRenderer = function(renderer) {
+
+          var ix = renderers2DIds.indexOf(renderer.id);
 
           // update the volume properties
           renderer.volume.lowerThreshold = renderers2DProps[ix].volume.lowerThreshold;
@@ -818,7 +908,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
           // update the slice info HTML
           renderer.updateUISliceInfo();
-        }
+        };
 
         // get the collab scene's 2D renderer ids
         for (var i=0; i<scene.renderers.length; i++) {
@@ -833,10 +923,11 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         // remove the 2D renderers from the local scene that were removed from the collab scene
         for (i=0; i<self.rBox.renderers.length; i++) {
 
-          var id = self.rBox.renderers[i].id;
-          var thContId = self.thBar.getThumbnailContId(id);
+          id = self.rBox.renderers[i].id;
 
           if (renderers2DIds.indexOf(id) === -1) {
+
+            var thContId = self.getThumbnailsBarObject(id).getThumbnailContId(id);
 
             $('#' + thContId).css({ display: "block" });
 
@@ -847,59 +938,26 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         for (i=0; i<renderers2DIds.length; i++) {
 
           // add a 2D renderer to the local scene that was added to the collab scene
-          $('#' + self.thBar.getThumbnailContId(renderers2DIds[i])).css({ display: "none" });
-          self.addRenderer(self.getImgFileObject(renderers2DIds[i]), updateRenderer);
+          id = renderers2DIds[i];
+
+          $('#' + self.getThumbnailsBarObject(id).getThumbnailContId(id)).css({ display: "none" });
+
+          self.addRenderer(self.getImgFileObject(id), updateRenderer);
         }
       }
 
-      function renderToolbar() {
 
-        if (scene.toolBar) {
+      if (self.collab && self.collab.collabIsOn) {
 
-          if (!self.toolBar) {
-
-            // no local toolbar so add a toolbar
-            self.addToolBar();
-
-            // Update the toolbar's UI
-            var collabButton = document.getElementById(self.toolBarBtnsIdPrefix + 'collab');
-            collabButton.innerHTML = 'End collab';
-            collabButton.title = 'End collaboration';
-          }
-
-          if (self.rBox.renderersLinked !== scene.toolBar.renderersLinked) {
-            self.handleToolBarButtonLinkClick();
-          }
-        }
-      }
-
-      if (this.collab && this.collab.collabIsOn) {
         // collaboration is on, so get and render the scene
-        scene = this.getCollabScene();
+        scene = self.getCollabScene();
 
-        if (scene.thumbnailsBar) {
+        if (self.rBox.renderersLinked !== scene.toolBar.renderersLinked) {
 
-          this.addThumbnailsBar(function() {
-            renderToolbar();
-            renderRenderers();
-          });
-
-        } else {
-
-          renderToolbar();
-          renderRenderers();
+          self.handleToolBarButtonLinkClick();
         }
 
-      } else {
-
-        //  collaboration is off so just load and render the first volume in this.imgFileArr
-        for (var i=0; i<this.imgFileArr.length; i++) {
-
-          if (this.imgFileArr[i].imgType==='vol' || this.imgFileArr[i].imgType==='dicom') {
-            this.addRenderer(this.imgFileArr[i]);
-            break;
-          }
-        }
+        renderRenderers();
       }
     };
 
@@ -907,19 +965,13 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
      * Create and return a scene object describing the current scene.
      */
     viewerjs.Viewer.prototype.getLocalScene = function() {
+
       var scene = {};
       var renderers = this.rBox.renderers;
 
-      // set thumbnailsbar's properties
-      if (this.thBar) {
-        scene.thumbnailsBar = true;
-      }
-
       // set toolbar's properties
-      if (this.toolBar) {
-        scene.toolBar = {};
-        scene.toolBar.renderersLinked = this.rBox.renderersLinked;
-      }
+      scene.toolBar = {};
+      scene.toolBar.renderersLinked = this.rBox.renderersLinked;
 
       // set renderers' properties
       // https://docs.google.com/document/d/1GHT7DtSq1ds4TyplA0E2Efy4fuv2xf17APcorqzBZjc/edit
@@ -975,6 +1027,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     viewerjs.Viewer.prototype.getCollabScene = function() {
 
       if (this.collab && this.collab.collabIsOn) {
+
         return this.collab.getCollabObj();
       }
     };
@@ -996,13 +1049,14 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
      * Start the realtime collaboration as a collaboration/scene owner.
      */
     viewerjs.Viewer.prototype.startCollaboration = function() {
+      var self = this;
 
-      if (this.collab) {
-        var self = this;
-        var collabButton = document.getElementById(this.toolBarBtnsIdPrefix + 'collab');
-        var authButton = document.getElementById(this.toolBarBtnsIdPrefix + 'auth');
+      if (self.collab) {
 
-        this.collab.authorizeAndLoadApi(true, function(granted) {
+        var collabButton = document.getElementById(self.toolBarBtnsIdPrefix + 'collab');
+        var authButton = document.getElementById(self.toolBarBtnsIdPrefix + 'auth');
+
+        self.collab.authorizeAndLoadApi(true, function(granted) {
 
           if (granted) {
 
@@ -1029,6 +1083,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         });
 
       } else {
+
         console.error('Collaboration was not enabled for this viewer instance');
       }
     };
@@ -1050,13 +1105,16 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
      */
     viewerjs.Viewer.prototype.leaveCollaboration = function() {
 
-      if (this.collab.collabIsOn) {
+      if (this.collab && this.collab.collabIsOn) {
+
         this.collab.leaveRealtimeCollaboration();
 
         // update the UI
         var collabButton = document.getElementById(this.toolBarBtnsIdPrefix + 'collab');
         collabButton.innerHTML = 'Start collab';
         collabButton.title = 'Start collaboration';
+
+        // destroy the chat object
         this.chat.destroy();
         this.chat = null;
       }
@@ -1076,23 +1134,26 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
         for (var i=0; i<self.imgFileArr.length; i++) {
           ++nFiles;
+
           if (self.imgFileArr[i].json) {
             ++nFiles;
           }
         }
+
         return nFiles;
       }());
 
       // function to load a file into GDrive
       var fObjArr = [];
-      function loadFile(fUrl, fData) {
+      function loadFile(fInfo, fData) {
 
-        function writeToGdrive(url, data) {
-          var name = url.substring(url.lastIndexOf('/') + 1);
+        function writeToGdrive(info, data) {
+
+          var name = info.url.substring(info.url.lastIndexOf('/') + 1);
 
           self.collab.fileManager.writeFile(self.collab.dataFilesBaseDir + '/' + name, data, function(fileResp) {
 
-            fObjArr.push({id: fileResp.id, url: url});
+            fObjArr.push({id: fileResp.id, url: info.url, thBarId: info.thBarId});
 
             if (fObjArr.length===totalNumFiles) {
 
@@ -1102,61 +1163,68 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
           });
         }
 
-        if (fUrl.search(/.dcm.zip$|.ima.zip$|.zip$/i) !== -1) {
+        if (fInfo.url.search(/.dcm.zip$|.ima.zip$|.zip$/i) !== -1) {
 
           // fData is an array of arrayBuffer so instead of one file now fData.length files need to be uploaded
           totalNumFiles += fData.length-1;
-          writeToGdrive(fUrl, fData[0]);
+          writeToGdrive(fInfo, fData[0]);
 
           for (var j=1; j<fData.length; j++) {
-            writeToGdrive(fUrl.replace(/.dcm.zip$|.ima.zip$|.zip$/i, j+'$&'), fData[j]);
+
+            fInfo.url = fInfo.url.replace(/.dcm.zip$|.ima.zip$|.zip$/i, j+'$&');
+            writeToGdrive(fInfo, fData[j]);
           }
 
         } else {
 
           // fData is just a single arrayBuffer
-          writeToGdrive(fUrl, fData);
+          writeToGdrive(fInfo, fData);
         }
       }
 
       if (self.collab.collaboratorInfo.id === collaboratorInfo.id) {
 
+        // local on connect
+
         if (self.collab.collabOwner) {
 
-          // Update the UI
+          // update the UI
           var collabButton = document.getElementById(self.toolBarBtnsIdPrefix + 'collab');
           collabButton.style.display = '';
           collabButton.innerHTML = 'End collab';
           collabButton.title = 'End collaboration';
+
           var authButton = document.getElementById(self.toolBarBtnsIdPrefix + 'auth');
           authButton.style.display = 'none';
 
-          // Asyncronously load all files to GDrive
+          // asyncronously load all files to GDrive
           self.collab.fileManager.createPath(self.collab.dataFilesBaseDir, function() {
 
-            // create a rendererjs.Renderer object to use its readFile method
+            // create a rendererjs.Renderer object to use its methods
             var r = new render.Renderer({ container: null, rendererId: "" }, self.collab);
 
             for (var i=0; i<self.imgFileArr.length; i++) {
+
               var imgFileObj = self.imgFileArr[i];
+              var thBarId = imgFileObj.thBarId;
               var url;
 
               if (imgFileObj.json) {
 
                 url = imgFileObj.baseUrl + imgFileObj.json.name;
-                r.readFile(imgFileObj.json, 'readAsArrayBuffer', loadFile.bind(null, url));
+                r.readFile(imgFileObj.json, 'readAsArrayBuffer', loadFile.bind(null, {url: url, thBarId: thBarId}));
               }
 
               if (imgFileObj.files.length > 1) {
 
                 // if there are many files (dicoms) then compress them into a single .zip file before uploading
                 url = imgFileObj.baseUrl + imgFileObj.files[0].name + '.zip';
-                self.rBox.zipFiles(imgFileObj.files, loadFile.bind(null, url));
+                r.zipFiles(imgFileObj.files, loadFile.bind(null, {url: url, thBarId: thBarId}));
 
               } else {
 
                 url = imgFileObj.baseUrl + imgFileObj.files[0].name;
-                r.readFile(imgFileObj.files[0], 'readAsArrayBuffer', loadFile.bind(null, url));
+                r.readFile(imgFileObj.files[0], 'readAsArrayBuffer', loadFile.bind(null, {url: url, thBarId: thBarId}));
               }
             }
           });
@@ -1164,8 +1232,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         } else {
 
           // insert initial wait text div to manage user expectatives
-          self.container.append( '<div class="view-initialwaittext">' +
-          'Please wait while loading the viewer...</div>' );
+          self.container.append( '<div class="view-initialwaittext">' + 'Please wait while loading the viewer...</div>' );
 
           $('.view-initialwaittext', self.container).css( {'color': 'white'} );
         }
@@ -1174,6 +1241,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
       } else {
 
+        // a remote collaborator has connected so just update the collaborators list
         self.chat.updateCollaboratorList();
       }
     };
@@ -1181,20 +1249,46 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     /**
      * Handle the onDataFilesShared event when the collaboration owner has shared all data files with this collaborator.
      *
-     * @param {Object} collaborator info object with a mail property (collaborator's mail)
-     * @param {Object} array of file objects with properties: url and cloudId.
+     * @param {Object} collaborator info object with a mail property (collaborator's mail).
+     * @param {Object} array of file objects with properties: url, cloudId and thBarId (thumbnails bar's id).
      */
      viewerjs.Viewer.prototype.handleOnDataFilesShared = function(collaboratorInfo, fObjArr) {
 
       if (this.collab.collaboratorInfo.id === collaboratorInfo.id) {
-        var fileArr = [];
+
+        // GDrive files have been shared with this collaborator
+
+        var fileArr = []; // two dimensional array of data arrays
 
         for (var i=0; i<fObjArr.length; i++) {
-          fileArr.push({url: fObjArr[i].url, cloudId: fObjArr[i].id});
+
+          if (!fileArr[fObjArr[i].thBarId]) {
+
+            fileArr[fObjArr[i].thBarId] = [];
+          }
+
+          fileArr[fObjArr[i].thBarId].push({url: fObjArr[i].url, cloudId: fObjArr[i].id});
         }
 
+        // wipe the initial wait text in the collaborators's viewer container
+        $('.view-initialwaittext', this.container).remove();
+
         // start the viewer
-        this.init(fileArr);
+        this.init();
+
+        // update the toolbar's UI
+        var collabButton = document.getElementById(this.toolBarBtnsIdPrefix + 'collab');
+        collabButton.innerHTML = 'End collab';
+        collabButton.title = 'End collaboration';
+
+        for (i=0; i<fileArr.length; i++) {
+
+          // add thumbnails bars
+          var imgFileArr = this.buildImgFileArr(fileArr[i]);
+          this.addThumbnailsBar(imgFileArr);
+        }
+
+        this.renderScene();
       }
     };
 
@@ -1202,6 +1296,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
      * Handle the onCollabObjChanged event when the scene object has been modified by a remote collaborator.
      */
      viewerjs.Viewer.prototype.handleOnCollabObjChanged = function() {
+
        this.renderScene();
      };
 
@@ -1247,14 +1342,13 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       this.rBox.destroy();
       this.rBox = null;
 
-      if (this.toolBar) {
-        this.toolBar.destroy();
-        this.toolBar = null;
-      }
+      this.toolBar.destroy();
+      this.toolBar = null;
 
-      if (this.thBar) {
-        this.thBar.destroy();
-        this.thBar = null;
+      for (var i=this.thBars.length-1; i>=0; i--) {
+
+        this.thBars[i].destroy();
+        this.thBars.splice(i, 1);
       }
 
       this.imgFileArr = [];

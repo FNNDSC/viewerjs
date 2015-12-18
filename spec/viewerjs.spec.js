@@ -16,7 +16,9 @@ define(['viewerjs'], function(viewerjs) {
 
       // Create a new viewerjs.Viewer object
       view = new viewerjs.Viewer('viewercontainer');
-      view.init([{'url': '/local.nii'}]);
+      
+      view.init();
+      view.addData([{'url': '/local.nii'}]);
     });
 
     afterEach(function() {
