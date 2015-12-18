@@ -23,7 +23,7 @@ following properties:
 Thus the VObj can load image data from diverse sources such as a hooked back-end using the provided <tt>url</tt>,
 a local filesystem using the <tt>file</tt> property or the Google Drive storage service using the <tt>cloudId</tt>
 property. More data can be added to the viewer by repeatedly calling the <tt>addData</tt> method which creates a new
-tumbnails bar for each dataset (users can also interactively add more data by dragging files/folder onto the viewer).
+thumbnails bar for each dataset (users can also interactively add more data by dragging files/folders onto the viewer).
 
 The <tt>viewerjs.Viewer</tt> constructor can also accept a [gcjs.GDriveCollab](https://github.com/FNNDSC/gcjs)
 object as an optional second parameter to enable realtime collaboration among remote visualizations. The
