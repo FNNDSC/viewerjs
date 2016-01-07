@@ -555,15 +555,6 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       var btnsIdsPrefix = self.toolBarBtnsIdPrefix;
 
       self.toolBar.addButton({
-        id: btnsIdsPrefix + 'help',
-        title: 'Wiki help',
-        caption: 'Help',
-        onclick: function() {
-          window.open('https://github.com/FNNDSC/viewerjs/wiki');
-        }
-      });
-
-      self.toolBar.addButton({
         id: btnsIdsPrefix + 'link',
         title: 'Link views',
         caption: 'Link views',
@@ -595,6 +586,15 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       });
       // hide this button
       self.toolBar.hideButton(btnsIdsPrefix + 'auth');
+
+      self.toolBar.addButton({
+        id: btnsIdsPrefix + 'help',
+        title: 'Wiki help',
+        caption: 'Help',
+        onclick: function() {
+          window.open('https://github.com/FNNDSC/viewerjs/wiki');
+        }
+      });
 
       // tool bar event listeners
       this.handleToolBarButtonLinkClick = function() {
