@@ -592,7 +592,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       self.toolBar.addButton({
         id: btnsIdsPrefix + 'link',
         title: 'Link views',
-        caption: 'Link views',
+        caption: '<i class="fa fa-link"></i>',
 
         onclick: function() {
 
@@ -607,7 +607,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       self.toolBar.addButton({
         id: btnsIdsPrefix + 'collab',
         title: 'Start collaboration',
-        caption: 'Start collab',
+        caption: '<i class="fa fa-users"></i>',
 
         onclick: function() {
 
@@ -625,7 +625,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       self.toolBar.addButton({
         id: btnsIdsPrefix + 'auth',
         title: 'Authorize',
-        caption: 'Authorize',
+        caption: '<i class="fa fa-certificate"></i>',
       });
 
       // hide the button
@@ -634,7 +634,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       self.toolBar.addButton({
         id: btnsIdsPrefix + 'help',
         title: 'Wiki help',
-        caption: 'Help',
+        caption: '<i class="fa fa-question"></i>',
         onclick: function() {
           window.open('https://github.com/FNNDSC/viewerjs/wiki');
         }
@@ -648,13 +648,13 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         if (self.rBox.renderersLinked) {
 
           self.rBox.renderersLinked = false;
-          jqButton.text('Link views');
+          jqButton.html('<i class="fa fa-link"></i>');
           jqButton.attr('title', 'Link views');
 
         } else {
 
           self.rBox.renderersLinked = true;
-          jqButton.text('Unlink views');
+          jqButton.html('<i class="fa fa-chain-broken"></i>');
           jqButton.attr('title', 'Unlink views');
         }
       };
@@ -1109,7 +1109,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
         // update the UI
         var collabButton = document.getElementById(this.toolBarBtnsIdPrefix + 'collab');
-        collabButton.innerHTML = 'Start collab';
+        collabButton.innerHTML = '<i class="fa fa-users"></i>';
         collabButton.title = 'Start collaboration';
 
         // destroy the chat object
@@ -1189,7 +1189,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
           // update the UI
           var collabButton = document.getElementById(self.toolBarBtnsIdPrefix + 'collab');
           collabButton.style.display = '';
-          collabButton.innerHTML = 'End collab';
+          collabButton.innerHTML = '<i class="fa fa-user-times"></i>';
           collabButton.title = 'End collaboration';
 
           var authButton = document.getElementById(self.toolBarBtnsIdPrefix + 'auth');
@@ -1276,7 +1276,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
         // update the toolbar's UI
         var collabButton = document.getElementById(this.toolBarBtnsIdPrefix + 'collab');
-        collabButton.innerHTML = 'End collab';
+        collabButton.innerHTML = '<i class="fa fa-user-times"></i>';
         collabButton.title = 'End collaboration';
 
         for (i=0; i<fileArr.length; i++) {
