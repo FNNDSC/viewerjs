@@ -7,13 +7,12 @@ VObj's HTML interface is inserted. The following code shows the simplicity of th
 
 ````
 var view = new viewerjs.Viewer(divId);
-view.init(imgFileArr);
-view.addThumbnailBar();
-view.addToolBar();
+view.init();
+view.addData(imgFileArr);
 ````
 
 The VObj can asynchronously load more than one neuroimage volume specified by the <tt>imgFileArr</tt> variable
-passed to the <tt>init</tt> method. This is an array of custom file objects where each object entry has the
+passed to the <tt>addData</tt> method. This is an array of custom file objects where each object entry has the
 following properties:
 * url: String representing the file’s url/local path (required)
 * file: HTML5 File object (optional but necessary when the files are gotten through a local file-picker
@@ -23,7 +22,8 @@ following properties:
 
 Thus the VObj can load image data from diverse sources such as a hooked back-end using the provided <tt>url</tt>,
 a local filesystem using the <tt>file</tt> property or the Google Drive storage service using the <tt>cloudId</tt>
-property.
+property. More data can be added to the viewer by repeatedly calling the <tt>addData</tt> method which creates a new
+thumbnails bar for each dataset (users can also interactively add more data by dragging files/folders onto the viewer).
 
 The <tt>viewerjs.Viewer</tt> constructor can also accept a [gcjs.GDriveCollab](https://github.com/FNNDSC/gcjs)
 object as an optional second parameter to enable realtime collaboration among remote visualizations. The

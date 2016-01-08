@@ -590,20 +590,9 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       var btnsIdsPrefix = self.toolBarBtnsIdPrefix;
 
       self.toolBar.addButton({
-        id: btnsIdsPrefix + 'help',
-        title: 'Wiki help',
-        caption: 'Help',
-
-        onclick: function() {
-
-          window.open('https://github.com/FNNDSC/viewerjs/wiki');
-        }
-      });
-
-      self.toolBar.addButton({
         id: btnsIdsPrefix + 'link',
         title: 'Link views',
-        caption: 'Link views',
+        caption: '<i class="fa fa-link"></i>',
 
         onclick: function() {
 
@@ -618,7 +607,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       self.toolBar.addButton({
         id: btnsIdsPrefix + 'collab',
         title: 'Start collaboration',
-        caption: 'Start collab',
+        caption: '<i class="fa fa-users"></i>',
 
         onclick: function() {
 
@@ -636,11 +625,20 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       self.toolBar.addButton({
         id: btnsIdsPrefix + 'auth',
         title: 'Authorize',
-        caption: 'Authorize',
+        caption: '<i class="fa fa-certificate"></i>',
       });
 
       // hide the button
       self.toolBar.hideButton(btnsIdsPrefix + 'auth');
+
+      self.toolBar.addButton({
+        id: btnsIdsPrefix + 'help',
+        title: 'Wiki help',
+        caption: '<i class="fa fa-question"></i>',
+        onclick: function() {
+          window.open('https://github.com/FNNDSC/viewerjs/wiki');
+        }
+      });
 
       // tool bar event listeners
       this.handleToolBarButtonLinkClick = function() {
@@ -650,13 +648,13 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         if (self.rBox.renderersLinked) {
 
           self.rBox.renderersLinked = false;
-          jqButton.text('Link views');
+          jqButton.html('<i class="fa fa-link"></i>');
           jqButton.attr('title', 'Link views');
 
         } else {
 
           self.rBox.renderersLinked = true;
-          jqButton.text('Unlink views');
+          jqButton.html('<i class="fa fa-chain-broken"></i>');
           jqButton.attr('title', 'Unlink views');
         }
       };
@@ -1111,7 +1109,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
         // update the UI
         var collabButton = document.getElementById(this.toolBarBtnsIdPrefix + 'collab');
-        collabButton.innerHTML = 'Start collab';
+        collabButton.innerHTML = '<i class="fa fa-users"></i>';
         collabButton.title = 'Start collaboration';
 
         // destroy the chat object
@@ -1191,7 +1189,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
           // update the UI
           var collabButton = document.getElementById(self.toolBarBtnsIdPrefix + 'collab');
           collabButton.style.display = '';
-          collabButton.innerHTML = 'End collab';
+          collabButton.innerHTML = '<i class="fa fa-user-times"></i>';
           collabButton.title = 'End collaboration';
 
           var authButton = document.getElementById(self.toolBarBtnsIdPrefix + 'auth');
@@ -1253,44 +1251,55 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
      * @param {Object} array of file objects with properties: url, cloudId and thBarId (thumbnails bar's id).
      */
      viewerjs.Viewer.prototype.handleOnDataFilesShared = function(collaboratorInfo, fObjArr) {
+       var self = this;
 
-      if (this.collab.collaboratorInfo.id === collaboratorInfo.id) {
+       if (self.collab.collaboratorInfo.id === collaboratorInfo.id) {
 
-        // GDrive files have been shared with this collaborator
+         // GDrive files have been shared with this collaborator
 
-        var fileArr = []; // two dimensional array of data arrays
+         var fileArr = []; // two dimensional array of data arrays
 
-        for (var i=0; i<fObjArr.length; i++) {
+         for (var i=0; i<fObjArr.length; i++) {
 
-          if (!fileArr[fObjArr[i].thBarId]) {
+           if (!fileArr[fObjArr[i].thBarId]) {
 
-            fileArr[fObjArr[i].thBarId] = [];
-          }
+             fileArr[fObjArr[i].thBarId] = [];
+           }
 
-          fileArr[fObjArr[i].thBarId].push({url: fObjArr[i].url, cloudId: fObjArr[i].id});
-        }
+           fileArr[fObjArr[i].thBarId].push({url: fObjArr[i].url, cloudId: fObjArr[i].id});
+         }
 
-        // wipe the initial wait text in the collaborators's viewer container
-        $('.view-initialwaittext', this.container).remove();
+         // wipe the initial wait text in the collaborators's viewer container
+         $('.view-initialwaittext', self.container).remove();
 
-        // start the viewer
-        this.init();
+         // start the viewer
+         self.init();
 
-        // update the toolbar's UI
-        var collabButton = document.getElementById(this.toolBarBtnsIdPrefix + 'collab');
-        collabButton.innerHTML = 'End collab';
-        collabButton.title = 'End collaboration';
+         // update the toolbar's UI
+         var collabButton = document.getElementById(this.toolBarBtnsIdPrefix + 'collab');
+         collabButton.innerHTML = '<i class="fa fa-user-times"></i>';
+         collabButton.title = 'End collaboration';
 
-        for (i=0; i<fileArr.length; i++) {
+         var numOfLoadedThumbnailsBar = 0;
 
-          // add thumbnails bars
-          var imgFileArr = this.buildImgFileArr(fileArr[i]);
-          this.addThumbnailsBar(imgFileArr);
-        }
+         var checkIfViewerReady = function() {
 
-        this.renderScene();
-      }
-    };
+           if (++numOfLoadedThumbnailsBar === fileArr.length) {
+
+             self.onViewerReady();
+           }
+         };
+
+         for (i=0; i<fileArr.length; i++) {
+
+           // add thumbnails bars
+           var imgFileArr = self.buildImgFileArr(fileArr[i]);
+           self.addThumbnailsBar(imgFileArr, checkIfViewerReady);
+         }
+
+         self.renderScene();
+       }
+     };
 
     /**
      * Handle the onCollabObjChanged event when the scene object has been modified by a remote collaborator.
@@ -1328,6 +1337,14 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         this.chat.updateCollaboratorList();
       }
     };
+
+    /**
+     * This method is called when all the thumbnails bars have been loaded in a collaborator's viewer instance.
+     */
+     viewerjs.Viewer.prototype.onViewerReady = function() {
+
+       console.log('onViewerReady not overwritten!');
+     };
 
     /**
      * Destroy all objects and remove html interface
