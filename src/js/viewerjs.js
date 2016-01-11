@@ -57,7 +57,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       //  -imgType: String neuroimage type. Any of the possible values returned by rendererjs.Renderer.imgType
       //  -files: Array of HTML5 File objects or custom file objects with properties:
       //     -remote: a boolean indicating whether the file has not been read locally (with a filepicker)
-      //     -url the file's url
+      //     -url: the file's url
       //     -cloudId: the id of the file in a cloud storage system if stored in the cloud
       //     -name: file name
       //  The files array contains a single file for imgType different from 'dicom' or 'dicomzip'
@@ -162,7 +162,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     };
 
     /**
-     * Add new data to the viewer. A new thumbnails bar is adde to the UI for the new data.
+     * Add new data to the viewer. A new thumbnails bar is added to the UI for the new data.
      *
      * @param {Array} array of file objects. Each object contains the following properties:
      * -url:     String representing the file url
@@ -194,6 +194,75 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         } else {
 
           if (callback) { callback(); }
+        }
+      }
+    };
+
+    /**
+     * Remove data from the viewer.
+     *
+     * @param {Number} image file object's integer id.
+     */
+    viewerjs.Viewer.prototype.removeData = function(id) {
+      var self = this;
+
+      // no data can be removed during a realtime collaboration session
+      if (!self.collab || !self.collab.collabIsOn) {
+
+        var thBar = self.getThumbnailsBarObject(id);
+
+        if (thBar) {
+
+          // remove corresponding thumbnail
+          thBar.removeThumbnail(id);
+
+          if (thBar.numThumbnails===0) {
+
+            // remove and destroy corresponding thumbnails bar if there is no thumbnail left
+
+            var thBarCont = thBar.container;
+
+            for (var j=0; j<self.thBars.length; j++) {
+
+              if (self.thBars[j].container[0] === thBarCont[0]) {
+
+                self.thBars.splice(j,1);
+                break;
+              }
+            }
+
+            for (j=0; j<self.componentsX.length; j++) {
+
+              if (self.componentsX[j].container[0] === thBarCont[0]) {
+
+                self.componentsX.splice(j,1);
+                break;
+              }
+            }
+
+            thBar.destroy();
+            thBarCont.remove();
+
+            // recompute renderers box width
+            var rBoxCSSWidth = self.computeRBoxCSSWidth();
+
+            self.rBox.container.css({ width: rBoxCSSWidth });
+
+            // toolbar has the same width as renderers box
+            self.toolBar.container.css({ width: rBoxCSSWidth });
+
+            self.layoutComponentsX();
+          }
+
+          // remove corresponding renderer in the renderers box if there is any
+          var rArr = self.rBox.renderers.filter( function(el) {
+
+            return el.id === id;
+          });
+
+          if (rArr.length) { self.rBox.removeRenderer(rArr[0]); }
+
+          self.imgFileArr[id] = null;
         }
       }
     };
@@ -684,7 +753,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     viewerjs.Viewer.prototype.addThumbnailsBar = function(imgFileArr, callback) {
       var self = this;
 
-      if(!imgFileArr.length) {
+      if (!imgFileArr.length) {
 
         if (callback) { callback(); }
         return;
@@ -766,15 +835,36 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       // insert thumbnails bar in front of the array of horizontal components
       self.componentsX.unshift(thBar);
 
-      // make space for the thumbnails bar
-      var thBarSpace = parseInt(thBar.container.css('left')) + parseInt(thBar.container.css('width')) + 5;
+      var rBoxCSSWidth = self.computeRBoxCSSWidth();
 
-      var rBoxCSSWidth = 'calc(100% - ' + (thBarSpace * self.thBars.length) + 'px)';
       self.rBox.container.css({ width: rBoxCSSWidth });
 
+      // toolbar has the same width as renderers box
       self.toolBar.container.css({ width: rBoxCSSWidth });
 
       self.layoutComponentsX();
+    };
+
+    /**
+     * Compute CSS width of the viewer's renderers box.
+     *
+     * @return {String} CSS width string.
+     */
+    viewerjs.Viewer.prototype.computeRBoxCSSWidth = function() {
+      var rBoxCSSWidth;
+
+      if (this.thBars.length) {
+
+        var thBarSpace = parseInt(this.componentsX[0].container.css('left')) + parseInt(this.thBars[0].container.css('width')) + 5;
+
+        rBoxCSSWidth = 'calc(100% - ' + (thBarSpace * this.thBars.length) + 'px)';
+
+      } else {
+
+        rBoxCSSWidth = '100%';
+      }
+
+      return rBoxCSSWidth;
     };
 
     /**
@@ -856,12 +946,11 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
      */
     viewerjs.Viewer.prototype.getThumbnailsBarObject = function(id) {
 
-      if (id<0 || id>=this.imgFileArr.length) {
+      var imgFileObj = this.getImgFileObject(id);
 
-        return null;
-      }
+      if (!iFObj) { return null; }
 
-      return this.thBars[this.getImgFileObject(id).thBarId];
+      return this.thBars[imgFileObj.thBarId];
     };
 
     /**
