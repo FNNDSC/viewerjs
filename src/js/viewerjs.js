@@ -948,7 +948,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
       var imgFileObj = this.getImgFileObject(id);
 
-      if (!iFObj) { return null; }
+      if (!imgFileObj) { return null; }
 
       return this.thBars[imgFileObj.thBarId];
     };
