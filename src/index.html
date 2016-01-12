@@ -53,6 +53,27 @@
         height: calc(100vh - 90px);
         margin: 0;
       }
+
+      .modal {
+        width: 50%;
+        height: auto;
+        margin: auto;
+        padding: 100px;
+        background-color: rgba(0, 0, 0, 0.5);
+        position:absolute;
+        top:0;
+        left:0;
+        width:100%;
+        height:100%;
+        z-index:1000;
+        display:none;
+      }
+
+      .modalDialog {
+        min-height: 300px;
+        min-width:500px;
+        background-color: #f9f9f9;
+      }
     </style>
 
   </head>
@@ -75,6 +96,13 @@
     </div>
 
     <div id="viewercontainer"></div>
+
+    <div id="collabModal" class="modal">
+      <div class="modalDialog">Hello modal
+        <button id="collabGrant">GRANT</button>
+        <button id="collabDeny">DENY</button>
+      </div>
+    </div>
 
     <!-- Load viewer scripts -->
     <script data-main="main" src="js/components/requirejs/require.js"></script>

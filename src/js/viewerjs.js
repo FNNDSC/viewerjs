@@ -659,6 +659,17 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       var btnsIdsPrefix = self.toolBarBtnsIdPrefix;
 
       self.toolBar.addButton({
+        id: btnsIdsPrefix + 'load',
+        title: 'Load data',
+        caption: '<i class="fa fa-folder-open"></i>',
+
+        onclick: function() {
+          //
+          window.console.log('upload callback');
+        }
+      });
+
+      self.toolBar.addButton({
         id: btnsIdsPrefix + 'link',
         title: 'Link views',
         caption: '<i class="fa fa-link"></i>',
@@ -692,15 +703,6 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       });
 
       self.toolBar.addButton({
-        id: btnsIdsPrefix + 'auth',
-        title: 'Authorize',
-        caption: '<i class="fa fa-certificate"></i>',
-      });
-
-      // hide the button
-      self.toolBar.hideButton(btnsIdsPrefix + 'auth');
-
-      self.toolBar.addButton({
         id: btnsIdsPrefix + 'help',
         title: 'Wiki help',
         caption: '<i class="fa fa-question"></i>',
@@ -717,13 +719,13 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         if (self.rBox.renderersLinked) {
 
           self.rBox.renderersLinked = false;
-          jqButton.html('<i class="fa fa-link"></i>');
+          jqButton.removeClass('active');
           jqButton.attr('title', 'Link views');
 
         } else {
 
           self.rBox.renderersLinked = true;
-          jqButton.html('<i class="fa fa-chain-broken"></i>');
+          jqButton.addClass('active');
           jqButton.attr('title', 'Unlink views');
         }
       };
@@ -1139,10 +1141,6 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       var self = this;
 
       if (self.collab) {
-
-        var collabButton = document.getElementById(self.toolBarBtnsIdPrefix + 'collab');
-        var authButton = document.getElementById(self.toolBarBtnsIdPrefix + 'auth');
-
         self.collab.authorizeAndLoadApi(true, function(granted) {
 
           if (granted) {
@@ -1152,20 +1150,30 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
           } else {
 
-            // show the auth button to start the authorization flow
-            collabButton.style.display = 'none';
-            authButton.style.display = '';
-
-            authButton.onclick = function() {
-
+            var grant = function() {
               self.collab.authorizeAndLoadApi(false, function(granted) {
 
                 if (granted) {
+                  // hide modal
+                  $('#collabModal').hide();
+                  //
+                  var collabButton = document.getElementById(self.toolBarBtnsIdPrefix + 'collab');
+                  collabButton.addClass('active');
+                  collabButton.title = 'End collaboration';
                   // realtime API ready.
                   self.collab.startRealtimeCollaboration(self.getLocalScene());
                 }
               });
             };
+
+            var deny = function(){
+              $('#collabModal').hide();
+            };
+
+            // create a modal....
+            $('#collabModal').show();
+            $('#collabGrant').off('click', grant).on('click', grant);
+            $('#collabDeny').off('click', deny).on('click', deny);
           }
         });
 
@@ -1198,7 +1206,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
         // update the UI
         var collabButton = document.getElementById(this.toolBarBtnsIdPrefix + 'collab');
-        collabButton.innerHTML = '<i class="fa fa-users"></i>';
+        collabButton.removeClass('active');
         collabButton.title = 'Start collaboration';
 
         // destroy the chat object
@@ -1274,16 +1282,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         // local on connect
 
         if (self.collab.collabOwner) {
-
-          // update the UI
-          var collabButton = document.getElementById(self.toolBarBtnsIdPrefix + 'collab');
-          collabButton.style.display = '';
-          collabButton.innerHTML = '<i class="fa fa-user-times"></i>';
-          collabButton.title = 'End collaboration';
-
-          var authButton = document.getElementById(self.toolBarBtnsIdPrefix + 'auth');
-          authButton.style.display = 'none';
-
+          
           // asyncronously load all files to GDrive
           self.collab.fileManager.createPath(self.collab.dataFilesBaseDir, function() {
 
@@ -1366,7 +1365,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
          // update the toolbar's UI
          var collabButton = document.getElementById(this.toolBarBtnsIdPrefix + 'collab');
-         collabButton.innerHTML = '<i class="fa fa-user-times"></i>';
+         collabButton.addClass('active');
          collabButton.title = 'End collaboration';
 
          var numOfLoadedThumbnailsBar = 0;
