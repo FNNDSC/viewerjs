@@ -807,7 +807,15 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       //
       thBar.onBeforeStop = function(evt, ui) {
 
-        if (ui.placeholder.parent()[0] === self.rBox.container[0]) {
+        //
+        $('#trash').hide();
+
+       // or something else....
+       if(evt.toElement.id === 'trash'){
+          // check if dropped in trash!
+          window.console.log('trash me!!');
+        }
+        else if (ui.placeholder.parent()[0] === self.rBox.container[0]) {
           $(evt.target).sortable("cancel");
 
           var id = thBar.getThumbnailId(ui.item.attr("id"));
@@ -821,7 +829,34 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
             }
           });
         }
+        
+        
       };
+
+      thBar.onSort = function(event, ui){
+        // test hover....
+        if(event.toElement.id === 'trash'){
+          // check if dropped in trash!
+          $('#trash').addClass('hover');
+        }
+        else{
+          $('#trash').removeClass('hover');
+        }
+      };
+
+      thBar.onStart = function(event, ui){
+        $('#trash').show();
+      };
+
+      thBar.onStop = function(event, ui){
+        $('#trash').hide();
+      };
+
+      $('#trash').sortable({
+        beforeStop: function(evt, ui) {
+           window.console.log('test');
+         }
+      });
 
       // append a thumbnails bar id to each array elem
       for (var i=0; i<imgFileArr.length; i++) {
@@ -1144,7 +1179,6 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         self.collab.authorizeAndLoadApi(true, function(granted) {
 
           if (granted) {
-
             // realtime API ready.
             self.collab.startRealtimeCollaboration(self.getLocalScene());
 
@@ -1156,10 +1190,6 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
                 if (granted) {
                   // hide modal
                   $('#collabModal').hide();
-                  //
-                  var collabButton = document.getElementById(self.toolBarBtnsIdPrefix + 'collab');
-                  collabButton.addClass('active');
-                  collabButton.title = 'End collaboration';
                   // realtime API ready.
                   self.collab.startRealtimeCollaboration(self.getLocalScene());
                 }
@@ -1282,6 +1312,9 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         // local on connect
 
         if (self.collab.collabOwner) {
+          var collabButton = $(self.toolBarBtnsIdPrefix + 'collab');
+          collabButton.addClass('active');
+          collabButton.title = 'End collaboration';
           
           // asyncronously load all files to GDrive
           self.collab.fileManager.createPath(self.collab.dataFilesBaseDir, function() {
@@ -1364,7 +1397,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
          self.init();
 
          // update the toolbar's UI
-         var collabButton = document.getElementById(this.toolBarBtnsIdPrefix + 'collab');
+         var collabButton = $(this.toolBarBtnsIdPrefix + 'collab');
          collabButton.addClass('active');
          collabButton.title = 'End collaboration';
 
