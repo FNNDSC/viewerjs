@@ -119,35 +119,69 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         'box-sizing': 'border-box'
 
       }).sortable({ // a sortable viewer makes it possible for the thumbnails bars to move around
+        zIndex: 9999,
         cursor: 'move',
         containment: 'parent',
         distance: '150',
-        axis: 'x',
+        connectWith: '#' + self.container.attr('id') + ' .view-trash', // thumbnails bars can be trashed
+        dropOnEmpty: true,
+
+        start: function() {
+
+          $('#' + self.container.attr('id') + ' .view-trash').show();
+        },
 
         beforeStop: function(evt, ui) {
 
-          // layout UI components (renderers box, thumbnails bars and toolbar)
-          for (var i=0; i<self.componentsX.length; i++) {
+          if (ui.placeholder.parent()[0] === self.container[0]) {
 
-            if (self.componentsX[i].container[0] === ui.item[0]) {
+            // layout UI components (renderers box, thumbnails bars and toolbar)
+            for (var i=0; i<self.componentsX.length; i++) {
 
-              var target = self.componentsX.splice(i,1);
+              if (self.componentsX[i].container[0] === ui.item[0]) {
 
-              if (ui.offset.left > ui.originalPosition.left) {
+                var target = self.componentsX.splice(i,1);
 
-                // moved from left to right so position it at the right end
-                self.componentsX = self.componentsX.concat(target);
+                if (ui.offset.left > ui.originalPosition.left) {
 
-              } else {
+                  // moved from left to right so position it at the right end
+                  self.componentsX = self.componentsX.concat(target);
 
-                // moved from right to left so position it at the left end
-                self.componentsX = target.concat(self.componentsX);
+                } else {
+
+                  // moved from right to left so position it at the left end
+                  self.componentsX = target.concat(self.componentsX);
+                }
+
+                self.layoutComponentsX();
+                break;
               }
-
-              self.layoutComponentsX();
-              break;
             }
+
+          } else {
+
+            // thumbnails bar was deposited on the trash so remove it and its related data
+
+            for (var j=0; j<self.thBars.length; j++) {
+
+              // find the trashed thumbnails bar's object
+              if (self.thBars[j] && self.thBars[j].container[0] === ui.item[0]) {
+
+                var thBar = self.thBars[j];
+                break;
+              }
+            }
+
+            var thumbnails = $('.view-thumbnail', ui.item);
+
+            thumbnails.each(function() {
+
+              var id = thBar.getThumbnailId(this.id);
+              self.removeData(id);
+            });
           }
+
+          $('#' + self.container.attr('id') + ' .view-trash').hide();
         }
       });
 
@@ -216,7 +250,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
           // remove corresponding thumbnail
           thBar.removeThumbnail(id);
 
-          if (thBar.numThumbnails===0) {
+          if (thBar.numThumbnails === 0) {
 
             // remove and destroy corresponding thumbnails bar if there is no thumbnail left
 
@@ -606,11 +640,16 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       */
      viewerjs.Viewer.prototype.handleOnRendererRemove = function(id) {
 
-       // corresponding thumbnail and renderer have the same integer id
-       var thContId = this.getThumbnailsBarObject(id).getThumbnailContId(id);
+       var thBar = this.getThumbnailsBarObject(id);
 
-       // display the removed renderer's thumbnail
-       $('#' + thContId).css({ display:'block' });
+       if (thBar) {
+
+         // corresponding thumbnail and renderer have the same integer id
+         var thContId = thBar.getThumbnailContId(id);
+
+         // display the removed renderer's thumbnail
+         $('#' + thContId).css({ display:'block' });
+       }
 
        // if there is now a single renderer then hide the Link views button
        if (this.rBox.numOfRenderers===1) {
@@ -887,9 +926,13 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         }
       }
 
+      console.log('this.componentsX:', this.componentsX);
+      console.log('this.thBars:', this.thBars);
+      console.log('nTh:', nTh);
+
       if (nTh) {
 
-        var thBarSpace = parseInt(this.componentsX[0].container.css('left')) + parseInt(this.thBars[ix].container.css('width')) + 5;
+        var thBarSpace = parseInt(this.thBars[ix].container.css('width')) + 10;
         rBoxCSSWidth = 'calc(100% - ' + (thBarSpace * nTh) + 'px)';
 
       } else {
