@@ -707,7 +707,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
           var loadFiles = function(e) {
             var files = e.target.files;
             var fileObj;
- 
+
             // Source data array for the new Viewer object
             var imgFileArr = [];
 
@@ -957,10 +957,6 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
           ix = i; // save the index of a non-null thumbnails bar object
         }
       }
-
-      console.log('this.componentsX:', this.componentsX);
-      console.log('this.thBars:', this.thBars);
-      console.log('nTh:', nTh);
 
       if (nTh) {
 
