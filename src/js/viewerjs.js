@@ -661,11 +661,43 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       self.toolBar.addButton({
         id: btnsIdsPrefix + 'load',
         title: 'Load data',
-        caption: '<i class="fa fa-folder-open"></i>',
+        caption: '<i class="fa fa-folder-open"></i>  <input id="loadDataToolbarButton" type="file"  webkitdirectory="" mozdirectory="" directory="" multiple style="display:none">',
 
-        onclick: function() {
-          //
-          window.console.log('upload callback');
+        onclick: function(e) {
+          var loadButton = $('#loadDataToolbarButton');
+          var loadFiles = function(e) {
+            var files = e.target.files;
+            var fileObj;
+ 
+            // Source data array for the new Viewer object
+            var imgFileArr = [];
+
+            for (var i=0; i<files.length; i++) {
+
+              fileObj = files[i];
+
+              if ('webkitRelativePath' in fileObj) {
+
+                fileObj.fullPath = fileObj.webkitRelativePath;
+
+              } else if (!('fullPath' in fileObj)) {
+
+                fileObj.fullPath = fileObj.name;
+              }
+
+              imgFileArr.push({
+                'url': fileObj.fullPath,
+                'file': fileObj
+              });
+            }
+
+            self.addData(imgFileArr);
+          };
+
+          loadButton.off('change').on('change', loadFiles);
+          loadButton[0].click(function( event ) {
+            event.stopPropagation();
+          });
         }
       });
 
@@ -1198,8 +1230,8 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
             // create a modal....
             $('#collabModal').show();
-            $('#collabGrant').off('click', grant).on('click', grant);
-            $('#collabDeny').off('click', deny).on('click', deny);
+            $('#collabGrant').off('click').on('click', grant);
+            $('#collabDeny').off('click').on('click', deny);
           }
         });
 
