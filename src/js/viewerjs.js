@@ -700,11 +700,14 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       self.toolBar.addButton({
         id: btnsIdsPrefix + 'load',
         title: 'Load data',
-        caption: '<i class="fa fa-folder-open"></i>  <input id="loadDataToolbarButton" type="file"  webkitdirectory="" mozdirectory="" directory="" multiple style="display:none">',
+        caption: '<i class="fa fa-folder-open"></i>  <input type="file"  webkitdirectory="" mozdirectory="" directory="" multiple style="display:none">',
 
         onclick: function(e) {
-          var loadButton = $('#loadDataToolbarButton');
+
+          var loadButton = $('input', this);
+
           var loadFiles = function(e) {
+
             var files = e.target.files;
             var fileObj;
 
@@ -734,7 +737,9 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
           };
 
           loadButton.off('change').on('change', loadFiles);
+          
           loadButton[0].click(function( event ) {
+
             event.stopPropagation();
           });
         }
@@ -840,7 +845,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       var options = {
         container: thBarCont[0],
         position: {
-          top: '5px',
+          top: self.rBox.container.css('top'),
           left: '5px'
         },
         layout: 'vertical',
