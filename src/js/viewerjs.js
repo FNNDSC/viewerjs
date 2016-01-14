@@ -123,7 +123,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         cursor: 'move',
         containment: 'parent',
         distance: '150',
-        connectWith: '#' + self.container.attr('id') + ' .view-trash', // thumbnails bars can be trashed
+        connectWith: '#' + self.container.attr('id') + ' .view-trash-sortable', // thumbnails bars can be trashed
         dropOnEmpty: true,
 
         start: function() {
@@ -132,33 +132,10 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         },
 
         beforeStop: function(evt, ui) {
-          var width = self.rBox.container.width();
-          if (
-            (ui.position.top < 30) &&
-            (ui.position.left > width/2 - 100) && (ui.position.left < width/2 + 100)
-            ){
 
-            // thumbnails bar was deposited on the trash so remove it and its related data
+          var parent = ui.placeholder.parent();
 
-            for (var j=0; j<self.thBars.length; j++) {
-
-              // find the trashed thumbnails bar's object
-              if (self.thBars[j] && self.thBars[j].container[0] === ui.item[0]) {
-
-                var thBar = self.thBars[j];
-                break;
-              }
-            }
-
-            var thumbnails = $('.view-thumbnail', ui.item);
-
-            thumbnails.each(function() {
-
-              var id = thBar.getThumbnailId(this.id);
-              self.removeData(id);
-            });
-          }
-          else if (ui.placeholder.parent()[0] === self.container[0]) {
+          if (parent[0] === self.container[0]) {
 
             // layout UI components (renderers box, thumbnails bars and toolbar)
             for (var i=0; i<self.componentsX.length; i++) {
@@ -183,22 +160,30 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
               }
             }
 
+          } else if (parent.parent()[0] === $('.view-trash', self.container)[0]) {
+
+            // thumbnails bar was deposited on the trash so remove it and its related data
+
+            for (var j=0; j<self.thBars.length; j++) {
+
+              // find the trashed thumbnails bar's object
+              if (self.thBars[j] && self.thBars[j].container[0] === ui.item[0]) {
+
+                var thBar = self.thBars[j];
+                break;
+              }
+            }
+
+            var thumbnails = $('.view-thumbnail', ui.item);
+
+            thumbnails.each(function() {
+
+              var id = thBar.getThumbnailId(this.id);
+              self.removeData(id);
+            });
           }
 
           $('#' + self.container.attr('id') + ' .view-trash').hide();
-        },
-
-        sort: function(event, ui) {
-          var width = self.rBox.container.width();
-          if(
-            (ui.position.top < 30) &&
-            (ui.position.left > width/2 - 100) && (ui.position.left < width/2 + 100)
-            ){
-            $('#' + self.container.attr('id') + ' .view-trash').addClass('highlight');
-          }
-          else{
-            $('#' + self.container.attr('id') + ' .view-trash').removeClass('highlight');
-          }
         }
       });
 
@@ -893,11 +878,28 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
 
       // get the jQuery sortable for the trash element
-      var trash = $('.view-trash', self.container);//.sortable();
+      var trash = $('.view-trash', self.container);
 
-      // link the thumbnails bar with the renderers box and the trash element
+      $('.view-trash-sortable', trash).sortable( {
+
+        over: function() {
+
+          trash.addClass('highlight');
+        },
+
+        out: function() {
+
+          trash.removeClass('highlight');
+        }
+      });
+
+      // link the thumbnails bar with the renderers box
       self.rBox.setComplementarySortableElems('#' + self.container.attr('id') + ' .view-thumbnailsbar-sortable');
-      thBar.setComplementarySortableElems('#' + self.container.attr('id') + ' .view-renderers, #' + self.container.attr('id') + ' .view-trash');
+      thBar.setComplementarySortableElems('#' + self.container.attr('id') + ' .view-renderers');
+
+      // link the thumbnails bar with the trash's sortable element
+      thBar.jqSortable.sortable( "option", "connectWith", '#' + self.container.attr('id') + ' .view-renderers, #' +
+        self.container.attr('id') + ' .view-trash-sortable');
 
       //
       // thumbnails bar event listeners
@@ -905,53 +907,34 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       thBar.onBeforeStop = function(evt, ui) {
 
         var id = thBar.getThumbnailId(ui.item.attr("id"));
-        var parentDOMElem = ui.placeholder.parent()[0];
+        var parent = ui.placeholder.parent();
 
-        if(
-          (ui.position.top < 48) &&
-          (ui.position.left + 56 > 0) && (ui.position.left + 56 < 200)
-          ){
+        if (parent[0] === self.rBox.container[0]) {
+
+          $(evt.target).sortable("cancel");
+
+          // add the corresponding renderer (with the same integer id) to the UI
+          self.addRenderer(self.getImgFileObject(id), function(renderer) {
+
+            if (renderer) {
+
+              self.updateCollabScene();
+            }
+          });
+
+        } else if (parent.parent()[0] === trash[0]) {
+
           $(evt.target).sortable("cancel");
           self.removeData(id);
-          }
-        else if (parentDOMElem === self.rBox.container[0]) {
-
-          $(evt.target).sortable("cancel");
-          if (parentDOMElem === self.rBox.container[0]) {
-
-            // add the corresponding renderer (with the same integer id) to the UI
-            self.addRenderer(self.getImgFileObject(id), function(renderer) {
-
-              if (renderer) {
-
-                self.updateCollabScene();
-              }
-            });
-
-          }
         }
 
         trash.hide();
+        trash.removeClass('highlight');
       };
 
       thBar.onStart = function() {
 
         trash.show();
-      };
-
-      thBar.onSort = function(event, ui) {
-
-        if(
-          (ui.position.top < 48) &&
-          (ui.position.left + 56 > 0) && (ui.position.left + 56 < 200)
-          ) {
-          trash.addClass('highlight');
-        }
-
-        else {
-
-          trash.removeClass('highlight');
-        }
       };
 
       // append a thumbnails bar id to each array elem
