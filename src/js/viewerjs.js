@@ -719,7 +719,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         title: 'Load data',
         caption: '<i class="fa fa-folder-open"></i>  <input type="file"  webkitdirectory="" mozdirectory="" directory="" multiple style="display:none">',
 
-        onclick: function(e) {
+        onclick: function() {
 
           var loadButton = $('input', this);
 
@@ -754,7 +754,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
           };
 
           loadButton.off('change').on('change', loadFiles);
-          
+
           loadButton[0].click(function( event ) {
 
             event.stopPropagation();
@@ -934,22 +934,22 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         trash.hide();
       };
 
-      thBar.onStart = function(event, ui) {
-        trash.show();
-      };
+      thBar.onStart = function() {
 
-      thBar.onStart = function(event, ui) {
         trash.show();
       };
 
       thBar.onSort = function(event, ui) {
+
         if(
           (ui.position.top < 48) &&
           (ui.position.left + 56 > 0) && (ui.position.left + 56 < 200)
-          ){
+          ) {
           trash.addClass('highlight');
         }
-        else{
+
+        else {
+
           trash.removeClass('highlight');
         }
       };
