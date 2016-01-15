@@ -134,8 +134,32 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         beforeStop: function(evt, ui) {
 
           var parent = ui.placeholder.parent();
+          var trash = $('.view-trash', self.container);
 
-          if (parent[0] === self.container[0]) {
+          if (trash.hasClass('highlight')) {
+
+            trash.removeClass('highlight');
+            // thumbnails bar was deposited on the trash so remove it and its related data
+
+            for (var j=0; j<self.thBars.length; j++) {
+
+              // find the trashed thumbnails bar's object
+              if (self.thBars[j] && self.thBars[j].container[0] === ui.item[0]) {
+
+                var thBar = self.thBars[j];
+                break;
+              }
+            }
+
+            var thumbnails = $('.view-thumbnail', ui.item);
+
+            thumbnails.each(function() {
+
+              var id = thBar.getThumbnailId(this.id);
+              self.removeData(id);
+            });
+          }
+          else  if (parent[0] === self.container[0]) {
 
             // layout UI components (renderers box, thumbnails bars and toolbar)
             for (var i=0; i<self.componentsX.length; i++) {
@@ -160,27 +184,10 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
               }
             }
 
-          } else if (parent.parent()[0] === $('.view-trash', self.container)[0]) {
-
-            // thumbnails bar was deposited on the trash so remove it and its related data
-
-            for (var j=0; j<self.thBars.length; j++) {
-
-              // find the trashed thumbnails bar's object
-              if (self.thBars[j] && self.thBars[j].container[0] === ui.item[0]) {
-
-                var thBar = self.thBars[j];
-                break;
-              }
-            }
-
-            var thumbnails = $('.view-thumbnail', ui.item);
-
-            thumbnails.each(function() {
-
-              var id = thBar.getThumbnailId(this.id);
-              self.removeData(id);
-            });
+          }
+          else{
+            // cancel ddRop
+            $(evt.target).sortable("cancel");
           }
 
           $('#' + self.container.attr('id') + ' .view-trash').hide();
@@ -909,8 +916,13 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         var id = thBar.getThumbnailId(ui.item.attr("id"));
         var parent = ui.placeholder.parent();
 
-        if (parent[0] === self.rBox.container[0]) {
+        if(trash.hasClass('highlight')){
+          trash.removeClass('highlight');
 
+          $(evt.target).sortable("cancel");
+          self.removeData(id);
+        }
+        else if (parent[0] === self.rBox.container[0]) {
           $(evt.target).sortable("cancel");
 
           // add the corresponding renderer (with the same integer id) to the UI
@@ -922,14 +934,14 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
             }
           });
 
-        } else if (parent.parent()[0] === trash[0]) {
-
+        }
+        else{
+          // cancel ddRop
           $(evt.target).sortable("cancel");
-          self.removeData(id);
         }
 
         trash.hide();
-        trash.removeClass('highlight');
+        
       };
 
       thBar.onStart = function() {
