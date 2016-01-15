@@ -47,8 +47,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       // prefix string for the DOM ids used for the thumbnails' containers.
       this.thumbnailsIdPrefix = containerId + '_thumbnail';
 
-      // array of objects containing the renderers box and thumbnails bars in their horizontal
-      // visual order (the toolbar is always at the same horizontal position as the renderers box)
+      // array of objects containing the renderers box and thumbnails bars in their horizontal visual order
       this.componentsX = [];
 
       // array of image file objects, each object contains the following properties:
@@ -185,7 +184,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
             }
 
           }
-          else{
+          else {
             // cancel ddRop
             $(evt.target).sortable("cancel");
           }
@@ -287,12 +286,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
             thBarCont.remove();
 
             // recompute renderers box width
-            var rBoxCSSWidth = self.computeRBoxCSSWidth();
-
-            self.rBox.container.css({ width: rBoxCSSWidth });
-
-            // toolbar has the same width as renderers box
-            self.toolBar.container.css({ width: rBoxCSSWidth });
+            self.rBox.container.css({ width: self.computeRBoxCSSWidth() });
 
             self.layoutComponentsX();
           }
@@ -709,7 +703,8 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       self.toolBar.addButton({
         id: btnsIdsPrefix + 'load',
         title: 'Load data',
-        caption: '<i class="fa fa-folder-open"></i>  <input type="file"  webkitdirectory="" mozdirectory="" directory="" multiple style="display:none">',
+        caption: '<i class="fa fa-folder-open"></i>  <input type="file"' +
+          '  webkitdirectory="" mozdirectory="" directory="" multiple style="display:none">',
 
         onclick: function() {
 
@@ -854,7 +849,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       var options = {
         container: thBarCont[0],
         position: {
-          top: self.rBox.container.css('top'),
+          top: self.rBox.container.css('top'), // thumbnails bar at the same vertical level as the renderers box
           left: '5px'
         },
         layout: 'vertical',
@@ -916,13 +911,15 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         var id = thBar.getThumbnailId(ui.item.attr("id"));
         var parent = ui.placeholder.parent();
 
-        if(trash.hasClass('highlight')){
+        if (trash.hasClass('highlight')) {
+
           trash.removeClass('highlight');
 
           $(evt.target).sortable("cancel");
           self.removeData(id);
-        }
-        else if (parent[0] === self.rBox.container[0]) {
+
+        } else if (parent[0] === self.rBox.container[0]) {
+
           $(evt.target).sortable("cancel");
 
           // add the corresponding renderer (with the same integer id) to the UI
@@ -934,14 +931,13 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
             }
           });
 
-        }
-        else{
+        } else if (parent[0] !== thBar.jqSortable[0]) {
+
           // cancel ddRop
           $(evt.target).sortable("cancel");
         }
 
         trash.hide();
-        
       };
 
       thBar.onStart = function() {
@@ -951,6 +947,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
       // append a thumbnails bar id to each array elem
       for (var i=0; i<imgFileArr.length; i++) {
+
         imgFileArr[i].thBarId = self.thBars.length;
       }
 
@@ -963,12 +960,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       // insert thumbnails bar in front of the array of horizontal components
       self.componentsX.unshift(thBar);
 
-      var rBoxCSSWidth = self.computeRBoxCSSWidth();
-
-      self.rBox.container.css({ width: rBoxCSSWidth });
-
-      // toolbar has the same width as renderers box
-      self.toolBar.container.css({ width: rBoxCSSWidth });
+      self.rBox.container.css({ width: self.computeRBoxCSSWidth() });
 
       self.layoutComponentsX();
     };
@@ -1027,13 +1019,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       // position elements to the left of the renderers box including it
       var comps = self.componentsX.slice(0, rBIx + 1);
 
-      comps.forEach( function(el, ix) {
-
-        if (self.toolBar && (ix === rBIx)) {
-
-          // toolbar is always on the same column as renderers box
-          self.toolBar.container.css({ left: left + 'px', right: 'auto' });
-        }
+      comps.forEach(function(el) {
 
         el.container.css({ left: left + 'px', right: 'auto' });
         left += parseInt(el.container.css('width')) + 5 ;
@@ -1042,7 +1028,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       // position  elements to the right of the renderers box
       comps = self.componentsX.slice(rBIx + 1);
 
-      comps.reverse().forEach( function(el) {
+      comps.reverse().forEach(function(el) {
 
         el.container.css({ left: 'auto', right: right + 'px' });
         right += parseInt(el.container.css('width')) + 5 ;
