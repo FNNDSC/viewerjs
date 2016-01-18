@@ -705,11 +705,11 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         title: 'Load data',
         caption: '<i class="fa fa-folder-open"></i>  <input type="file"' +
           '  webkitdirectory="" mozdirectory="" directory="" multiple style="display:none">',
+        label: 'Load',
 
         onclick: function() {
 
-          var loadButton = $('input', this);
-
+          var loadButton = $('#' + btnsIdsPrefix + 'load > input');
           var loadFiles = function(e) {
 
             var files = e.target.files;
@@ -750,25 +750,107 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       });
 
       self.toolBar.addButton({
-        id: btnsIdsPrefix + 'link',
-        title: 'Link views',
-        caption: '<i class="fa fa-link"></i>',
-
+        id: btnsIdsPrefix + 'fiducial',
+        title: 'Add fiducial',
+        caption: '<i class="fa fa-thumb-tack"></i>',
+        label: 'Tools',
         onclick: function() {
 
-          self.handleToolBarButtonLinkClick();
-          self.updateCollabScene();
+          window.console.log('hi fiducial there...');
+
         }
       });
 
-      // hide the button
-      self.toolBar.hideButton(btnsIdsPrefix + 'link');
+      // disable the button
+      self.toolBar.disableButton(btnsIdsPrefix + 'fiducial');
+
+      self.toolBar.addButton({
+        id: btnsIdsPrefix + 'distance',
+        title: 'Mesure distance',
+        caption: '<i class="fa fa-arrows-h"></i>',
+        onclick: function() {
+
+          window.console.log('hi distance there...');
+
+        }
+      });
+
+      // disable the button
+      self.toolBar.disableButton(btnsIdsPrefix + 'distance');
+
+      self.toolBar.addButton({
+        id: btnsIdsPrefix + 'angle',
+        title: 'Measure angle',
+        caption: '<i class="fa fa-rss"></i>',
+        onclick: function() {
+
+          window.console.log('hi angle there...');
+
+        }
+      });
+
+      // disable the button
+      self.toolBar.disableButton(btnsIdsPrefix + 'angle');
+
+      self.toolBar.addButton({
+        id: btnsIdsPrefix + 'pointer',
+        title: 'Pointer',
+        caption: '<i class="fa fa-mouse-pointer"></i>',
+        label: 'Interactors',
+        onclick: function() {
+
+          window.console.log('hi zoom there...');
+
+        }
+      });
+
+      // disable the button
+      self.toolBar.disableButton(btnsIdsPrefix + 'pointer');
+
+      self.toolBar.addButton({
+        id: btnsIdsPrefix + 'search',
+        title: 'Zoom',
+        caption: '<i class="fa fa-search"></i>',
+        onclick: function() {
+
+          window.console.log('hi zoom there...');
+
+        }
+      });
+
+      // disable the button
+      self.toolBar.disableButton(btnsIdsPrefix + 'search');
+
+       self.toolBar.addButton({
+        id: btnsIdsPrefix + 'adjust',
+        title: 'Window Level',
+        caption: '<i class="fa fa-adjust"></i>',
+        onclick: function() {
+
+          window.console.log('hi window level there...');
+
+        }
+      });
+
+      // disable the button
+      self.toolBar.disableButton(btnsIdsPrefix + 'adjust');
+
+       self.toolBar.addButton({
+        id: btnsIdsPrefix + 'arrows',
+        title: 'Pan',
+        caption: '<i class="fa fa-arrows"></i>',
+        onclick: function() {
+
+          window.console.log('hi pan there...');
+
+        }
+      });
 
       self.toolBar.addButton({
         id: btnsIdsPrefix + 'collab',
         title: 'Start collaboration',
         caption: '<i class="fa fa-users"></i>',
-
+        label: 'More',
         onclick: function() {
 
           if (self.collab.collabIsOn) {
@@ -783,12 +865,47 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       });
 
       self.toolBar.addButton({
+        id: btnsIdsPrefix + 'link',
+        title: 'Link views',
+        caption: '<i class="fa fa-link"></i>',
+
+        onclick: function() {
+
+          self.handleToolBarButtonLinkClick();
+          self.updateCollabScene();
+        }
+      });
+
+      // hide the button
+      self.toolBar.hideButton(btnsIdsPrefix + 'link');
+
+      // disable the button
+      self.toolBar.disableButton(btnsIdsPrefix + 'arrows');
+
+      self.toolBar.addButton({
+        id: btnsIdsPrefix + 'gear',
+        title: 'Settings',
+        caption: '<i class="fa fa-gear"></i>',
+        onclick: function() {
+
+          window.open('https://github.com/FNNDSC/viewerjs/wiki');
+
+        }
+
+      });
+      // disable the button
+      self.toolBar.disableButton(btnsIdsPrefix + 'gear');
+
+      self.toolBar.addButton({
         id: btnsIdsPrefix + 'help',
         title: 'Wiki help',
         caption: '<i class="fa fa-question"></i>',
         onclick: function() {
+
           window.open('https://github.com/FNNDSC/viewerjs/wiki');
+          
         }
+
       });
 
       // tool bar event listeners
