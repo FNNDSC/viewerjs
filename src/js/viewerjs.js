@@ -700,6 +700,8 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       //
       var btnsIdsPrefix = self.toolBarBtnsIdPrefix;
 
+      //
+      // Load directory
       self.toolBar.addButton({
         id: btnsIdsPrefix + 'load',
         title: 'Load data',
@@ -749,6 +751,69 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         }
       });
 
+      //
+      // Load file
+      self.toolBar.addButton({
+        id: btnsIdsPrefix + 'file',
+        title: 'Load file',
+        caption: '<i class="fa fa-file"></i>',
+        onclick: function() {
+
+          window.console.log('hi file there...');
+
+        }
+      });
+
+      self.toolBar.disableButton(btnsIdsPrefix + 'file');
+
+      //
+      // X orientation button
+      self.toolBar.addButton({
+        id: btnsIdsPrefix + 'acquisitionX',
+        title: 'acquisitionX',
+        caption: 'X',
+        label: 'Orientation',
+        onclick: function() {
+
+          window.console.log('hi acquisitionX there...');
+
+        }
+      });
+
+      self.toolBar.disableButton(btnsIdsPrefix + 'acquisitionX');
+
+      //
+      // Y orientation button
+      self.toolBar.addButton({
+        id: btnsIdsPrefix + 'acquisitionY',
+        title: 'acquisitionY',
+        caption: 'Y',
+        onclick: function() {
+
+          window.console.log('hi acquisitionY there...');
+
+        }
+      });
+
+      self.toolBar.disableButton(btnsIdsPrefix + 'acquisitionY');
+
+      //
+      // Z orientation button
+      self.toolBar.addButton({
+        id: btnsIdsPrefix + 'acquisitionZ',
+        title: 'acquisitionZ',
+        caption: 'Z',
+        onclick: function() {
+
+          window.console.log('hi acquisitionZ there...');
+
+        }
+      });
+
+      self.toolBar.disableButton(btnsIdsPrefix + 'acquisitionZ');
+
+      //
+      // Fiducial widget button
       self.toolBar.addButton({
         id: btnsIdsPrefix + 'fiducial',
         title: 'Add fiducial',
@@ -761,9 +826,10 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         }
       });
 
-      // disable the button
       self.toolBar.disableButton(btnsIdsPrefix + 'fiducial');
 
+      //
+      // Distance widget button
       self.toolBar.addButton({
         id: btnsIdsPrefix + 'distance',
         title: 'Mesure distance',
@@ -775,9 +841,10 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         }
       });
 
-      // disable the button
       self.toolBar.disableButton(btnsIdsPrefix + 'distance');
 
+      //
+      // Angle widget button
       self.toolBar.addButton({
         id: btnsIdsPrefix + 'angle',
         title: 'Measure angle',
@@ -789,9 +856,25 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         }
       });
 
-      // disable the button
       self.toolBar.disableButton(btnsIdsPrefix + 'angle');
 
+      //
+      // Note widget button
+      self.toolBar.addButton({
+        id: btnsIdsPrefix + 'note',
+        title: 'Add a note',
+        caption: '<i class="fa fa-sticky-note-o"></i>',
+        onclick: function() {
+
+          window.console.log('hi note there...');
+
+        }
+      });
+
+      self.toolBar.disableButton(btnsIdsPrefix + 'note');
+
+      //
+      // Pointer interactor button
       self.toolBar.addButton({
         id: btnsIdsPrefix + 'pointer',
         title: 'Pointer',
@@ -804,9 +887,10 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         }
       });
 
-      // disable the button
       self.toolBar.disableButton(btnsIdsPrefix + 'pointer');
 
+      //
+      // Zoom interactor button
       self.toolBar.addButton({
         id: btnsIdsPrefix + 'search',
         title: 'Zoom',
@@ -818,10 +902,11 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         }
       });
 
-      // disable the button
       self.toolBar.disableButton(btnsIdsPrefix + 'search');
 
-       self.toolBar.addButton({
+      //
+      // Window Level interactor button
+      self.toolBar.addButton({
         id: btnsIdsPrefix + 'adjust',
         title: 'Window Level',
         caption: '<i class="fa fa-adjust"></i>',
@@ -832,10 +917,11 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         }
       });
 
-      // disable the button
       self.toolBar.disableButton(btnsIdsPrefix + 'adjust');
 
-       self.toolBar.addButton({
+      //
+      // Pan interactor button
+      self.toolBar.addButton({
         id: btnsIdsPrefix + 'arrows',
         title: 'Pan',
         caption: '<i class="fa fa-arrows"></i>',
@@ -846,6 +932,10 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         }
       });
 
+      self.toolBar.disableButton(btnsIdsPrefix + 'arrows');
+
+      //
+      // Start collaboration button
       self.toolBar.addButton({
         id: btnsIdsPrefix + 'collab',
         title: 'Start collaboration',
@@ -864,6 +954,8 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         }
       });
 
+      //
+      // Link views button
       self.toolBar.addButton({
         id: btnsIdsPrefix + 'link',
         title: 'Link views',
@@ -876,12 +968,10 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         }
       });
 
-      // hide the button
       self.toolBar.hideButton(btnsIdsPrefix + 'link');
-
-      // disable the button
-      self.toolBar.disableButton(btnsIdsPrefix + 'arrows');
-
+      
+      //
+      // Settings button
       self.toolBar.addButton({
         id: btnsIdsPrefix + 'gear',
         title: 'Settings',
@@ -893,9 +983,11 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         }
 
       });
-      // disable the button
+
       self.toolBar.disableButton(btnsIdsPrefix + 'gear');
 
+      //
+      // Help button
       self.toolBar.addButton({
         id: btnsIdsPrefix + 'help',
         title: 'Wiki help',
