@@ -157,7 +157,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
             var thumbnails = $('.view-thumbnail', ui.item);
 
-            thumbnails.each(function() {
+            thumbnails.each( function() {
 
               var id = thBar.getThumbnailId(this.id);
               self.removeData(id);
@@ -295,7 +295,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         }
 
         // remove corresponding renderer in the renderers box if there is any
-        var rArr = self.rBox.renderers.filter(function(el) {
+        var rArr = self.rBox.renderers.filter( function(el) {
 
           return el.id === id;
         });
@@ -468,7 +468,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     assignUtilityFiles(jsons, 'json');
 
     // sort the built array for consistency among possible collaborators
-    imgFileArr.sort(function(el1, el2) {
+    imgFileArr.sort( function(el1, el2) {
        var val1 = el1.baseUrl + el1.files[0].name.replace(/.zip$/, '');
        var val2 = el2.baseUrl + el2.files[0].name.replace(/.zip$/, '');
        var values = [val1, val2].sort();
@@ -552,7 +552,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     this.rBox.onStart = function() {
 
       // thumbnails bars' scroll bars have to be removed to make the moving helper visible
-      self.thBars.forEach(function(thBar) {
+      self.thBars.forEach( function(thBar) {
 
         if (thBar) { thBar.container.css({overflow: 'visible'}); }
       });
@@ -566,7 +566,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
         $(evt.target).sortable('cancel');
 
-        var rArr = self.rBox.renderers.filter(function(el) {
+        var rArr = self.rBox.renderers.filter( function(el) {
             return el.id === id;
           });
 
@@ -578,7 +578,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       }
 
       // restore thumbnails bars' scroll bars
-      self.thBars.forEach(function(thBar) {
+      self.thBars.forEach( function(thBar) {
 
         if (thBar) { thBar.container.css({overflow: 'auto'}); }
       });
@@ -660,9 +660,11 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     // if there is now a single renderer then hide the Link views button
     if (this.rBox.numOfRenderers === 1) {
 
-      $('#' + this.toolBarBtnsIdPrefix + 'link').css({display: 'none'});
+      this.toolBar.hideButton(this.toolBarBtnsIdPrefix + 'link');
 
-      if (this.rBox.renderersLinked) {
+      if (this.renderersLinked) {
+
+        // unlink renderers
         this.handleToolBarButtonLinkClick();
       }
     }
@@ -747,7 +749,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
         loadButton.off('change').on('change', loadFiles);
 
-        loadButton[0].click(function(event) {
+        loadButton[0].click( function(event) {
 
           event.stopPropagation();
         });
@@ -1008,15 +1010,17 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
       var jqButton = $('#' +  btnsIdsPrefix + 'link');
 
-      if (self.rBox.renderersLinked) {
+      if (self.renderersLinked) {
 
         self.rBox.unlinkRenderers();
+        self.renderersLinked = false;
         jqButton.removeClass('active');
         jqButton.attr('title', 'Link views');
 
       } else {
 
         self.rBox.linkRenderers();
+        self.renderersLinked = true;
         jqButton.addClass('active');
         jqButton.attr('title', 'Unlink views');
       }
@@ -1230,7 +1234,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     // position elements to the left of the renderers box including it
     var comps = self.componentsX.slice(0, rBIx + 1);
 
-    comps.forEach(function(el) {
+    comps.forEach( function(el) {
 
       el.container.css({left: left + 'px', right: 'auto'});
       left += parseInt(el.container.css('width')) + 5 ;
@@ -1239,7 +1243,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     // position  elements to the right of the renderers box
     comps = self.componentsX.slice(rBIx + 1);
 
-    comps.reverse().forEach(function(el) {
+    comps.reverse().forEach( function(el) {
 
       el.container.css({left: 'auto', right: right + 'px'});
       right += parseInt(el.container.css('width')) + 5 ;
@@ -1373,7 +1377,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       // collaboration is on, so get and render the scene
       scene = self.getCollabScene();
 
-      if (self.rBox.renderersLinked !== scene.toolBar.renderersLinked) {
+      if (self.renderersLinked !== scene.toolBar.renderersLinked) {
 
         self.handleToolBarButtonLinkClick();
       }
@@ -1392,7 +1396,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
     // set toolbar's properties
     scene.toolBar = {};
-    scene.toolBar.renderersLinked = this.rBox.renderersLinked;
+    scene.toolBar.renderersLinked = this.renderersLinked;
 
     // set renderers' properties
     // https://docs.google.com/document/d/1GHT7DtSq1ds4TyplA0E2Efy4fuv2xf17APcorqzBZjc/edit
@@ -1551,7 +1555,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     var self = this;
 
     // total number of files to be uploaded to GDrive
-    var totalNumFiles = (function() {
+    var totalNumFiles = ( function() {
       var nFiles = 0;
 
       for (var i = 0; i < self.imgFileArr.length; i++) {
