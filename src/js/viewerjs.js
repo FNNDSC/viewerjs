@@ -157,7 +157,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
             var thumbnails = $('.view-thumbnail', ui.item);
 
-            thumbnails.each( function() {
+            thumbnails.each(function() {
 
               var id = thBar.getThumbnailId(this.id);
               self.removeData(id);
@@ -295,7 +295,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         }
 
         // remove corresponding renderer in the renderers box if there is any
-        var rArr = self.rBox.renderers.filter( function(el) {
+        var rArr = self.rBox.renderers.filter(function(el) {
 
           return el.id === id;
         });
@@ -468,7 +468,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     assignUtilityFiles(jsons, 'json');
 
     // sort the built array for consistency among possible collaborators
-    imgFileArr.sort( function(el1, el2) {
+    imgFileArr.sort(function(el1, el2) {
        var val1 = el1.baseUrl + el1.files[0].name.replace(/.zip$/, '');
        var val2 = el2.baseUrl + el2.files[0].name.replace(/.zip$/, '');
        var values = [val1, val2].sort();
@@ -552,7 +552,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     this.rBox.onStart = function() {
 
       // thumbnails bars' scroll bars have to be removed to make the moving helper visible
-      self.thBars.forEach( function(thBar) {
+      self.thBars.forEach(function(thBar) {
 
         if (thBar) { thBar.container.css({overflow: 'visible'}); }
       });
@@ -566,7 +566,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
         $(evt.target).sortable('cancel');
 
-        var rArr = self.rBox.renderers.filter( function(el) {
+        var rArr = self.rBox.renderers.filter(function(el) {
             return el.id === id;
           });
 
@@ -578,13 +578,34 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       }
 
       // restore thumbnails bars' scroll bars
-      self.thBars.forEach( function(thBar) {
+      self.thBars.forEach(function(thBar) {
 
         if (thBar) { thBar.container.css({overflow: 'auto'}); }
       });
     };
 
-    this.rBox.onRendererChange = function() {
+    this.rBox.onRendererChange = function(evt) {
+
+      if ((evt.type === 'click') && $(evt.currentTarget).hasClass('view-renderer-titlebar-buttonpane-pin')) {
+
+        var selectedArr = this.getSelectedRenderers();
+
+        if (self.renderersLinked && selectedArr.length <= 1) {
+
+          // at most one renderer is selected so change state to unlinked
+          self.handleToolBarButtonLinkClick();
+
+          if (selectedArr.length === 1) {
+
+            selectedArr[0].select(); // reselect the only previously selected renderer
+          }
+
+        } else if (!self.renderersLinked && selectedArr.length === this.renderers.length) {
+
+          // all renderers are selected so change state to linked
+          self.handleToolBarButtonLinkClick();
+        }
+      }
 
       self.updateCollabScene();
     };
@@ -623,6 +644,15 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
       if (renderer) {
 
+        // deselect all renderers in the UI
+        self.rBox.renderers.forEach(function(rndr) {
+
+          if (rndr.selected) { rndr.deselect(); }
+        });
+
+        // select the newly added renderer
+        renderer.select();
+
         if (self.rBox.numOfRenderers === 2) {
 
           // if there are now 2 renderers in the renderers box then show the Link views button
@@ -635,7 +665,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         $('#' + thBar.getThumbnailContId(imgFileObj.id)).css({display: ''});
       }
 
-      if (callback) {callback(renderer);}
+      if (callback) { callback(renderer); }
     });
   };
 
@@ -657,7 +687,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       $('#' + thContId).css({display: 'block'});
     }
 
-    // if there is now a single renderer then hide the Link views button
+    // if there is now a single renderer then hide the Link views button and make it selected
     if (this.rBox.numOfRenderers === 1) {
 
       this.toolBar.hideButton(this.toolBarBtnsIdPrefix + 'link');
@@ -667,6 +697,9 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         // unlink renderers
         this.handleToolBarButtonLinkClick();
       }
+
+      var rndr = this.rBox.renderers[0];
+      if (!rndr.selected) { rndr.select(); }
     }
   };
 
@@ -749,7 +782,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
         loadButton.off('change').on('change', loadFiles);
 
-        loadButton[0].click( function(event) {
+        loadButton[0].click(function(event) {
 
           event.stopPropagation();
         });
@@ -780,12 +813,10 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       label: 'Orientation',
       onclick: function() {
 
-        console.log('hi acquisitionX there...');
-
+        self.handleChangeOrientation('X');
+        self.updateCollabScene();
       }
     });
-
-    self.toolBar.disableButton(btnsIdsPrefix + 'acquisitionX');
 
     //
     // Y orientation button
@@ -795,12 +826,10 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       caption: 'Y',
       onclick: function() {
 
-        window.console.log('hi acquisitionY there...');
-
+        self.handleChangeOrientation('Y');
+        self.updateCollabScene();
       }
     });
-
-    self.toolBar.disableButton(btnsIdsPrefix + 'acquisitionY');
 
     //
     // Z orientation button
@@ -810,12 +839,10 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       caption: 'Z',
       onclick: function() {
 
-        window.console.log('hi acquisitionZ there...');
-
+        self.handleChangeOrientation('Z');
+        self.updateCollabScene();
       }
     });
-
-    self.toolBar.disableButton(btnsIdsPrefix + 'acquisitionZ');
 
     //
     // Fiducial widget button
@@ -1002,10 +1029,19 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         window.open('https://github.com/FNNDSC/viewerjs/wiki');
 
       }
-
     });
 
+    //
     // tool bar event listeners
+    //
+    this.handleChangeOrientation = function(orientation) {
+
+      self.rBox.getSelectedRenderers().forEach(function(rndr) {
+
+        rndr.changeOrientation(orientation);
+      });
+    };
+
     this.handleToolBarButtonLinkClick = function() {
 
       var jqButton = $('#' +  btnsIdsPrefix + 'link');
@@ -1234,7 +1270,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     // position elements to the left of the renderers box including it
     var comps = self.componentsX.slice(0, rBIx + 1);
 
-    comps.forEach( function(el) {
+    comps.forEach(function(el) {
 
       el.container.css({left: left + 'px', right: 'auto'});
       left += parseInt(el.container.css('width')) + 5 ;
@@ -1243,7 +1279,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     // position  elements to the right of the renderers box
     comps = self.componentsX.slice(rBIx + 1);
 
-    comps.reverse().forEach( function(el) {
+    comps.reverse().forEach(function(el) {
 
       el.container.css({left: 'auto', right: right + 'px'});
       right += parseInt(el.container.css('width')) + 5 ;
@@ -1555,7 +1591,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     var self = this;
 
     // total number of files to be uploaded to GDrive
-    var totalNumFiles = ( function() {
+    var totalNumFiles = (function() {
       var nFiles = 0;
 
       for (var i = 0; i < self.imgFileArr.length; i++) {

@@ -20,6 +20,9 @@ require.config({
     gcjs: 'gcjs/src/js/gcjs',
     rendererjs: 'rendererjs/src/js/rendererjs',
     xtk: 'rendererjs/src/js/lib/xtk',
+    jpegmin: 'rendererjs/src/js/lib/jpegmin',
+    lossless: 'rendererjs/src/js/lib/lossless',
+    jpx: 'rendererjs/src/js/lib/jpx',
     rboxjs: 'rboxjs/src/js/rboxjs',
     thbarjs: 'thbarjs/src/js/thbarjs',
     toolbarjs: 'toolbarjs/src/js/toolbarjs',
@@ -83,7 +86,7 @@ require(['gcjs', 'viewerjs'], function(cjs, viewerjs) {
                 view.collab.joinRealtimeCollaboration(roomIdInput.value);
               }
             });
-          }
+          };
         }
       });
     }
@@ -95,7 +98,7 @@ require(['gcjs', 'viewerjs'], function(cjs, viewerjs) {
   var dirBtn = document.getElementById('dirbtn');
 
   dirBtn.onchange = function(e) {
-    
+
     var files = e.target.files;
     var fileObj;
 
