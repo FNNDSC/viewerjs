@@ -29,6 +29,9 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     // viewer's container
     this.container = $('#' + containerId);
 
+    // jQuery object for the collaboration dialog window
+    this.collabWin = null;
+
     // tool bar object
     this.toolBar = null;
 
@@ -198,6 +201,8 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
       self.addRenderersBox();
       self.addToolBar();
+
+      if (self.collab) { self.initCollabWindow(); }
 
       // set a dropzone
       util.setDropzone(self.containerId, function(fObjArr) {
@@ -969,20 +974,23 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     //
     // Start collaboration button
     self.toolBar.addButton({
+
       id: btnsIdsPrefix + 'collab',
       title: 'Start collaboration',
       caption: '<i class="fa fa-users"></i>',
       label: 'More',
       onclick: function() {
 
-        if (self.collab.collabIsOn) {
+        self.collabWin.dialog('open');
 
-          self.leaveCollaboration();
+        /*  if (self.collab.collabIsOn) {
 
-        } else {
+            self.leaveCollaboration();
 
-          self.startCollaboration();
-        }
+          } else {
+
+            self.startCollaboration();
+          }*/
       }
     });
 
@@ -1066,6 +1074,44 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     var renderersTopEdge = parseInt(self.toolBar.container.css('top')) + parseInt(self.toolBar.container.css('height')) + 5;
     self.rBox.container.css({top: renderersTopEdge + 'px'});
     self.rBox.container.css({height: 'calc(100% - ' + renderersTopEdge + 'px)'});
+  };
+
+  /**
+   * Initilize collaboration window's HTML and event handlers.
+   */
+  viewerjs.Viewer.prototype.initCollabWindow = function() {
+    var self = this;
+
+    var collabWin = $('<div></div>');
+
+    self.collabWin = collabWin;
+
+    // convert the previous div into a floating window with a close button
+    collabWin.dialog({
+      title: 'Start collaboration',
+      modal: true,
+      autoOpen: false,
+      minHeight: 400,
+      height: 500,
+      minWidth: 700,
+      width: 800
+    });
+
+    // add the HTML contents to the floating window
+    collabWin.append(
+
+      '<div class="view-collabwin">' +
+        '<div class="view-collabwin-input">' +
+          '<p>To start a new collaboration session just leave the room id blank.' +
+          ' Otherwise enter a room id to joint an existing collaboration session' +
+          ' (current images will be removed from the viewer). Finally click the Go!' +
+          ' button to start!</p>' +
+          '<label>Room id</label>' +
+          '<input type="text">' +
+          '<button type="button" class="custom-button">Go!</button>' +
+        '</div>' +
+      '</div>'
+    );
   };
 
   /**
