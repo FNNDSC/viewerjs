@@ -32,6 +32,9 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     // jQuery object for the collaboration dialog window
     this.collabWin = null;
 
+    // jQuery object for the collaboration dialog window
+    this.libraryWin = null;
+
     // tool bar object
     this.toolBar = null;
 
@@ -203,6 +206,9 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       self.addToolBar();
 
       if (self.collab) { self.initCollabWindow(); }
+
+      //
+      self.initLibraryWindow();
 
       // set a dropzone
       util.setDropzone(self.containerId, function(fObjArr) {
@@ -797,17 +803,15 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     //
     // Load file
     self.toolBar.addButton({
-      id: btnsIdsPrefix + 'file',
-      title: 'Load file',
-      caption: '<i class="fa fa-file"></i>',
+      id: btnsIdsPrefix + 'book',
+      title: 'Load from library',
+      caption: '<i class="fa fa-book"></i>',
       onclick: function() {
 
-        window.console.log('hi file there...');
+        self.libraryWin.dialog('open');
 
       }
     });
-
-    self.toolBar.disableButton(btnsIdsPrefix + 'file');
 
     //
     // X orientation button
@@ -1112,6 +1116,101 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         '</div>' +
       '</div>'
     );
+  };
+
+  /**
+   * Initilize library window's HTML and event handlers.
+   */
+  viewerjs.Viewer.prototype.initLibraryWindow = function() {
+    var self = this;
+
+    var libraryWin = $('<div></div>');
+
+    self.libraryWin = libraryWin;
+
+    // convert the previous div into a floating window with a close button
+    libraryWin.dialog({
+      title: 'Load additional data',
+      modal: true,
+      autoOpen: false,
+      minHeight: 400,
+      height: 800,
+      minWidth: 700,
+      width: 1000
+    });
+
+    // add the HTML contents to the floating window
+    libraryWin.append(
+      '<div class="view-librarywin library">' +
+        // '<input placeholder="Search Me" class="view-librarywin-input" type="text" />' +
+          '<div class="section">' +
+            '<div class="title"> Days 0-14 </div>' +
+            '<div class="notes"> some comments maybe? </div>' +
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
+          '</div>' +
+          '<div class="section">' +
+            '<div class="title" > Quarter 0 </div>' +
+            '<div class="notes"> some comments maybe? </div>' +
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
+          '</div>' +
+      '</div>'
+    );
+
+    // connect search bar...
+    // $('.view-librarywin-input').keyup(function() {
+    //   var valThis = $(this).val();
+    //   window.console.log('connecter: ' + valThis);
+    //   $('.navList>li').each(function() {
+    //     var text = $(this).text().toLowerCase();
+    //     return (text.indexOf(valThis) === 0) ? $(this).show() : $(this).hide();
+    //   });
+    // });
+
+    // connect each element of the lists to nii, json and jpg
+    $('.library > .section').on('click', function() {
+      var thumbnails = $(this).find('.thumbnail');
+
+      // build list
+      var imgFileArr = [];
+      $.each(thumbnails, function(i, val){
+        var basename = $(val).css('background-image').slice(5, -6);
+        
+        imgFileArr.push({
+          'url': basename + '.gz'
+        });
+        imgFileArr.push({
+          'url': basename + '.jpg'
+        });
+        imgFileArr.push({
+          'url': basename + '.json'
+        });
+      });
+
+      // load atlases
+      self.addData(imgFileArr);
+
+      // close window
+      self.libraryWin.dialog('close');
+    });
+
   };
 
   /**
