@@ -168,6 +168,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
               var id = thBar.getThumbnailId(this.id);
               self.removeData(id);
             });
+
           } else if (parent[0] === self.container[0]) {
 
             // layout UI components (renderers box, thumbnails bars and toolbar)
@@ -194,6 +195,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
             }
 
           } else {
+
             // cancel ddRop
             $(evt.target).sortable('cancel');
           }
@@ -977,26 +979,28 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
     //
     // Start collaboration button
-    self.toolBar.addButton({
+    if (self.collab) {
 
-      id: btnsIdsPrefix + 'collab',
-      title: 'Start collaboration',
-      caption: '<i class="fa fa-users"></i>',
-      label: 'More',
-      onclick: function() {
+      // collab button is added only when there is a collab object available
+      self.toolBar.addButton({
 
-        self.collabWin.dialog('open');
+        id: btnsIdsPrefix + 'collab',
+        title: 'Start collaboration',
+        caption: '<i class="fa fa-users"></i>',
+        label: 'More',
+        onclick: function() {
 
-        /*  if (self.collab.collabIsOn) {
+          if (self.collab.collabIsOn) {
 
             self.leaveCollaboration();
 
           } else {
 
             self.startCollaboration();
-          }*/
-      }
-    });
+          }
+        }
+      });
+    }
 
     //
     // Link views button
@@ -1095,10 +1099,10 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       title: 'Start collaboration',
       modal: true,
       autoOpen: false,
-      minHeight: 400,
-      height: 500,
-      minWidth: 700,
-      width: 800
+      minHeight: 300,
+      height: 350,
+      minWidth: 550,
+      width: 600
     });
 
     // add the HTML contents to the floating window
@@ -1112,7 +1116,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
           ' button to start!</p>' +
           '<label>Room id</label>' +
           '<input type="text">' +
-          '<button type="button" class="custom-button">Go!</button>' +
+          '<button type="button">Go!</button>' +
         '</div>' +
       '</div>'
     );
@@ -1146,30 +1150,30 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
           '<div class="section">' +
             '<div class="title"> Days 0-14 </div>' +
             '<div class="notes"> some comments maybe? </div>' +
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
           '</div>' +
           '<div class="section">' +
             '<div class="title" > Quarter 0 </div>' +
             '<div class="notes"> some comments maybe? </div>' +
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>'+
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
+            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
           '</div>' +
       '</div>'
     );
@@ -1190,9 +1194,9 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
       // build list
       var imgFileArr = [];
-      $.each(thumbnails, function(i, val){
+      $.each(thumbnails, function(i, val) {
         var basename = $(val).css('background-image').slice(5, -6);
-        
+
         imgFileArr.push({
           'url': basename + '.gz'
         });
@@ -1652,40 +1656,69 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
   };
 
   /**
-   * Start the realtime collaboration as a collaboration/scene owner.
+   * Start the realtime collaboration.
    */
   viewerjs.Viewer.prototype.startCollaboration = function() {
     var self = this;
 
     if (self.collab) {
+
+      self.collabWin.dialog('open');
+
+      var goButton = $('.view-collabwin-input button', self.collabWin)[0];
+      var roomIdInput = $('.view-collabwin-input input', self.collabWin)[0];
+
       self.collab.authorizeAndLoadApi(true, function(granted) {
 
         if (granted) {
-          // realtime API ready.
-          self.collab.startRealtimeCollaboration(self.getLocalScene());
+
+          // realtime API ready
+          if (roomIdInput.value) {
+
+            goButton.onclick = function() {
+
+              // start the collaboration as an additional collaborator
+              self.collab.joinRealtimeCollaboration(roomIdInput.value);
+              self.collabWin.dialog('close');
+              self.toolBar.disableButton(self.toolBarBtnsIdPrefix + 'collab');
+            };
+
+          } else {
+
+            goButton.onclick = function() {
+
+              // start as the collaboration owner
+              self.collab.startRealtimeCollaboration(self.getLocalScene());
+              self.collabWin.dialog('close');
+              self.toolBar.disableButton(self.toolBarBtnsIdPrefix + 'collab');
+            };
+          }
 
         } else {
 
-          var grant = function() {
+          goButton.onclick = function() {
+
             self.collab.authorizeAndLoadApi(false, function(granted) {
 
               if (granted) {
-                // hide modal
-                $('#collabModal').hide();
-                // realtime API ready.
-                self.collab.startRealtimeCollaboration(self.getLocalScene());
+
+                // realtime API ready
+                if (roomIdInput.value) {
+
+                  // start the collaboration as an additional collaborator
+                  self.collab.joinRealtimeCollaboration(roomIdInput.value);
+
+                } else {
+
+                  // start as the collaboration owner
+                  self.collab.startRealtimeCollaboration(self.getLocalScene());
+                }
+
+                self.collabWin.dialog('close');
+                self.toolBar.disableButton(self.toolBarBtnsIdPrefix + 'collab');
               }
             });
           };
-
-          var deny = function() {
-            $('#collabModal').hide();
-          };
-
-          // create a modal....
-          $('#collabModal').show();
-          $('#collabGrant').off('click').on('click', grant);
-          $('#collabDeny').off('click').on('click', deny);
         }
       });
 
@@ -1717,9 +1750,9 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       this.collab.leaveRealtimeCollaboration();
 
       // update the UI
-      var collabButton = document.getElementById(this.toolBarBtnsIdPrefix + 'collab');
+      var collabButton = $('#' + this.toolBarBtnsIdPrefix + 'collab');
       collabButton.removeClass('active');
-      collabButton.title = 'Start collaboration';
+      collabButton.attr('title', 'Start collaboration');
 
       // destroy the chat object
       this.chat.destroy();
@@ -1794,9 +1827,13 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       // local on connect
 
       if (self.collab.collabOwner) {
-        var collabButton = $(self.toolBarBtnsIdPrefix + 'collab');
+
+        var collabBtnId = self.toolBarBtnsIdPrefix + 'collab';
+        self.toolBar.enableButton(collabBtnId);
+
+        var collabButton = $('#' + collabBtnId);
         collabButton.addClass('active');
-        collabButton.title = 'End collaboration';
+        collabButton.attr('title', 'End collaboration');
 
         // asyncronously load all files to GDrive
         self.collab.fileManager.createPath(self.collab.dataFilesBaseDir, function() {
@@ -1875,13 +1912,14 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
        // wipe the initial wait text in the collaborators's viewer container
        $('.view-initialwaittext', self.container).remove();
 
-       // start the viewer
+       // restart the viewer
+       self.destroy();
        self.init();
 
        // update the toolbar's UI
-       var collabButton = $(this.toolBarBtnsIdPrefix + 'collab');
+       var collabButton = $('#' + self.toolBarBtnsIdPrefix + 'collab');
        collabButton.addClass('active');
-       collabButton.title = 'End collaboration';
+       collabButton.attr('title', 'End collaboration');
 
        var numOfLoadedThumbnailsBar = 0;
 
@@ -1967,11 +2005,18 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
     for (var i = this.thBars.length - 1; i >= 0; i--) {
 
-      this.thBars[i].destroy();
+      if (this.thBars[i]) { this.thBars[i].destroy(); }
       this.thBars.splice(i, 1);
     }
 
+    this.componentsX = [];
+
     this.imgFileArr = [];
+
+    if (this.collabWin) { this.collabWin.dialog('destroy'); }
+    this.collabWin = null;
+    this.libraryWin.dialog('destroy');
+    this.libraryWin = null;
 
     // remove html
     this.container.empty();
