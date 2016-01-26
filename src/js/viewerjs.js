@@ -1665,34 +1665,36 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
       self.collabWin.dialog('open');
 
-      var goButton = $('.view-collabwin-input button', self.collabWin)[0];
-      var roomIdInput = $('.view-collabwin-input input', self.collabWin)[0];
+      var startCollaboration = function() {
+
+        var roomIdInput = $('.view-collabwin-input input', self.collabWin)[0];
+
+        if (roomIdInput.value) {
+
+          // start the collaboration as an additional collaborator
+          self.collab.joinRealtimeCollaboration(roomIdInput.value);
+
+        } else {
+
+          // start as the collaboration owner
+          self.collab.startRealtimeCollaboration(self.getLocalScene());
+        }
+
+        self.collabWin.dialog('close');
+        self.toolBar.disableButton(self.toolBarBtnsIdPrefix + 'collab');
+      };
 
       self.collab.authorizeAndLoadApi(true, function(granted) {
+
+        var goButton = $('.view-collabwin-input button', self.collabWin)[0];
 
         if (granted) {
 
           // realtime API ready
-          if (roomIdInput.value) {
+          goButton.onclick = function() {
 
-            goButton.onclick = function() {
-
-              // start the collaboration as an additional collaborator
-              self.collab.joinRealtimeCollaboration(roomIdInput.value);
-              self.collabWin.dialog('close');
-              self.toolBar.disableButton(self.toolBarBtnsIdPrefix + 'collab');
-            };
-
-          } else {
-
-            goButton.onclick = function() {
-
-              // start as the collaboration owner
-              self.collab.startRealtimeCollaboration(self.getLocalScene());
-              self.collabWin.dialog('close');
-              self.toolBar.disableButton(self.toolBarBtnsIdPrefix + 'collab');
-            };
-          }
+            startCollaboration();
+          };
 
         } else {
 
@@ -1703,19 +1705,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
               if (granted) {
 
                 // realtime API ready
-                if (roomIdInput.value) {
-
-                  // start the collaboration as an additional collaborator
-                  self.collab.joinRealtimeCollaboration(roomIdInput.value);
-
-                } else {
-
-                  // start as the collaboration owner
-                  self.collab.startRealtimeCollaboration(self.getLocalScene());
-                }
-
-                self.collabWin.dialog('close');
-                self.toolBar.disableButton(self.toolBarBtnsIdPrefix + 'collab');
+                startCollaboration();
               }
             });
           };
@@ -1753,6 +1743,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       var collabButton = $('#' + this.toolBarBtnsIdPrefix + 'collab');
       collabButton.removeClass('active');
       collabButton.attr('title', 'Start collaboration');
+      this.toolBar.enableButton(this.toolBarBtnsIdPrefix + 'load');
 
       // destroy the chat object
       this.chat.destroy();
@@ -1783,9 +1774,9 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       return nFiles;
     }());
 
-    // function to load a file into GDrive
+    // callback to load a file into GDrive
     var fObjArr = [];
-    function loadFile(fInfo, fData) {
+    var loadFile = function(fInfo, fData) {
 
       function writeToGdrive(info, data) {
 
@@ -1820,7 +1811,7 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         // fData is just a single arrayBuffer
         writeToGdrive(fInfo, fData);
       }
-    }
+    };
 
     if (self.collab.collaboratorInfo.id === collaboratorInfo.id) {
 
@@ -1869,6 +1860,11 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
       } else {
 
+        // this is a new collaborator (not the collaboration owner)
+
+        // wipe current visualization
+        self.cleanUI();
+
         // insert initial wait text div to manage user expectatives
         self.container.append('<div class="view-initialwaittext">' + 'Please wait while loading the viewer...</div>');
 
@@ -1882,6 +1878,9 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       // a remote collaborator has connected so just update the collaborators list
       self.chat.updateCollaboratorList();
     }
+
+    // disable load data button
+    self.toolBar.disableButton(self.toolBarBtnsIdPrefix + 'load');
   };
 
   /**
@@ -1913,7 +1912,6 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
        $('.view-initialwaittext', self.container).remove();
 
        // restart the viewer
-       self.destroy();
        self.init();
 
        // update the toolbar's UI
@@ -1988,15 +1986,10 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
   };
 
   /**
-   * Destroy all objects and remove html interface
+   * Destroy all internal objects and remove html interface
    */
-  viewerjs.Viewer.prototype.destroy = function() {
+  viewerjs.Viewer.prototype.cleanUI = function() {
 
-    if (this.collab && this.collab.collabIsOn) {
-      this.leaveCollaboration();
-    }
-
-    // destroy objects
     this.rBox.destroy();
     this.rBox = null;
 
@@ -2020,6 +2013,20 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
     // remove html
     this.container.empty();
+  };
+
+  /**
+   * Destroy the viewer and leave collaboration if it is active
+   */
+  viewerjs.Viewer.prototype.destroy = function() {
+
+    if (this.collab && this.collab.collabIsOn) {
+
+      this.leaveCollaboration();
+    }
+
+    this.cleanUI();
+    this.container = null;
   };
 
   return viewerjs;
