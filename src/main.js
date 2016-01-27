@@ -27,7 +27,8 @@ require.config({
     rboxjs: 'rboxjs/src/js/rboxjs',
     thbarjs: 'thbarjs/src/js/thbarjs',
     toolbarjs: 'toolbarjs/src/js/toolbarjs',
-    referenceswin: 'chatjs/src/templates/referenceswin.html',
+    chatwin: 'chatjs/src/templates/chatwin.html',
+    preferenceswin: 'chatjs/src/templates/preferenceswin.html',
     chatjs: 'chatjs/src/js/chatjs',
     jqdlgext: 'chatjs/src/js/lib/jquery.dialogextend',
     viewerjs: '../viewerjs'
