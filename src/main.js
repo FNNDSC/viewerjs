@@ -18,6 +18,7 @@ require.config({
     utiljs: 'utiljs/src/js/utiljs',
     fmjs: 'fmjs/src/js/fmjs',
     gcjs: 'gcjs/src/js/gcjs',
+    text: 'text/text',
     rendererjs: 'rendererjs/src/js/rendererjs',
     xtk: 'rendererjs/src/js/lib/xtk',
     jpegmin: 'rendererjs/src/js/lib/jpegmin',
@@ -26,6 +27,7 @@ require.config({
     rboxjs: 'rboxjs/src/js/rboxjs',
     thbarjs: 'thbarjs/src/js/thbarjs',
     toolbarjs: 'toolbarjs/src/js/toolbarjs',
+    referenceswin: 'chatjs/src/templates/referenceswin.html',
     chatjs: 'chatjs/src/js/chatjs',
     jqdlgext: 'chatjs/src/js/lib/jquery.dialogextend',
     viewerjs: '../viewerjs'
