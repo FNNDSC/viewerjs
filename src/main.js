@@ -28,6 +28,7 @@ require.config({
     thbarjs: 'thbarjs/src/js/thbarjs',
     toolbarjs: 'toolbarjs/src/js/toolbarjs',
     chatwin: 'chatjs/src/templates/chatwin.html',
+    mailwin: 'chatjs/src/templates/mailwin.html',
     preferenceswin: 'chatjs/src/templates/preferenceswin.html',
     chatjs: 'chatjs/src/js/chatjs',
     jqdlgext: 'chatjs/src/js/lib/jquery.dialogextend',
