@@ -19,6 +19,7 @@ require.config({
     fmjs: 'fmjs/src/js/fmjs',
     gcjs: 'gcjs/src/js/gcjs',
     text: 'text/text',
+    rendererwin: 'rendererjs/src/templates/rendererwin.html',
     rendererjs: 'rendererjs/src/js/rendererjs',
     xtk: 'rendererjs/src/js/lib/xtk',
     jpegmin: 'rendererjs/src/js/lib/jpegmin',
