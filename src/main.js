@@ -32,6 +32,8 @@ require.config({
     preferenceswin: 'chatjs/src/templates/preferenceswin.html',
     chatjs: 'chatjs/src/js/chatjs',
     jqdlgext: 'chatjs/src/js/lib/jquery.dialogextend',
+    collabwin: '../../templates/collabwin.html',
+    librarywin: '../../templates/librarywin.html',
     viewerjs: '../viewerjs'
   }
 });

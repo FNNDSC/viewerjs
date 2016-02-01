@@ -4,121 +4,123 @@
  */
 
 // define a new module
-define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, render, rbox, toolbar, thbar, chat) {
+define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', 'toolbarjs',
 
-  /**
-   * Provide a namespace for the viewer module
-   *
-   * @namespace
-   */
-  var viewerjs = viewerjs || {};
+  'thbarjs', 'chatjs'], function(collabwin, librarywin, util, render, rbox, toolbar, thbar, chat) {
 
-  /**
-   * Class implementing the medical image viewer
-   *
-   * @constructor
-   * @param {String} viewer's container's DOM id.
-   * @param {Object} Optional collaborator object to enable realtime collaboration.
-   */
-  viewerjs.Viewer = function(containerId, collab) {
+    /**
+     * Provide a namespace for the viewer module
+     *
+     * @namespace
+     */
+    var viewerjs = viewerjs || {};
 
-    this.version = 0.0;
+    /**
+     * Class implementing the medical image viewer
+     *
+     * @constructor
+     * @param {String} viewer's container's DOM id.
+     * @param {Object} Optional collaborator object to enable realtime collaboration.
+     */
+    viewerjs.Viewer = function(containerId, collab) {
 
-    this.containerId = containerId;
+      this.version = 0.0;
 
-    // viewer's container
-    this.container = $('#' + containerId);
+      this.containerId = containerId;
 
-    // jQuery object for the collaboration dialog window
-    this.collabWin = null;
+      // viewer's container
+      this.container = $('#' + containerId);
 
-    // jQuery object for the collaboration dialog window
-    this.libraryWin = null;
+      // jQuery object for the collaboration dialog window
+      this.collabWin = null;
 
-    // tool bar object
-    this.toolBar = null;
+      // jQuery object for the collaboration dialog window
+      this.libraryWin = null;
 
-    // prefix string for the DOM ids used for the toolbar's buttons
-    this.toolBarBtnsIdPrefix = containerId + '_tbarbtn';
+      // tool bar object
+      this.toolBar = null;
 
-    // renderers box object
-    this.rBox = null;
+      // prefix string for the DOM ids used for the toolbar's buttons
+      this.toolBarBtnsIdPrefix = containerId + '_tbarbtn';
 
-    // prefix string for the DOM ids used for the internal XTK renderers' containers
-    this.renderersIdPrefix = containerId + '_renderer';
+      // renderers box object
+      this.rBox = null;
 
-    // thumbnails bars
-    this.thBars = []; // can contain null elements
+      // prefix string for the DOM ids used for the internal XTK renderers' containers
+      this.renderersIdPrefix = containerId + '_renderer';
 
-    // prefix string for the DOM ids used for the thumbnails' containers.
-    this.thumbnailsIdPrefix = containerId + '_thumbnail';
+      // thumbnails bars
+      this.thBars = []; // can contain null elements
 
-    // array of objects containing the renderers box and thumbnails bars in their horizontal visual order
-    this.componentsX = [];
+      // prefix string for the DOM ids used for the thumbnails' containers.
+      this.thumbnailsIdPrefix = containerId + '_thumbnail';
 
-    // array of image file objects, each object contains the following properties:
-    //  -id: Integer, the object's id
-    //  -baseUrl: String ‘directory/containing/the/files’
-    //  -imgType: String neuroimage type. Any of the possible values returned by rendererjs.Renderer.imgType
-    //  -files: Array of HTML5 File objects or custom file objects with properties:
-    //     -remote: a boolean indicating whether the file has not been read locally (with a filepicker)
-    //     -url: the file's url
-    //     -cloudId: the id of the file in a cloud storage system if stored in the cloud
-    //     -name: file name
-    //  The files array contains a single file for imgType different from 'dicom' or 'dicomzip'
-    //  -thumbnail: Optional HTML5 File or custom file object (optional jpg file for a thumbnail image)
-    //  -json: Optional HTML5 File or custom file object (optional json file with the mri info for imgType different from 'dicom')
-    this.imgFileArr = []; // can contain null elements
+      // array of objects containing the renderers box and thumbnails bars in their horizontal visual order
+      this.componentsX = [];
 
-    //
-    // collaborator object
-    //
-    if (collab) {
+      // array of image file objects, each object contains the following properties:
+      //  -id: Integer, the object's id
+      //  -baseUrl: String ‘directory/containing/the/files’
+      //  -imgType: String neuroimage type. Any of the possible values returned by rendererjs.Renderer.imgType
+      //  -files: Array of HTML5 File objects or custom file objects with properties:
+      //     -remote: a boolean indicating whether the file has not been read locally (with a filepicker)
+      //     -url: the file's url
+      //     -cloudId: the id of the file in a cloud storage system if stored in the cloud
+      //     -name: file name
+      //  The files array contains a single file for imgType different from 'dicom' or 'dicomzip'
+      //  -thumbnail: Optional HTML5 File or custom file object (optional jpg file for a thumbnail image)
+      //  -json: Optional HTML5 File or custom file object (optional json file with the mri info for imgType different from 'dicom')
+      this.imgFileArr = []; // can contain null elements
 
-      this.collab = collab;
+      //
+      // collaborator object
+      //
+      if (collab) {
 
-      // associated chat object
-      this.chat = null;
+        this.collab = collab;
 
-      // Collaboration event listeners
-      var self = this;
+        // associated chat object
+        this.chat = null;
 
-      // This is called when the collaboration has successfully started and is ready
-      this.collab.onConnect = function(collaboratorInfo) {
+        // Collaboration event listeners
+        var self = this;
 
-        self.handleOnConnect(collaboratorInfo);
-      };
+        // This is called when the collaboration has successfully started and is ready
+        this.collab.onConnect = function(collaboratorInfo) {
 
-      // This is called everytime the collaboration owner has shared data files with a new collaborator
-      this.collab.onDataFilesShared = function(collaboratorInfo, fObjArr) {
+          self.handleOnConnect(collaboratorInfo);
+        };
 
-        self.handleOnDataFilesShared(collaboratorInfo, fObjArr);
-      };
+        // This is called everytime the collaboration owner has shared data files with a new collaborator
+        this.collab.onDataFilesShared = function(collaboratorInfo, fObjArr) {
 
-      // This is called everytime the scene object is updated by a remote collaborator
-      this.collab.onCollabObjChanged = function() {
+          self.handleOnDataFilesShared(collaboratorInfo, fObjArr);
+        };
 
-        self.handleOnCollabObjChanged();
-      };
+        // This is called everytime the scene object is updated by a remote collaborator
+        this.collab.onCollabObjChanged = function() {
 
-      // This method is called when a new chat msg is received from a remote collaborator
-      this.collab.onNewChatMessage = function(msgObj) {
+          self.handleOnCollabObjChanged();
+        };
 
-        self.handleOnNewChatMessage(msgObj);
-      };
+        // This method is called when a new chat msg is received from a remote collaborator
+        this.collab.onNewChatMessage = function(msgObj) {
 
-      // This method is called everytime a remote collaborator disconnects from the collaboration
-      this.collab.onDisconnect = function(collaboratorInfo) {
+          self.handleOnNewChatMessage(msgObj);
+        };
 
-        self.handleOnDisconnect(collaboratorInfo);
-      };
-    }
-  };
+        // This method is called everytime a remote collaborator disconnects from the collaboration
+        this.collab.onDisconnect = function(collaboratorInfo) {
 
-  /**
-   * Initiliaze the UI's html.
-   */
-  viewerjs.Viewer.prototype.init = function() {
+          self.handleOnDisconnect(collaboratorInfo);
+        };
+      }
+    };
+
+    /**
+     * Initiliaze the UI's html.
+     */
+    viewerjs.Viewer.prototype.init = function() {
       var self = this;
 
       self.container.css({
@@ -219,18 +221,18 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       });
     };
 
-  /**
-   * Add new data to the viewer. A new thumbnails bar is added to the UI for the new data.
-   *
-   * @param {Array} array of file objects. Each object contains the following properties:
-   * -url:     String representing the file url
-   * -file:    HTML5 File object (optional but neccesary when the files are gotten through a
-   *           local filepicker or dropzone)
-   * -cloudId: String representing the file cloud id (optional but neccesary when the files
-   *           are gotten from a cloud storage like GDrive)
-   * @param {Function} optional callback to be called when the viewer is ready.
-   */
-  viewerjs.Viewer.prototype.addData = function(fObjArr, callback) {
+    /**
+     * Add new data to the viewer. A new thumbnails bar is added to the UI for the new data.
+     *
+     * @param {Array} array of file objects. Each object contains the following properties:
+     * -url:     String representing the file url
+     * -file:    HTML5 File object (optional but neccesary when the files are gotten through a
+     *           local filepicker or dropzone)
+     * -cloudId: String representing the file cloud id (optional but neccesary when the files
+     *           are gotten from a cloud storage like GDrive)
+     * @param {Function} optional callback to be called when the viewer is ready.
+     */
+    viewerjs.Viewer.prototype.addData = function(fObjArr, callback) {
     var self = this;
 
     if (self.collab && self.collab.collabIsOn) {
@@ -256,12 +258,12 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     }
   };
 
-  /**
-   * Remove data from the viewer.
-   *
-   * @param {Number} image file object's integer id.
-   */
-  viewerjs.Viewer.prototype.removeData = function(id) {
+    /**
+     * Remove data from the viewer.
+     *
+     * @param {Number} image file object's integer id.
+     */
+    viewerjs.Viewer.prototype.removeData = function(id) {
     var self = this;
 
     // no data can be removed during a realtime collaboration session
@@ -320,24 +322,24 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     }
   };
 
-  /**
-   * Build an array of image file objects (viewer's main data structure).
-   *
-   * @param {Array} array of file objects. Same as the one passed to the init method.
-   * @return {Array} array of image file objects, each object contains the following properties:
-   *  -id: Integer, the object's id
-   *  -baseUrl: String ‘directory/containing/the/files’
-   *  -imgType: String neuroimage type. Any of the possible values returned by rendererjs.Renderer.imgType
-   *  -files: Array of HTML5 File objects or custom file objects with properties:
-   *     -remote: a boolean indicating whether the file has not been read locally (with a filepicker)
-   *     -url the file's url
-   *     -cloudId: the id of the file in a cloud storage system if stored in the cloud
-   *     -name: file name
-   *  The files array contains a single file for imgType different from 'dicom' or 'dicomzip'
-   *  -thumbnail: Optional HTML5 File or custom file object (optional jpg file for a thumbnail image)
-   *  -json: Optional HTML5 File or custom file object (optional json file with the mri info for imgType different from 'dicom')
-   */
-  viewerjs.Viewer.prototype.buildImgFileArr = function(fObjArr) {
+    /**
+     * Build an array of image file objects (viewer's main data structure).
+     *
+     * @param {Array} array of file objects. Same as the one passed to the init method.
+     * @return {Array} array of image file objects, each object contains the following properties:
+     *  -id: Integer, the object's id
+     *  -baseUrl: String ‘directory/containing/the/files’
+     *  -imgType: String neuroimage type. Any of the possible values returned by rendererjs.Renderer.imgType
+     *  -files: Array of HTML5 File objects or custom file objects with properties:
+     *     -remote: a boolean indicating whether the file has not been read locally (with a filepicker)
+     *     -url the file's url
+     *     -cloudId: the id of the file in a cloud storage system if stored in the cloud
+     *     -name: file name
+     *  The files array contains a single file for imgType different from 'dicom' or 'dicomzip'
+     *  -thumbnail: Optional HTML5 File or custom file object (optional jpg file for a thumbnail image)
+     *  -json: Optional HTML5 File or custom file object (optional json file with the mri info for imgType different from 'dicom')
+     */
+    viewerjs.Viewer.prototype.buildImgFileArr = function(fObjArr) {
     var self = this;
 
     // define internal data structures
@@ -505,10 +507,10 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     return imgFileArr;
   };
 
-  /**
-   * Append a renderers box to the viewer.
-   */
-  viewerjs.Viewer.prototype.addRenderersBox = function() {
+    /**
+     * Append a renderers box to the viewer.
+     */
+    viewerjs.Viewer.prototype.addRenderersBox = function() {
     var self = this;
 
     if (self.rBox) {
@@ -630,23 +632,23 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     };
   };
 
-  /**
-    * Add a renderer to the renderers box.
-    *
-    * @param {Object} image file object with the following properties:
-    *  -id: Integer id
-    *  -baseUrl: String ‘directory/containing/the/files’
-    *  -imgType: String neuroimage type. Any of the possible values returned by rendererjs.Renderer.imgType
-    *  -files: Array of HTML5 File objects or custom file objects with properties:
-    *     -remote: a boolean indicating whether the file has not been read locally (with a filepicker)
-    *     -url the file's url
-    *     -cloudId: the id of the file in a cloud storage system if stored in the cloud
-    *     -name: file name
-    *  The files array contains a single file for imgType different from 'dicom' or 'dicomzip'
-    *  -json: Optional HTML5 or custom File object (optional json file with the mri info for imgType different from 'dicom')
-    * @param {Function} optional callback whose argument is the renderer object or null.
-    */
-  viewerjs.Viewer.prototype.addRenderer = function(imgFileObj, callback) {
+    /**
+      * Add a renderer to the renderers box.
+      *
+      * @param {Object} image file object with the following properties:
+      *  -id: Integer id
+      *  -baseUrl: String ‘directory/containing/the/files’
+      *  -imgType: String neuroimage type. Any of the possible values returned by rendererjs.Renderer.imgType
+      *  -files: Array of HTML5 File objects or custom file objects with properties:
+      *     -remote: a boolean indicating whether the file has not been read locally (with a filepicker)
+      *     -url the file's url
+      *     -cloudId: the id of the file in a cloud storage system if stored in the cloud
+      *     -name: file name
+      *  The files array contains a single file for imgType different from 'dicom' or 'dicomzip'
+      *  -json: Optional HTML5 or custom File object (optional json file with the mri info for imgType different from 'dicom')
+      * @param {Function} optional callback whose argument is the renderer object or null.
+      */
+    viewerjs.Viewer.prototype.addRenderer = function(imgFileObj, callback) {
     var self = this;
 
     var thBar = self.getThumbnailsBarObject(imgFileObj.id);
@@ -682,44 +684,44 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     });
   };
 
-  /**
-    * Handle the renderers box's onRendererRemove event.
-    *
-    * @param {Number} renderer's integer id.
-    */
-  viewerjs.Viewer.prototype.handleOnRendererRemove = function(id) {
+    /**
+      * Handle the renderers box's onRendererRemove event.
+      *
+      * @param {Number} renderer's integer id.
+      */
+    viewerjs.Viewer.prototype.handleOnRendererRemove = function(id) {
 
-    var thBar = this.getThumbnailsBarObject(id);
+      var thBar = this.getThumbnailsBarObject(id);
 
-    if (thBar) {
+      if (thBar) {
 
-      // corresponding thumbnail and renderer have the same integer id
-      var thContId = thBar.getThumbnailContId(id);
+        // corresponding thumbnail and renderer have the same integer id
+        var thContId = thBar.getThumbnailContId(id);
 
-      // display the removed renderer's thumbnail
-      $('#' + thContId).css({display: 'block'});
-    }
-
-    // if there is now a single renderer then hide the Link views button and make it selected
-    if (this.rBox.numOfRenderers === 1) {
-
-      this.toolBar.hideButton(this.toolBarBtnsIdPrefix + 'link');
-
-      if (this.renderersLinked) {
-
-        // unlink renderers
-        this.handleToolBarButtonLinkClick();
+        // display the removed renderer's thumbnail
+        $('#' + thContId).css({display: 'block'});
       }
 
-      var rndr = this.rBox.renderers[0];
-      if (!rndr.selected) { rndr.select(); }
-    }
-  };
+      // if there is now a single renderer then hide the Link views button and make it selected
+      if (this.rBox.numOfRenderers === 1) {
 
-  /**
-   * Create and add a toolbar to the viewer.
-   */
-  viewerjs.Viewer.prototype.addToolBar = function() {
+        this.toolBar.hideButton(this.toolBarBtnsIdPrefix + 'link');
+
+        if (this.renderersLinked) {
+
+          // unlink renderers
+          this.handleToolBarButtonLinkClick();
+        }
+
+        var rndr = this.rBox.renderers[0];
+        if (!rndr.selected) { rndr.select(); }
+      }
+    };
+
+    /**
+     * Create and add a toolbar to the viewer.
+     */
+    viewerjs.Viewer.prototype.addToolBar = function() {
     var self = this;
 
     if (self.toolBar) {
@@ -1084,18 +1086,16 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     self.rBox.container.css({height: 'calc(100% - ' + renderersTopEdge + 'px)'});
   };
 
-  /**
-   * Initilize collaboration window's HTML and event handlers.
-   */
-  viewerjs.Viewer.prototype.initCollabWindow = function() {
+    /**
+     * Initilize collaboration window's HTML and event handlers.
+     */
+    viewerjs.Viewer.prototype.initCollabWindow = function() {
     var self = this;
 
-    var collabWin = $('<div></div>');
-
-    self.collabWin = collabWin;
+    self.collabWin = $('<div></div>');
 
     // convert the previous div into a floating window with a close button
-    collabWin.dialog({
+    self.collabWin.dialog({
       title: 'Start collaboration',
       modal: true,
       autoOpen: false,
@@ -1105,35 +1105,20 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       width: 600
     });
 
-    // add the HTML contents to the floating window
-    collabWin.append(
-
-      '<div class="view-collabwin">' +
-        '<div class="view-collabwin-input">' +
-          '<p>To start a new collaboration session just leave the room id blank.' +
-          ' Otherwise enter a room id to joint an existing collaboration session' +
-          ' (current images will be removed from the viewer). Finally click the Go!' +
-          ' button to start!</p>' +
-          '<label>Room id</label>' +
-          '<input type="text">' +
-          '<button type="button">Go!</button>' +
-        '</div>' +
-      '</div>'
-    );
+    // add contents to the floating window from its HTML template
+    self.collabWin.append($(collabwin).filter('.view-collabwin'));
   };
 
-  /**
-   * Initilize library window's HTML and event handlers.
-   */
-  viewerjs.Viewer.prototype.initLibraryWindow = function() {
+    /**
+     * Initilize library window's HTML and event handlers.
+     */
+    viewerjs.Viewer.prototype.initLibraryWindow = function() {
     var self = this;
 
-    var libraryWin = $('<div></div>');
-
-    self.libraryWin = libraryWin;
+    self.libraryWin = $('<div></div>');
 
     // convert the previous div into a floating window with a close button
-    libraryWin.dialog({
+    self.libraryWin.dialog({
       title: 'Load additional data',
       modal: true,
       autoOpen: false,
@@ -1143,40 +1128,8 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       width: 1000
     });
 
-    // add the HTML contents to the floating window
-    libraryWin.append(
-      '<div class="view-librarywin library">' +
-        // '<input placeholder="Search Me" class="view-librarywin-input" type="text" />' +
-          '<div class="section">' +
-            '<div class="title"> Days 0-14 </div>' +
-            '<div class="notes"> some comments maybe? </div>' +
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
-          '</div>' +
-          '<div class="section">' +
-            '<div class="title" > Quarter 0 </div>' +
-            '<div class="notes"> some comments maybe? </div>' +
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
-            '<div class="thumbnail" style="background-image: url(http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii.jpg); height: 100px; width: 100px; border: 1px solid black;">test</div>' +
-          '</div>' +
-      '</div>'
-    );
+    // add contents to the floating window from its HTML template
+    self.libraryWin.append($(librarywin).filter('.view-librarywin'));
 
     // connect search bar...
     // $('.view-librarywin-input').keyup(function() {
@@ -1190,19 +1143,23 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
 
     // connect each element of the lists to nii, json and jpg
     $('.library > .section').on('click', function() {
+
       var thumbnails = $(this).find('.thumbnail');
 
       // build list
       var imgFileArr = [];
       $.each(thumbnails, function(i, val) {
+
         var basename = $(val).css('background-image').slice(5, -6);
 
         imgFileArr.push({
           'url': basename + '.gz'
         });
+
         imgFileArr.push({
           'url': basename + '.jpg'
         });
+
         imgFileArr.push({
           'url': basename + '.json'
         });
@@ -1214,26 +1171,25 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       // close window
       self.libraryWin.dialog('close');
     });
-
   };
 
-  /**
-   * Create and add a thumbnails bar to the viewer.
-   *
-   * @return {Array} array of image file objects, each object contains the following properties:
-   *  -id: Integer, the object's id
-   *  -baseUrl: String ‘directory/containing/the/files’
-   *  -imgType: String neuroimage type. Any of the possible values returned by rendererjs.Renderer.imgType
-   *  -files: Array of HTML5 File objects or custom file objects with properties:
-   *     -remote: a boolean indicating whether the file has not been read locally (with a filepicker)
-   *     -url the file's url
-   *     -cloudId: the id of the file in a cloud storage system if stored in the cloud
-   *     -name: file name
-   *  The files array contains a single file for imgType different from 'dicom' or 'dicomzip'
-   *  -thumbnail: Optional HTML5 File or custom file object (optional jpg file for a thumbnail image)
-   * @param {Function} optional callback to be called when the thumbnails bar is ready.
-   */
-  viewerjs.Viewer.prototype.addThumbnailsBar = function(imgFileArr, callback) {
+    /**
+     * Create and add a thumbnails bar to the viewer.
+     *
+     * @return {Array} array of image file objects, each object contains the following properties:
+     *  -id: Integer, the object's id
+     *  -baseUrl: String ‘directory/containing/the/files’
+     *  -imgType: String neuroimage type. Any of the possible values returned by rendererjs.Renderer.imgType
+     *  -files: Array of HTML5 File objects or custom file objects with properties:
+     *     -remote: a boolean indicating whether the file has not been read locally (with a filepicker)
+     *     -url the file's url
+     *     -cloudId: the id of the file in a cloud storage system if stored in the cloud
+     *     -name: file name
+     *  The files array contains a single file for imgType different from 'dicom' or 'dicomzip'
+     *  -thumbnail: Optional HTML5 File or custom file object (optional jpg file for a thumbnail image)
+     * @param {Function} optional callback to be called when the thumbnails bar is ready.
+     */
+    viewerjs.Viewer.prototype.addThumbnailsBar = function(imgFileArr, callback) {
     var self = this;
 
     if (!imgFileArr.length) {
@@ -1365,42 +1321,42 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     self.layoutComponentsX();
   };
 
-  /**
-   * Compute CSS width of the viewer's renderers box.
-   *
-   * @return {String} CSS width string.
-   */
-  viewerjs.Viewer.prototype.computeRBoxCSSWidth = function() {
+    /**
+     * Compute CSS width of the viewer's renderers box.
+     *
+     * @return {String} CSS width string.
+     */
+    viewerjs.Viewer.prototype.computeRBoxCSSWidth = function() {
 
-    var nTh = 0; // number of thumbnails bars in the viewer
-    var ix, rBoxCSSWidth;
+      var nTh = 0; // number of thumbnails bars in the viewer
+      var ix, rBoxCSSWidth;
 
-    for (var i = 0; i < this.thBars.length; i++) {
+      for (var i = 0; i < this.thBars.length; i++) {
 
-      if (this.thBars[i]) {
+        if (this.thBars[i]) {
 
-        nTh++;
-        ix = i; // save the index of a non-null thumbnails bar object
+          nTh++;
+          ix = i; // save the index of a non-null thumbnails bar object
+        }
       }
-    }
 
-    if (nTh) {
+      if (nTh) {
 
-      var thBarSpace = parseInt(this.thBars[ix].container.css('width')) + 10;
-      rBoxCSSWidth = 'calc(100% - ' + (thBarSpace * nTh) + 'px)';
+        var thBarSpace = parseInt(this.thBars[ix].container.css('width')) + 10;
+        rBoxCSSWidth = 'calc(100% - ' + (thBarSpace * nTh) + 'px)';
 
-    } else {
+      } else {
 
-      rBoxCSSWidth = '100%';
-    }
+        rBoxCSSWidth = '100%';
+      }
 
-    return rBoxCSSWidth;
-  };
+      return rBoxCSSWidth;
+    };
 
-  /**
-   * Layout viewer's components along the horizontal axis.
-   */
-  viewerjs.Viewer.prototype.layoutComponentsX = function() {
+    /**
+     * Layout viewer's components along the horizontal axis.
+     */
+    viewerjs.Viewer.prototype.layoutComponentsX = function() {
     var self = this;
 
     var left = 5;
@@ -1435,52 +1391,52 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     });
   };
 
-  /**
-   * Return image file object given its id.
-   *
-   * @param {Number} Integer number between 0 and this.imgFileArr.length-1.
-   * @return {Object} null or image file object with the following properties:
-   *  -id: Integer id
-   *  -baseUrl: String ‘directory/containing/the/files’
-   *  -imgType: String neuroimage type. Any of the possible values returned by rendererjs.Renderer.imgType
-   *  -files: Array of HTML5 File objects or custom file objects with properties:
-   *     -remote: a boolean indicating whether the file has not been read locally (with a filepicker)
-   *     -url the file's url
-   *     -cloudId: the id of the file in a cloud storage system if stored in the cloud
-   *     -name: file name
-   *  The files array contains a single file for imgType different from 'dicom' or 'dicomzip'
-   *  -thumbnail: Optional HTML5 File or custom file object (optional jpg file for a thumbnail image)
-   *  -json: Optional HTML5 or custom File object (optional json file with the mri info for imgType different from 'dicom')
-   */
-  viewerjs.Viewer.prototype.getImgFileObject = function(id) {
+    /**
+     * Return image file object given its id.
+     *
+     * @param {Number} Integer number between 0 and this.imgFileArr.length-1.
+     * @return {Object} null or image file object with the following properties:
+     *  -id: Integer id
+     *  -baseUrl: String ‘directory/containing/the/files’
+     *  -imgType: String neuroimage type. Any of the possible values returned by rendererjs.Renderer.imgType
+     *  -files: Array of HTML5 File objects or custom file objects with properties:
+     *     -remote: a boolean indicating whether the file has not been read locally (with a filepicker)
+     *     -url the file's url
+     *     -cloudId: the id of the file in a cloud storage system if stored in the cloud
+     *     -name: file name
+     *  The files array contains a single file for imgType different from 'dicom' or 'dicomzip'
+     *  -thumbnail: Optional HTML5 File or custom file object (optional jpg file for a thumbnail image)
+     *  -json: Optional HTML5 or custom File object (optional json file with the mri info for imgType different from 'dicom')
+     */
+    viewerjs.Viewer.prototype.getImgFileObject = function(id) {
 
-    if (id < 0 || id >= this.imgFileArr.length) {
+      if (id < 0 || id >= this.imgFileArr.length) {
 
-      return null;
-    }
+        return null;
+      }
 
-    return this.imgFileArr[id];
-  };
+      return this.imgFileArr[id];
+    };
 
-  /**
-   * Given an image file object id get the thumbnails bar object that contains the associated thumbnail image.
-   *
-   * @param {Number} Integer number between 0 and this.imgFileArr.length-1.
-   * @return {Object} thumbnails bar object or null.
-   */
-  viewerjs.Viewer.prototype.getThumbnailsBarObject = function(id) {
+    /**
+     * Given an image file object id get the thumbnails bar object that contains the associated thumbnail image.
+     *
+     * @param {Number} Integer number between 0 and this.imgFileArr.length-1.
+     * @return {Object} thumbnails bar object or null.
+     */
+    viewerjs.Viewer.prototype.getThumbnailsBarObject = function(id) {
 
-    var imgFileObj = this.getImgFileObject(id);
+      var imgFileObj = this.getImgFileObject(id);
 
-    if (!imgFileObj) { return null; }
+      if (!imgFileObj) { return null; }
 
-    return this.thBars[imgFileObj.thBarId];
-  };
+      return this.thBars[imgFileObj.thBarId];
+    };
 
-  /**
-   * Render the current scene.
-   */
-  viewerjs.Viewer.prototype.renderScene = function() {
+    /**
+     * Render the current scene.
+     */
+    viewerjs.Viewer.prototype.renderScene = function() {
     var self = this;
 
     var scene;
@@ -1571,94 +1527,94 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     }
   };
 
-  /**
-   * Create and return a scene object describing the current scene.
-   */
-  viewerjs.Viewer.prototype.getLocalScene = function() {
+    /**
+     * Create and return a scene object describing the current scene.
+     */
+    viewerjs.Viewer.prototype.getLocalScene = function() {
 
-    var scene = {};
-    var renderers = this.rBox.renderers;
+      var scene = {};
+      var renderers = this.rBox.renderers;
 
-    // set toolbar's properties
-    scene.toolBar = {};
-    scene.toolBar.renderersLinked = this.renderersLinked;
+      // set toolbar's properties
+      scene.toolBar = {};
+      scene.toolBar.renderersLinked = this.renderersLinked;
 
-    // set renderers' properties
-    // https://docs.google.com/document/d/1GHT7DtSq1ds4TyplA0E2Efy4fuv2xf17APcorqzBZjc/edit
-    scene.renderers = [];
+      // set renderers' properties
+      // https://docs.google.com/document/d/1GHT7DtSq1ds4TyplA0E2Efy4fuv2xf17APcorqzBZjc/edit
+      scene.renderers = [];
 
-    // parse each renderer and get information to be synchronized
-    for (var j = 0; j < renderers.length; j++) {
-      var rInfo = {};
+      // parse each renderer and get information to be synchronized
+      for (var j = 0; j < renderers.length; j++) {
+        var rInfo = {};
 
-      // set general information about the renderer
-      rInfo.general = {};
+        // set general information about the renderer
+        rInfo.general = {};
 
-      rInfo.general.id = renderers[j].id;
-      rInfo.general.type = '2D';
+        rInfo.general.id = renderers[j].id;
+        rInfo.general.type = '2D';
 
-      // set renderer specific information
-      rInfo.renderer = {};
-      rInfo.renderer.viewMatrix = JSON.stringify(renderers[j].renderer.camera.view);
-      rInfo.renderer.flipColumns = renderers[j].renderer.flipColumns;
-      rInfo.renderer.flipRows = renderers[j].renderer.flipRows;
-      rInfo.renderer.pointer = renderers[j].renderer.pointer;
+        // set renderer specific information
+        rInfo.renderer = {};
+        rInfo.renderer.viewMatrix = JSON.stringify(renderers[j].renderer.camera.view);
+        rInfo.renderer.flipColumns = renderers[j].renderer.flipColumns;
+        rInfo.renderer.flipRows = renderers[j].renderer.flipRows;
+        rInfo.renderer.pointer = renderers[j].renderer.pointer;
 
-      // set volume specific information
-      // only supports 1 volume for now....
-      rInfo.volume = {};
-      rInfo.volume.file = renderers[j].volume.file;
-      rInfo.volume.lowerThreshold = renderers[j].volume.lowerThreshold;
-      rInfo.volume.upperThreshold = renderers[j].volume.upperThreshold;
-      rInfo.volume.lowerWindowLevel = renderers[j].volume.windowLow;
-      rInfo.volume.upperWindowLevel = renderers[j].volume.windowHigh;
-      rInfo.volume.indexX = renderers[j].volume.indexX;
-      rInfo.volume.indexY = renderers[j].volume.indexY;
-      rInfo.volume.indexZ = renderers[j].volume.indexZ;
+        // set volume specific information
+        // only supports 1 volume for now....
+        rInfo.volume = {};
+        rInfo.volume.file = renderers[j].volume.file;
+        rInfo.volume.lowerThreshold = renderers[j].volume.lowerThreshold;
+        rInfo.volume.upperThreshold = renderers[j].volume.upperThreshold;
+        rInfo.volume.lowerWindowLevel = renderers[j].volume.windowLow;
+        rInfo.volume.upperWindowLevel = renderers[j].volume.windowHigh;
+        rInfo.volume.indexX = renderers[j].volume.indexX;
+        rInfo.volume.indexY = renderers[j].volume.indexY;
+        rInfo.volume.indexZ = renderers[j].volume.indexZ;
 
-      // set interactor specific information
-      rInfo.interactor = {};
+        // set interactor specific information
+        rInfo.interactor = {};
 
-      // set camera specific information
-      rInfo.camera = {};
+        // set camera specific information
+        rInfo.camera = {};
 
-      // set pointer specific information
-      rInfo.pointer = {};
+        // set pointer specific information
+        rInfo.pointer = {};
 
-      scene.renderers.push(rInfo);
-    }
+        scene.renderers.push(rInfo);
+      }
 
-    return scene;
-  };
+      return scene;
+    };
 
-  /**
-   * Return the current collaboration scene object.
-   */
-  viewerjs.Viewer.prototype.getCollabScene = function() {
+    /**
+     * Return the current collaboration scene object.
+     */
+    viewerjs.Viewer.prototype.getCollabScene = function() {
 
-    if (this.collab && this.collab.collabIsOn) {
+      if (this.collab && this.collab.collabIsOn) {
 
-      return this.collab.getCollabObj();
-    }
-  };
+        return this.collab.getCollabObj();
+      }
+    };
 
-  /**
-   * Update the collaboration scene.
-   */
-  viewerjs.Viewer.prototype.updateCollabScene = function() {
+    /**
+     * Update the collaboration scene.
+     */
+    viewerjs.Viewer.prototype.updateCollabScene = function() {
 
-    // if collaboration is on then update the collaboration scene
-    if (this.collab && this.collab.collabIsOn) {
+      // if collaboration is on then update the collaboration scene
+      if (this.collab && this.collab.collabIsOn) {
 
-      var newScene = this.getLocalScene();
-      this.collab.setCollabObj(newScene);
-    }
-  };
+        var newScene = this.getLocalScene();
+        this.collab.setCollabObj(newScene);
+      }
+    };
 
-  /**
-   * Start the realtime collaboration.
-   */
-  viewerjs.Viewer.prototype.startCollaboration = function() {
+    /**
+     * Start the realtime collaboration.
+     */
+    viewerjs.Viewer.prototype.startCollaboration = function() {
     var self = this;
 
     if (self.collab) {
@@ -1718,45 +1674,45 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     }
   };
 
-  /**
-   * Start the realtime collaboration's chat.
-   */
-  viewerjs.Viewer.prototype.startCollaborationChat = function() {
+    /**
+     * Start the realtime collaboration's chat.
+     */
+    viewerjs.Viewer.prototype.startCollaborationChat = function() {
 
-    if (this.collab && this.collab.collabIsOn) {
+      if (this.collab && this.collab.collabIsOn) {
 
-      this.chat = new chat.Chat(this.collab);
-      this.chat.init();
-    }
-  };
+        this.chat = new chat.Chat(this.collab);
+        this.chat.init();
+      }
+    };
 
-  /**
-   * Leave the realtime collaboration.
-   */
-  viewerjs.Viewer.prototype.leaveCollaboration = function() {
+    /**
+     * Leave the realtime collaboration.
+     */
+    viewerjs.Viewer.prototype.leaveCollaboration = function() {
 
-    if (this.collab && this.collab.collabIsOn) {
+      if (this.collab && this.collab.collabIsOn) {
 
-      this.collab.leaveRealtimeCollaboration();
+        this.collab.leaveRealtimeCollaboration();
 
-      // update the UI
-      var collabButton = $('#' + this.toolBarBtnsIdPrefix + 'collab');
-      collabButton.removeClass('active');
-      collabButton.attr('title', 'Start collaboration');
-      this.toolBar.enableButton(this.toolBarBtnsIdPrefix + 'load');
+        // update the UI
+        var collabButton = $('#' + this.toolBarBtnsIdPrefix + 'collab');
+        collabButton.removeClass('active');
+        collabButton.attr('title', 'Start collaboration');
+        this.toolBar.enableButton(this.toolBarBtnsIdPrefix + 'load');
 
-      // destroy the chat object
-      this.chat.destroy();
-      this.chat = null;
-    }
-  };
+        // destroy the chat object
+        this.chat.destroy();
+        this.chat = null;
+      }
+    };
 
-  /**
-   * Handle the onConnect event when the collaboration has successfully started and is ready.
-   *
-   * @param {Obj} new collaborator info object.
-   */
-  viewerjs.Viewer.prototype.handleOnConnect = function(collaboratorInfo) {
+    /**
+     * Handle the onConnect event when the collaboration has successfully started and is ready.
+     *
+     * @param {Obj} new collaborator info object.
+     */
+    viewerjs.Viewer.prototype.handleOnConnect = function(collaboratorInfo) {
     var self = this;
 
     // total number of files to be uploaded to GDrive
@@ -1883,13 +1839,13 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
     self.toolBar.disableButton(self.toolBarBtnsIdPrefix + 'load');
   };
 
-  /**
-   * Handle the onDataFilesShared event when the collaboration owner has shared all data files with this collaborator.
-   *
-   * @param {Object} collaborator info object with a mail property (collaborator's mail).
-   * @param {Object} array of file objects with properties: url, cloudId and thBarId (thumbnails bar's id).
-   */
-  viewerjs.Viewer.prototype.handleOnDataFilesShared = function(collaboratorInfo, fObjArr) {
+    /**
+     * Handle the onDataFilesShared event when the collaboration owner has shared all data files with this collaborator.
+     *
+     * @param {Object} collaborator info object with a mail property (collaborator's mail).
+     * @param {Object} array of file objects with properties: url, cloudId and thBarId (thumbnails bar's id).
+     */
+    viewerjs.Viewer.prototype.handleOnDataFilesShared = function(collaboratorInfo, fObjArr) {
      var self = this;
 
      if (self.collab.collaboratorInfo.id === collaboratorInfo.id) {
@@ -1940,94 +1896,94 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
      }
    };
 
-  /**
-   * Handle the onCollabObjChanged event when the scene object has been modified by a remote collaborator.
-   */
-  viewerjs.Viewer.prototype.handleOnCollabObjChanged = function() {
+    /**
+     * Handle the onCollabObjChanged event when the scene object has been modified by a remote collaborator.
+     */
+    viewerjs.Viewer.prototype.handleOnCollabObjChanged = function() {
 
-    this.renderScene();
-  };
+      this.renderScene();
+    };
 
-  /**
-   * Handle the onNewChatMessage event when a new chat msg is received from a remote collaborator.
-   *
-   * @param {Obj} chat message object.
-   */
-  viewerjs.Viewer.prototype.handleOnNewChatMessage = function(msgObj) {
+    /**
+     * Handle the onNewChatMessage event when a new chat msg is received from a remote collaborator.
+     *
+     * @param {Obj} chat message object.
+     */
+    viewerjs.Viewer.prototype.handleOnNewChatMessage = function(msgObj) {
 
-    if (this.chat) {
-      this.chat.updateTextArea(msgObj);
-    }
-  };
+      if (this.chat) {
+        this.chat.updateTextArea(msgObj);
+      }
+    };
 
-  /**
-   * Handle the onDisconnect event everytime a remote collaborator disconnects from the collaboration.
-   *
-   * @param {Obj} collaborator info object.
-   */
-  viewerjs.Viewer.prototype.handleOnDisconnect = function(collaboratorInfo) {
+    /**
+     * Handle the onDisconnect event everytime a remote collaborator disconnects from the collaboration.
+     *
+     * @param {Obj} collaborator info object.
+     */
+    viewerjs.Viewer.prototype.handleOnDisconnect = function(collaboratorInfo) {
 
-    if (this.chat) {
+      if (this.chat) {
 
-      // create a chat message object
-      var msgObj = {user: collaboratorInfo.name, msg: 'I have disconnected.'};
+        // create a chat message object
+        var msgObj = {user: collaboratorInfo.name, msg: 'I have disconnected.'};
 
-      this.chat.updateTextArea(msgObj);
-      this.chat.updateCollaboratorList();
-    }
-  };
+        this.chat.updateTextArea(msgObj);
+        this.chat.updateCollaboratorList();
+      }
+    };
 
-  /**
-   * This method is called when all the thumbnails bars have been loaded in a collaborator's viewer instance.
-   */
-  viewerjs.Viewer.prototype.onViewerReady = function() {
+    /**
+     * This method is called when all the thumbnails bars have been loaded in a collaborator's viewer instance.
+     */
+    viewerjs.Viewer.prototype.onViewerReady = function() {
 
-    console.log('onViewerReady not overwritten!');
-  };
+      console.log('onViewerReady not overwritten!');
+    };
 
-  /**
-   * Destroy all internal objects and remove html interface
-   */
-  viewerjs.Viewer.prototype.cleanUI = function() {
+    /**
+     * Destroy all internal objects and remove html interface
+     */
+    viewerjs.Viewer.prototype.cleanUI = function() {
 
-    this.rBox.destroy();
-    this.rBox = null;
+      this.rBox.destroy();
+      this.rBox = null;
 
-    this.toolBar.destroy();
-    this.toolBar = null;
+      this.toolBar.destroy();
+      this.toolBar = null;
 
-    for (var i = this.thBars.length - 1; i >= 0; i--) {
+      for (var i = this.thBars.length - 1; i >= 0; i--) {
 
-      if (this.thBars[i]) { this.thBars[i].destroy(); }
-      this.thBars.splice(i, 1);
-    }
+        if (this.thBars[i]) { this.thBars[i].destroy(); }
+        this.thBars.splice(i, 1);
+      }
 
-    this.componentsX = [];
+      this.componentsX = [];
 
-    this.imgFileArr = [];
+      this.imgFileArr = [];
 
-    if (this.collabWin) { this.collabWin.dialog('destroy'); }
-    this.collabWin = null;
-    this.libraryWin.dialog('destroy');
-    this.libraryWin = null;
+      if (this.collabWin) { this.collabWin.dialog('destroy'); }
+      this.collabWin = null;
+      this.libraryWin.dialog('destroy');
+      this.libraryWin = null;
 
-    // remove html
-    this.container.empty();
-  };
+      // remove html
+      this.container.empty();
+    };
 
-  /**
-   * Destroy the viewer and leave collaboration if it is active
-   */
-  viewerjs.Viewer.prototype.destroy = function() {
+    /**
+     * Destroy the viewer and leave collaboration if it is active
+     */
+    viewerjs.Viewer.prototype.destroy = function() {
 
-    if (this.collab && this.collab.collabIsOn) {
+      if (this.collab && this.collab.collabIsOn) {
 
-      this.leaveCollaboration();
-    }
+        this.leaveCollaboration();
+      }
 
-    this.cleanUI();
-    this.container = null;
-  };
+      this.cleanUI();
+      this.container = null;
+    };
 
-  return viewerjs;
-});
+    return viewerjs;
+  });
