@@ -111,7 +111,8 @@ module.exports = function(grunt) {
           '<%= componentsDir %>/rboxjs/src/styles/*.css',
           '<%= componentsDir %>/thbarjs/src/styles/*.css',
           '<%= componentsDir %>/toolbarjs/src/styles/*.css',
-          '<%= componentsDir %>/chatjs/src/styles/*.css']
+          '<%= componentsDir %>/chatjs/src/styles/*.css',
+          'src/styles/**/*.css']
         }
       }
     },

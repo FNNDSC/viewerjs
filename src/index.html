@@ -7,14 +7,16 @@
     <!-- Include jquery ui styles -->
     <link rel="stylesheet"  href="js/components/jquery-ui/themes/smoothness/jquery-ui.min.css">
 
-    <!-- Include component styles -->
+    <!-- Include font-awesome -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+
+    <!-- Include components' styles -->
     <link rel="stylesheet"  href="js/components/rendererjs/src/styles/rendererjs.css">
     <link rel="stylesheet"  href="js/components/rboxjs/src/styles/rboxjs.css">
     <link rel="stylesheet"  href="js/components/thbarjs/src/styles/thbarjs.css">
     <link rel="stylesheet"  href="js/components/toolbarjs/src/styles/toolbarjs.css">
     <link rel="stylesheet"  href="js/components/chatjs/src/styles/chatjs.css">
-
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+    <link rel="stylesheet"  href="styles/viewerjs.css">
 
     <!-- Demo styles -->
     <style>
@@ -22,7 +24,7 @@
       body {
        margin: 0;
       }
-      
+
       div#viewercontainer{
         background-color: #353535;
         border: 6px solid #353535;
@@ -30,94 +32,13 @@
         margin: 0;
       }
 
-      .modal {
-        width: 50%;
-        height: auto;
-        margin: auto;
-        padding: 100px;
-        background-color: rgba(0, 0, 0, 0.5);
-        position:absolute;
-        top:0;
-        left:0;
-        width:100%;
-        height:100%;
-        z-index:1000;
-        display:none;
-      }
-
-      .modalDialog {
-        min-height: 300px;
-        min-width:500px;
-        background-color: #f9f9f9;
-      }
-
-      .view-trash{
-        position: absolute;
-        z-index: 9998;
-        top: 0;
-        left: calc(50% - 100px);
-        width: 200px;
-        height: 90px;
-        opacity: 0.96;
-        background-color: #607D8B;
-        color: #f9f9f9;
-        display: none;
-        border: 4px solid #f9f9f9;
-        text-align: center;
-        font-size: 72px;
-      }
-
-      .view-trash-sortable{
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-      }
-
-      .view-trash.highlight{
-        border: 4px dashed #F9F9F9;
-        background-color: #D50000;
-      }
-
-      .view-collabwin-connectmsg{
-        color: red;
-      }
-
-      .library .section {
-        text-align: center;
-        padding:10px;
-        border: 2px solid #607D8B;
-        background-color: #607D8B;
-      }
-
-      .library .section:hover {
-        background-color: #0091EA;
-        border: 2px solid #FFF;
-        cursor: pointer;
-      }
-
-      .library .section .title {
-        font-size: 25px;
-      }
-
-      .library .section .thumbnail {
-        display: inline-block;
-      }
-
-
     </style>
 
   </head>
 
   <body>
 
-    <div id="viewercontainer">
-      <div class="view-trash">
-         <i class="fa fa-trash"></i>
-         <div class="view-trash-sortable"></div>
-      </div>
-    </div>
+    <div id="viewercontainer"></div>
 
     <!-- Load viewer scripts -->
     <script data-main="main" src="js/components/requirejs/require.js"></script>

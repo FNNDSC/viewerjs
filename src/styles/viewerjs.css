@@ -1,0 +1,75 @@
+
+.modal {
+  width: 50%;
+  height: auto;
+  margin: auto;
+  padding: 100px;
+  background-color: rgba(0, 0, 0, 0.5);
+  position:absolute;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  z-index:1000;
+  display:none;
+}
+
+.modalDialog {
+  min-height: 300px;
+  min-width:500px;
+  background-color: #f9f9f9;
+}
+
+.view-trash{
+  position: absolute;
+  z-index: 9998;
+  top: 0;
+  left: calc(50% - 100px);
+  width: 200px;
+  height: 90px;
+  opacity: 0.96;
+  background-color: #607D8B;
+  color: #f9f9f9;
+  display: none;
+  border: 4px solid #f9f9f9;
+  text-align: center;
+  font-size: 72px;
+}
+
+.view-trash-sortable{
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.view-trash.highlight{
+  border: 4px dashed #F9F9F9;
+  background-color: #D50000;
+}
+
+.view-collabwin-connectmsg{
+  color: red;
+}
+
+.library .section {
+  text-align: center;
+  padding:10px;
+  border: 2px solid #607D8B;
+  background-color: #607D8B;
+}
+
+.library .section:hover {
+  background-color: #0091EA;
+  border: 2px solid #FFF;
+  cursor: pointer;
+}
+
+.library .section .title {
+  font-size: 25px;
+}
+
+.library .section .thumbnail {
+  display: inline-block;
+}

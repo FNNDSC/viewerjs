@@ -31,6 +31,9 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
       // viewer's container
       this.container = $('#' + containerId);
 
+      // jQuery object for the trash
+      this.trash = null;
+
       // jQuery object for the collaboration dialog window
       this.collabWin = null;
 
@@ -140,17 +143,16 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
 
         start: function() {
 
-          $('#' + self.container.attr('id') + ' .view-trash').show();
+          self.trash.show();
         },
 
         beforeStop: function(evt, ui) {
 
           var parent = ui.placeholder.parent();
-          var trash = $('.view-trash', self.container);
 
-          if (trash.hasClass('highlight')) {
+          if (self.trash.hasClass('highlight')) {
 
-            trash.removeClass('highlight');
+            self.trash.removeClass('highlight');
             // thumbnails bar was deposited on the trash so remove it and its related data
 
             for (var j = 0; j < self.thBars.length; j++) {
@@ -202,16 +204,16 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
             $(evt.target).sortable('cancel');
           }
 
-          $('#' + self.container.attr('id') + ' .view-trash').hide();
+          self.trash.hide();
         }
       });
 
+      self.addTrash();
       self.addRenderersBox();
       self.addToolBar();
 
       if (self.collab) { self.initCollabWindow(); }
 
-      //
       self.initLibraryWindow();
 
       // set a dropzone
@@ -506,6 +508,24 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
 
     return imgFileArr;
   };
+
+    /**
+     * Append a trash box to the viewer.
+     */
+    viewerjs.Viewer.prototype.addTrash = function() {
+
+      if (this.trash) {
+        return; // trash already exists
+      }
+
+      this.trash = $('<div class="view-trash">' +
+                        '<i class="fa fa-trash"></i>' +
+                        ' <div class="view-trash-sortable"></div>' +
+                      '</div>'
+                    );
+
+      this.container.append(this.trash);
+    };
 
     /**
      * Append a renderers box to the viewer.
@@ -877,7 +897,7 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
     // Distance widget button
     self.toolBar.addButton({
       id: btnsIdsPrefix + 'distance',
-      title: 'Mesure distance',
+      title: 'Measure distance',
       caption: '<i class="fa fa-arrows-h"></i>',
       onclick: function() {
 
@@ -1236,28 +1256,27 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
     });
 
     // get the jQuery sortable for the trash element
-    var trash = $('.view-trash', self.container);
-
-    $('.view-trash-sortable', trash).sortable({
+    $('.view-trash-sortable', self.trash).sortable({
 
       over: function() {
 
-        trash.addClass('highlight');
+        self.trash.addClass('highlight');
       },
 
       out: function() {
 
-        trash.removeClass('highlight');
+        self.trash.removeClass('highlight');
       }
     });
 
     // link the thumbnails bar with the renderers box
-    self.rBox.setComplementarySortableElems('#' + self.container.attr('id') + ' .view-thumbnailsbar-sortable');
-    thBar.setComplementarySortableElems('#' + self.container.attr('id') + ' .view-renderers');
+    var viewerSelector = '#' + self.container.attr('id');
+    self.rBox.setComplementarySortableElems(viewerSelector + ' .view-thumbnailsbar-sortable');
+    thBar.setComplementarySortableElems(viewerSelector + ' .view-renderers');
 
     // link the thumbnails bar with the trash's sortable element
-    thBar.jqSortable.sortable('option', 'connectWith', '#' + self.container.attr('id') + ' .view-renderers, #' +
-      self.container.attr('id') + ' .view-trash-sortable');
+    thBar.jqSortable.sortable('option', 'connectWith', viewerSelector + ' .view-renderers, ' +
+      viewerSelector + ' .view-trash-sortable');
 
     //
     // thumbnails bar event listeners
@@ -1267,9 +1286,9 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
       var id = thBar.getThumbnailId(ui.item.attr('id'));
       var parent = ui.placeholder.parent();
 
-      if (trash.hasClass('highlight')) {
+      if (self.trash.hasClass('highlight')) {
 
-        trash.removeClass('highlight');
+        self.trash.removeClass('highlight');
 
         $(evt.target).sortable('cancel');
         self.removeData(id);
@@ -1293,12 +1312,12 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
         $(evt.target).sortable('cancel');
       }
 
-      trash.hide();
+      self.trash.hide();
     };
 
     thBar.onStart = function() {
 
-      trash.show();
+      self.trash.show();
     };
 
     // append a thumbnails bar id to each array elem
