@@ -43,9 +43,6 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
       // tool bar object
       this.toolBar = null;
 
-      // prefix string for the DOM ids used for the toolbar's buttons
-      this.toolBarBtnsIdPrefix = containerId + '_tbarbtn';
-
       // renderers box object
       this.rBox = null;
 
@@ -691,7 +688,7 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
         if (self.rBox.numOfRenderers === 2) {
 
           // if there are now 2 renderers in the renderers box then show the Link views button
-          $('#' + self.toolBarBtnsIdPrefix + 'link').css({display: ''});
+          self.toolBar.showButton('link');
         }
 
       } else {
@@ -725,7 +722,7 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
       // if there is now a single renderer then hide the Link views button and make it selected
       if (this.rBox.numOfRenderers === 1) {
 
-        this.toolBar.hideButton(this.toolBarBtnsIdPrefix + 'link');
+        this.toolBar.hideButton('link');
 
         if (this.renderersLinked) {
 
@@ -771,12 +768,11 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
     //
     // add buttons to the tool bar
     //
-    var btnsIdsPrefix = self.toolBarBtnsIdPrefix;
 
     //
     // Load directory
     self.toolBar.addButton({
-      id: btnsIdsPrefix + 'load',
+      id: 'load',
       title: 'Load data',
       caption: '<i class="fa fa-folder-open"></i>  <input type="file"' +
         '  webkitdirectory="" mozdirectory="" directory="" multiple style="display:none">',
@@ -784,7 +780,7 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
 
       onclick: function() {
 
-        var loadButton = $('#' + btnsIdsPrefix + 'load > input');
+        var loadButton = $('input', self.toolBar.getButton('load').button);
         var loadFiles = function(e) {
 
           var files = e.target.files;
@@ -827,7 +823,7 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
     //
     // Load file
     self.toolBar.addButton({
-      id: btnsIdsPrefix + 'book',
+      id: 'book',
       title: 'Load from library',
       caption: '<i class="fa fa-book"></i>',
       onclick: function() {
@@ -840,7 +836,7 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
     //
     // X orientation button
     self.toolBar.addButton({
-      id: btnsIdsPrefix + 'acquisitionX',
+      id: 'acquisitionX',
       title: 'acquisitionX',
       caption: 'X',
       label: 'Orientation',
@@ -854,7 +850,7 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
     //
     // Y orientation button
     self.toolBar.addButton({
-      id: btnsIdsPrefix + 'acquisitionY',
+      id: 'acquisitionY',
       title: 'acquisitionY',
       caption: 'Y',
       onclick: function() {
@@ -867,7 +863,7 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
     //
     // Z orientation button
     self.toolBar.addButton({
-      id: btnsIdsPrefix + 'acquisitionZ',
+      id: 'acquisitionZ',
       title: 'acquisitionZ',
       caption: 'Z',
       onclick: function() {
@@ -880,7 +876,7 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
     //
     // Fiducial widget button
     self.toolBar.addButton({
-      id: btnsIdsPrefix + 'fiducial',
+      id: 'fiducial',
       title: 'Add fiducial',
       caption: '<i class="fa fa-thumb-tack"></i>',
       label: 'Tools',
@@ -891,12 +887,12 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
       }
     });
 
-    self.toolBar.disableButton(btnsIdsPrefix + 'fiducial');
+    self.toolBar.disableButton('fiducial');
 
     //
     // Distance widget button
     self.toolBar.addButton({
-      id: btnsIdsPrefix + 'distance',
+      id: 'distance',
       title: 'Measure distance',
       caption: '<i class="fa fa-arrows-h"></i>',
       onclick: function() {
@@ -906,12 +902,12 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
       }
     });
 
-    self.toolBar.disableButton(btnsIdsPrefix + 'distance');
+    self.toolBar.disableButton('distance');
 
     //
     // Angle widget button
     self.toolBar.addButton({
-      id: btnsIdsPrefix + 'angle',
+      id: 'angle',
       title: 'Measure angle',
       caption: '<i class="fa fa-rss"></i>',
       onclick: function() {
@@ -921,12 +917,12 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
       }
     });
 
-    self.toolBar.disableButton(btnsIdsPrefix + 'angle');
+    self.toolBar.disableButton('angle');
 
     //
     // Note widget button
     self.toolBar.addButton({
-      id: btnsIdsPrefix + 'note',
+      id: 'note',
       title: 'Add a note',
       caption: '<i class="fa fa-sticky-note-o"></i>',
       onclick: function() {
@@ -936,12 +932,12 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
       }
     });
 
-    self.toolBar.disableButton(btnsIdsPrefix + 'note');
+    self.toolBar.disableButton('note');
 
     //
     // Pointer interactor button
     self.toolBar.addButton({
-      id: btnsIdsPrefix + 'pointer',
+      id: 'pointer',
       title: 'Pointer',
       caption: '<i class="fa fa-mouse-pointer"></i>',
       label: 'Interactors',
@@ -952,12 +948,12 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
       }
     });
 
-    self.toolBar.disableButton(btnsIdsPrefix + 'pointer');
+    self.toolBar.disableButton('pointer');
 
     //
     // Zoom interactor button
     self.toolBar.addButton({
-      id: btnsIdsPrefix + 'search',
+      id: 'search',
       title: 'Zoom',
       caption: '<i class="fa fa-search"></i>',
       onclick: function() {
@@ -967,12 +963,12 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
       }
     });
 
-    self.toolBar.disableButton(btnsIdsPrefix + 'search');
+    self.toolBar.disableButton('search');
 
     //
     // Window Level interactor button
     self.toolBar.addButton({
-      id: btnsIdsPrefix + 'adjust',
+      id: 'adjust',
       title: 'Window Level',
       caption: '<i class="fa fa-adjust"></i>',
       onclick: function() {
@@ -982,12 +978,12 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
       }
     });
 
-    self.toolBar.disableButton(btnsIdsPrefix + 'adjust');
+    self.toolBar.disableButton('adjust');
 
     //
     // Pan interactor button
     self.toolBar.addButton({
-      id: btnsIdsPrefix + 'arrows',
+      id: 'arrows',
       title: 'Pan',
       caption: '<i class="fa fa-arrows"></i>',
       onclick: function() {
@@ -997,7 +993,7 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
       }
     });
 
-    self.toolBar.disableButton(btnsIdsPrefix + 'arrows');
+    self.toolBar.disableButton('arrows');
 
     //
     // Start collaboration button
@@ -1006,7 +1002,7 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
       // collab button is added only when there is a collab object available
       self.toolBar.addButton({
 
-        id: btnsIdsPrefix + 'collab',
+        id: 'collab',
         title: 'Start collaboration',
         caption: '<i class="fa fa-users"></i>',
         label: 'More',
@@ -1027,7 +1023,7 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
     //
     // Link views button
     self.toolBar.addButton({
-      id: btnsIdsPrefix + 'link',
+      id: 'link',
       title: 'Link views',
       caption: '<i class="fa fa-link"></i>',
 
@@ -1038,12 +1034,12 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
       }
     });
 
-    self.toolBar.hideButton(btnsIdsPrefix + 'link');
+    self.toolBar.hideButton('link');
 
     //
     // Settings button
     self.toolBar.addButton({
-      id: btnsIdsPrefix + 'gear',
+      id: 'gear',
       title: 'Settings',
       caption: '<i class="fa fa-gear"></i>',
       onclick: function() {
@@ -1054,12 +1050,12 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
 
     });
 
-    self.toolBar.disableButton(btnsIdsPrefix + 'gear');
+    self.toolBar.disableButton('gear');
 
     //
     // Help button
     self.toolBar.addButton({
-      id: btnsIdsPrefix + 'help',
+      id: 'help',
       title: 'Wiki help',
       caption: '<i class="fa fa-question"></i>',
       onclick: function() {
@@ -1070,7 +1066,7 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
     });
 
     //
-    // tool bar event listeners
+    // toolbar event listeners
     //
     this.handleChangeOrientation = function(orientation) {
 
@@ -1082,7 +1078,7 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
 
     this.handleToolBarButtonLinkClick = function() {
 
-      var jqButton = $('#' +  btnsIdsPrefix + 'link');
+      var jqButton = self.toolBar.getButton('link').button;
 
       if (self.renderersLinked) {
 
@@ -1105,6 +1101,14 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
     self.rBox.container.css({top: renderersTopEdge + 'px'});
     self.rBox.container.css({height: 'calc(100% - ' + renderersTopEdge + 'px)'});
   };
+
+    /**
+     * Toggle a toolbar's button activated/deactivated UI state.
+     */
+    /*viewerjs.Viewer.prototype.toggleToolbarButtonAct = function(state, btnId) {
+      var self = this;
+
+    };*/
 
     /**
      * Initilize collaboration window's HTML and event handlers.
@@ -1656,7 +1660,7 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
         }
 
         self.collabWin.dialog('close');
-        self.toolBar.disableButton(self.toolBarBtnsIdPrefix + 'collab');
+        self.toolBar.disableButton('collab');
       };
 
       self.collab.authorizeAndLoadApi(true, function(granted) {
@@ -1714,11 +1718,12 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
 
         this.collab.leaveRealtimeCollaboration();
 
-        // update the UI
-        var collabButton = $('#' + this.toolBarBtnsIdPrefix + 'collab');
+        // update the toolbar's UI
+        var collabButton = this.toolBar.getButton('collab').button;
         collabButton.removeClass('active');
         collabButton.attr('title', 'Start collaboration');
-        this.toolBar.enableButton(this.toolBarBtnsIdPrefix + 'load');
+        this.toolBar.enableButton('load');
+        this.toolBar.enableButton('book');
 
         // destroy the chat object
         this.chat.destroy();
@@ -1794,12 +1799,14 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
 
       if (self.collab.collabOwner) {
 
-        var collabBtnId = self.toolBarBtnsIdPrefix + 'collab';
-        self.toolBar.enableButton(collabBtnId);
+        self.toolBar.enableButton('collab');
 
-        var collabButton = $('#' + collabBtnId);
+        // update the toolbar's UI
+        var collabButton = self.toolBar.getButton('collab').button;
         collabButton.addClass('active');
         collabButton.attr('title', 'End collaboration');
+        self.toolBar.disableButton('load');
+        self.toolBar.disableButton('book');
 
         // asyncronously load all files to GDrive
         self.collab.fileManager.createPath(self.collab.dataFilesBaseDir, function() {
@@ -1853,9 +1860,6 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
       // a remote collaborator has connected so just update the collaborators list
       self.chat.updateCollaboratorList();
     }
-
-    // disable load data button
-    self.toolBar.disableButton(self.toolBarBtnsIdPrefix + 'load');
   };
 
     /**
@@ -1890,9 +1894,11 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
        self.init();
 
        // update the toolbar's UI
-       var collabButton = $('#' + self.toolBarBtnsIdPrefix + 'collab');
+       var collabButton = self.toolBar.getButton('collab').button;
        collabButton.addClass('active');
        collabButton.attr('title', 'End collaboration');
+       self.toolBar.disableButton('load');
+       self.toolBar.disableButton('book');
 
        var numOfLoadedThumbnailsBar = 0;
 
