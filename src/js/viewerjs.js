@@ -781,6 +781,7 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
       onclick: function() {
 
         var loadButton = $('input', self.toolBar.getButton('load').button);
+
         var loadFiles = function(e) {
 
           var files = e.target.files;
@@ -1078,22 +1079,18 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
 
     this.handleToolBarButtonLinkClick = function() {
 
-      var jqButton = self.toolBar.getButton('link').button;
-
       if (self.renderersLinked) {
 
         self.rBox.unlinkRenderers();
         self.renderersLinked = false;
-        jqButton.removeClass('active');
-        jqButton.attr('title', 'Link views');
 
       } else {
 
         self.rBox.linkRenderers();
         self.renderersLinked = true;
-        jqButton.addClass('active');
-        jqButton.attr('title', 'Unlink views');
       }
+
+      self.toggleToolbarButtonActivation('link');
     };
 
     // make space for the toolbar
@@ -1105,10 +1102,48 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
     /**
      * Toggle a toolbar's button activated/deactivated UI state.
      */
-    /*viewerjs.Viewer.prototype.toggleToolbarButtonAct = function(state, btnId) {
-      var self = this;
+    viewerjs.Viewer.prototype.toggleToolbarButtonActivation = function(btnId) {
 
-    };*/
+      var btnObj = this.toolBar.getButton(btnId);
+
+      if (btnObj) {
+
+        var btn = btnObj.button;
+
+        if (btnObj.activated) {
+
+          // deactivate the button
+
+          btnObj.activated = false;
+          btn.removeClass('active');
+
+          if (btnId === 'collab') {
+
+            btn.attr('title', 'Start collaboration');
+
+          } else if (btnId === 'link') {
+
+            btn.attr('title', 'Link views');
+          }
+
+        } else {
+
+          // activate the button
+
+          btnObj.activated = true;
+          btn.addClass('active');
+
+          if (btnId === 'collab') {
+
+            btn.attr('title', 'End collaboration');
+
+          } else if (btnId === 'link') {
+
+            btn.attr('title', 'Unlink views');
+          }
+        }
+      }
+    };
 
     /**
      * Initilize collaboration window's HTML and event handlers.
@@ -1719,9 +1754,7 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
         this.collab.leaveRealtimeCollaboration();
 
         // update the toolbar's UI
-        var collabButton = this.toolBar.getButton('collab').button;
-        collabButton.removeClass('active');
-        collabButton.attr('title', 'Start collaboration');
+        this.toggleToolbarButtonActivation('collab');
         this.toolBar.enableButton('load');
         this.toolBar.enableButton('book');
 
@@ -1802,9 +1835,7 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
         self.toolBar.enableButton('collab');
 
         // update the toolbar's UI
-        var collabButton = self.toolBar.getButton('collab').button;
-        collabButton.addClass('active');
-        collabButton.attr('title', 'End collaboration');
+        self.toggleToolbarButtonActivation('collab');
         self.toolBar.disableButton('load');
         self.toolBar.disableButton('book');
 
@@ -1894,9 +1925,7 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
        self.init();
 
        // update the toolbar's UI
-       var collabButton = self.toolBar.getButton('collab').button;
-       collabButton.addClass('active');
-       collabButton.attr('title', 'End collaboration');
+       self.toggleToolbarButtonActivation('collab');
        self.toolBar.disableButton('load');
        self.toolBar.disableButton('book');
 
