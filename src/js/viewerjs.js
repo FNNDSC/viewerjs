@@ -779,7 +779,7 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
       id: btnsIdsPrefix + 'load',
       title: 'Load data',
       caption: '<i class="fa fa-folder-open"></i>  <input type="file"' +
-        '  webkitdirectory="" mozdirectory="" directory="" multiple style="display:none">',
+        '  webkitdirectory="" multiple style="display:none">',
       label: 'Load',
 
       onclick: function() {
