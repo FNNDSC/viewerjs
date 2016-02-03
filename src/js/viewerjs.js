@@ -4,9 +4,9 @@
  */
 
 // define a new module
-define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', 'toolbarjs',
+define(['text!collabwin', 'utiljs', 'rendererjs', 'rboxjs', 'toolbarjs',
 
-  'thbarjs', 'chatjs'], function(collabwin, librarywin, util, render, rbox, toolbar, thbar, chat) {
+  'thbarjs', 'chatjs'], function(collabwin, util, render, rbox, toolbar, thbar, chat) {
 
     /**
      * Provide a namespace for the viewer module
@@ -1143,13 +1143,86 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
       modal: true,
       autoOpen: false,
       minHeight: 400,
-      height: 800,
+      height: 600,
       minWidth: 700,
-      width: 1000
+      width: 800
     });
 
-    // add contents to the floating window from its HTML template
-    self.libraryWin.append($(librarywin).filter('.view-librarywin'));
+    var library = [
+    {
+      sectionLabel: 'Day 0 to 14',
+      notes: 'Oh yes I\'m a cool notes',
+      datasets: [
+        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
+        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
+        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
+        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii'
+      ]
+    },
+    {
+      sectionLabel: 'Quarter 0',
+      notes: 'Me too!',
+      datasets: [
+        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
+        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
+        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
+        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii'
+      ]
+    },
+    {
+      sectionLabel: 'Quarter 1',
+      notes: 'Oh yes I\'m a cool notes too',
+      datasets: [
+        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
+        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
+        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
+        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii'
+      ]
+    }];
+
+    var libraryContainerDiv = document.createElement('div');
+    $(libraryContainerDiv)
+        .addClass('library');
+    self.libraryWin.append($(libraryContainerDiv));
+
+    for(var i = 0; i<library.length; i++){
+      // section
+      var sectionDiv = document.createElement('div');
+      $(sectionDiv)
+        .addClass('section')
+        .attr('sectionIndex', i);
+      $(libraryContainerDiv).append($(sectionDiv));
+
+      // title
+      var titleDiv = document.createElement('div');
+      $(titleDiv)
+        .addClass('title')
+        .html(library[i].sectionLabel);
+      $(sectionDiv).append($(titleDiv));
+
+      // note
+      var notesDiv = document.createElement('div');
+      $(notesDiv)
+        .addClass('notes')
+        .html(library[i].notes);
+      $(sectionDiv).append($(notesDiv));
+
+      // thumbnails
+      var thumbnailsContainerDiv = document.createElement('div');
+      $(thumbnailsContainerDiv)
+        .addClass('thumbnailsContainer');
+      $(sectionDiv).append($(thumbnailsContainerDiv));
+
+      for(var j=0; j<library[i].datasets.length; j++){
+        var thumbnailDiv = document.createElement('div');
+        $(thumbnailDiv)
+          .addClass('thumbnail')
+          .css('background-image', 'url(' + library[i].datasets[j] + '.jpg)');
+        $(thumbnailsContainerDiv).append(thumbnailDiv);
+      }
+    }
+
+    // fill content (no need for append)
 
     // connect search bar...
     // $('.view-librarywin-input').keyup(function() {
@@ -1164,26 +1237,25 @@ define(['text!collabwin', 'text!librarywin', 'utiljs', 'rendererjs', 'rboxjs', '
     // connect each element of the lists to nii, json and jpg
     $('.library > .section').on('click', function() {
 
-      var thumbnails = $(this).find('.thumbnail');
+      var sectionIndex = $(this).attr('sectionIndex');
+      window.console.log(sectionIndex);
 
       // build list
       var imgFileArr = [];
-      $.each(thumbnails, function(i, val) {
 
-        var basename = $(val).css('background-image').slice(5, -6);
-
+      for(var i=0; i< library[sectionIndex].datasets.length; i++){
         imgFileArr.push({
-          'url': basename + '.gz'
+          'url': library[sectionIndex].datasets[i] + '.gz'
         });
 
         imgFileArr.push({
-          'url': basename + '.jpg'
+          'url': library[sectionIndex].datasets[i] + '.jpg'
         });
 
         imgFileArr.push({
-          'url': basename + '.json'
+          'url': library[sectionIndex].datasets[i] + '.json'
         });
-      });
+      }
 
       // load atlases
       self.addData(imgFileArr);
