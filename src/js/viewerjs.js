@@ -1606,19 +1606,6 @@ define(['text!collabwin', 'utiljs', 'rendererjs', 'rboxjs', 'toolbarjs',
           rObj.renderer.flipColumns = r2DProps.renderer.flipColumns;
           rObj.renderer.flipRows = r2DProps.renderer.flipRows;
 
-          // update selected status
-          if (rObj.selected !== r2DProps.selected) {
-
-            if (rObj.selected) {
-
-              rObj.deselect();
-
-            } else {
-
-              rObj.select();
-            }
-          }
-
           // update the orientation
           if (rObj.renderer.orientation !== r2DProps.renderer.orientation) {
 
@@ -1661,6 +1648,24 @@ define(['text!collabwin', 'utiljs', 'rendererjs', 'rboxjs', 'toolbarjs',
           $('#' + self.getThumbnailsBarObject(id).getThumbnailContId(id)).css({display: 'none'});
 
           self.addRenderer(self.getImgFileObject(id), updateRenderer);
+        });
+
+        // update the renderer's window state
+        self.rBox.renderers.forEach(function(rObj) {
+
+          var r2DProps = renderers2DProps[renderers2DIds.indexOf(rObj.id)];
+
+          if (rObj.selected !== r2DProps.selected) {
+
+            if (rObj.selected) {
+
+              rObj.deselect();
+
+            } else {
+
+              rObj.select();
+            }
+          }
         });
       }
     };
@@ -1720,6 +1725,7 @@ define(['text!collabwin', 'utiljs', 'rendererjs', 'rboxjs', 'toolbarjs',
         // set pointer specific information
         rInfo.pointer = {};
 
+        // renderer window's state
         rInfo.selected = rObj.selected;
 
         scene.renderers.push(rInfo);
