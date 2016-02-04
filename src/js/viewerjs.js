@@ -1224,7 +1224,7 @@ define(['text!collabwin', 'utiljs', 'rendererjs', 'rboxjs', 'toolbarjs',
         .addClass('library');
     self.libraryWin.append($(libraryContainerDiv));
 
-    for(var i = 0; i<library.length; i++){
+    for (var i = 0; i < library.length; i++) {
       // section
       var sectionDiv = document.createElement('div');
       $(sectionDiv)
@@ -1252,7 +1252,7 @@ define(['text!collabwin', 'utiljs', 'rendererjs', 'rboxjs', 'toolbarjs',
         .addClass('thumbnailsContainer');
       $(sectionDiv).append($(thumbnailsContainerDiv));
 
-      for(var j=0; j<library[i].datasets.length; j++){
+      for (var j = 0; j < library[i].datasets.length; j++) {
         var thumbnailDiv = document.createElement('div');
         $(thumbnailDiv)
           .addClass('thumbnail')
@@ -1282,7 +1282,7 @@ define(['text!collabwin', 'utiljs', 'rendererjs', 'rboxjs', 'toolbarjs',
       // build list
       var imgFileArr = [];
 
-      for(var i=0; i< library[sectionIndex].datasets.length; i++){
+      for (var i = 0; i < library[sectionIndex].datasets.length; i++) {
         imgFileArr.push({
           'url': library[sectionIndex].datasets[i] + '.gz'
         });
@@ -1567,95 +1567,103 @@ define(['text!collabwin', 'utiljs', 'rendererjs', 'rboxjs', 'toolbarjs',
      * Render the current scene.
      */
     viewerjs.Viewer.prototype.renderScene = function() {
-    var self = this;
+      var self = this;
 
-    var scene;
+      if (self.collab && self.collab.collabIsOn) {
 
-    // define function to render the renderers in the renderers box
-    function renderRenderers() {
+        // collaboration is on, so get and render the scene
+        var scene = self.getCollabScene();
+        var renderers2DIds = [];
+        var renderers2DProps = [];
 
-      var id;
-      var renderers2DIds = [];
-      var renderers2DProps = [];
+        if (self.renderersLinked !== scene.toolBar.renderersLinked) {
 
-      var updateRenderer = function(renderer) {
-
-        var ix = renderers2DIds.indexOf(renderer.id);
-
-        // update the volume properties
-        renderer.volume.lowerThreshold = renderers2DProps[ix].volume.lowerThreshold;
-        renderer.volume.upperThreshold = renderers2DProps[ix].volume.upperThreshold;
-        renderer.volume.windowLow = renderers2DProps[ix].volume.lowerWindowLevel;
-        renderer.volume.windowHigh = renderers2DProps[ix].volume.upperWindowLevel;
-        renderer.volume.indexX = renderers2DProps[ix].volume.indexX;
-        renderer.volume.indexY = renderers2DProps[ix].volume.indexY;
-        renderer.volume.indexZ = renderers2DProps[ix].volume.indexZ;
-
-        // update the camera
-        var obj = JSON.parse(renderers2DProps[ix].renderer.viewMatrix);
-        var arr = $.map(obj, function(el) { return el; });
-        renderer.renderer.camera.view = new Float32Array(arr);
-
-        // update the flip orientation
-        renderer.renderer.flipColumns = renderers2DProps[ix].renderer.flipColumns;
-        renderer.renderer.flipRows = renderers2DProps[ix].renderer.flipRows;
-
-        // update the pointing position
-        renderer.renderer.pointer = renderers2DProps[ix].renderer.pointer;
-
-        // update the slice info HTML
-        renderer.updateUISliceInfo();
-      };
-
-      // get the collab scene's 2D renderer ids
-      for (var i = 0; i < scene.renderers.length; i++) {
-
-        if (scene.renderers[i].general.type = '2D') {
-
-          renderers2DIds.push(scene.renderers[i].general.id);
-          renderers2DProps.push(scene.renderers[i]);
+          self.handleToolBarButtonLinkClick();
         }
+
+        //
+        // render the renderers in the renderers box
+        //
+        var updateRenderer = function(rObj) {
+
+          var r2DProps = renderers2DProps[renderers2DIds.indexOf(rObj.id)];
+
+          // update the volume properties
+          rObj.volume.lowerThreshold = r2DProps.volume.lowerThreshold;
+          rObj.volume.upperThreshold = r2DProps.volume.upperThreshold;
+          rObj.volume.windowLow = r2DProps.volume.lowerWindowLevel;
+          rObj.volume.windowHigh = r2DProps.volume.upperWindowLevel;
+          rObj.volume.indexX = r2DProps.volume.indexX;
+          rObj.volume.indexY = r2DProps.volume.indexY;
+          rObj.volume.indexZ = r2DProps.volume.indexZ;
+
+          // update the camera
+          var obj = JSON.parse(r2DProps.renderer.viewMatrix);
+          var arr = $.map(obj, function(el) { return el; });
+          rObj.renderer.camera.view = new Float32Array(arr);
+
+          // update the flip orientation
+          rObj.renderer.flipColumns = r2DProps.renderer.flipColumns;
+          rObj.renderer.flipRows = r2DProps.renderer.flipRows;
+
+          // update selected status
+          if (rObj.selected !== r2DProps.selected) {
+
+            if (rObj.selected) {
+
+              rObj.deselect();
+
+            } else {
+
+              rObj.select();
+            }
+          }
+
+          // update the orientation
+          if (rObj.renderer.orientation !== r2DProps.renderer.orientation) {
+
+            self.handleChangeOrientation(r2DProps.renderer.orientation);
+          }
+
+          // update the pointing position
+          rObj.renderer.pointer = r2DProps.renderer.pointer;
+
+          // update the slice info HTML
+          rObj.updateUISliceInfo();
+        };
+
+        // get the collab scene's 2D renderer ids
+        scene.renderers.forEach(function(rInfo) {
+
+          if (rInfo.general.type = '2D') {
+
+            renderers2DIds.push(rInfo.general.id);
+            renderers2DProps.push(rInfo);
+          }
+        });
+
+        // remove the 2D renderers from the local scene that were removed from the collab scene
+        self.rBox.renderers.forEach(function(rObj) {
+
+          if (renderers2DIds.indexOf(rObj.id) === -1) {
+
+            var thContId = self.getThumbnailsBarObject(rObj.id).getThumbnailContId(rObj.id);
+
+            $('#' + thContId).css({display: 'block'});
+
+            self.rBox.removeRenderer(rObj);
+          }
+        });
+
+        // add 2D renderers to the local scene that were added to the collab scene
+        renderers2DIds.forEach(function(id) {
+
+          $('#' + self.getThumbnailsBarObject(id).getThumbnailContId(id)).css({display: 'none'});
+
+          self.addRenderer(self.getImgFileObject(id), updateRenderer);
+        });
       }
-
-      // remove the 2D renderers from the local scene that were removed from the collab scene
-      for (i = 0; i < self.rBox.renderers.length; i++) {
-
-        id = self.rBox.renderers[i].id;
-
-        if (renderers2DIds.indexOf(id) === -1) {
-
-          var thContId = self.getThumbnailsBarObject(id).getThumbnailContId(id);
-
-          $('#' + thContId).css({display: 'block'});
-
-          self.rBox.removeRenderer(self.rBox.renderers[i]);
-        }
-      }
-
-      for (i = 0; i < renderers2DIds.length; i++) {
-
-        // add a 2D renderer to the local scene that was added to the collab scene
-        id = renderers2DIds[i];
-
-        $('#' + self.getThumbnailsBarObject(id).getThumbnailContId(id)).css({display: 'none'});
-
-        self.addRenderer(self.getImgFileObject(id), updateRenderer);
-      }
-    }
-
-    if (self.collab && self.collab.collabIsOn) {
-
-      // collaboration is on, so get and render the scene
-      scene = self.getCollabScene();
-
-      if (self.renderersLinked !== scene.toolBar.renderersLinked) {
-
-        self.handleToolBarButtonLinkClick();
-      }
-
-      renderRenderers();
-    }
-  };
+    };
 
     /**
      * Create and return a scene object describing the current scene.
@@ -1663,7 +1671,6 @@ define(['text!collabwin', 'utiljs', 'rendererjs', 'rboxjs', 'toolbarjs',
     viewerjs.Viewer.prototype.getLocalScene = function() {
 
       var scene = {};
-      var renderers = this.rBox.renderers;
 
       // set toolbar's properties
       scene.toolBar = {};
@@ -1674,33 +1681,35 @@ define(['text!collabwin', 'utiljs', 'rendererjs', 'rboxjs', 'toolbarjs',
       scene.renderers = [];
 
       // parse each renderer and get information to be synchronized
-      for (var j = 0; j < renderers.length; j++) {
+      for (var j = 0; j < this.rBox.renderers.length; j++) {
+
+        var rObj = this.rBox.renderers[j];
         var rInfo = {};
 
         // set general information about the renderer
         rInfo.general = {};
-
-        rInfo.general.id = renderers[j].id;
+        rInfo.general.id = rObj.id;
         rInfo.general.type = '2D';
 
         // set renderer specific information
         rInfo.renderer = {};
-        rInfo.renderer.viewMatrix = JSON.stringify(renderers[j].renderer.camera.view);
-        rInfo.renderer.flipColumns = renderers[j].renderer.flipColumns;
-        rInfo.renderer.flipRows = renderers[j].renderer.flipRows;
-        rInfo.renderer.pointer = renderers[j].renderer.pointer;
+        rInfo.renderer.viewMatrix = JSON.stringify(rObj.renderer.camera.view);
+        rInfo.renderer.flipColumns = rObj.renderer.flipColumns;
+        rInfo.renderer.flipRows = rObj.renderer.flipRows;
+        rInfo.renderer.pointer = rObj.renderer.pointer;
+        rInfo.renderer.orientation = rObj.renderer.orientation;
 
         // set volume specific information
         // only supports 1 volume for now....
         rInfo.volume = {};
-        rInfo.volume.file = renderers[j].volume.file;
-        rInfo.volume.lowerThreshold = renderers[j].volume.lowerThreshold;
-        rInfo.volume.upperThreshold = renderers[j].volume.upperThreshold;
-        rInfo.volume.lowerWindowLevel = renderers[j].volume.windowLow;
-        rInfo.volume.upperWindowLevel = renderers[j].volume.windowHigh;
-        rInfo.volume.indexX = renderers[j].volume.indexX;
-        rInfo.volume.indexY = renderers[j].volume.indexY;
-        rInfo.volume.indexZ = renderers[j].volume.indexZ;
+        rInfo.volume.file = rObj.volume.file;
+        rInfo.volume.lowerThreshold = rObj.volume.lowerThreshold;
+        rInfo.volume.upperThreshold = rObj.volume.upperThreshold;
+        rInfo.volume.lowerWindowLevel = rObj.volume.windowLow;
+        rInfo.volume.upperWindowLevel = rObj.volume.windowHigh;
+        rInfo.volume.indexX = rObj.volume.indexX;
+        rInfo.volume.indexY = rObj.volume.indexY;
+        rInfo.volume.indexZ = rObj.volume.indexZ;
 
         // set interactor specific information
         rInfo.interactor = {};
@@ -1710,6 +1719,8 @@ define(['text!collabwin', 'utiljs', 'rendererjs', 'rboxjs', 'toolbarjs',
 
         // set pointer specific information
         rInfo.pointer = {};
+
+        rInfo.selected = rObj.selected;
 
         scene.renderers.push(rInfo);
       }
