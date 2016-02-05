@@ -780,8 +780,6 @@ define(['text!collabwin', 'utiljs', 'rendererjs', 'rboxjs', 'toolbarjs',
 
       onclick: function() {
 
-        var loadButton = $('input', self.toolBar.getButton('load').button);
-
         var loadFiles = function(e) {
 
           var files = e.target.files;
@@ -811,6 +809,10 @@ define(['text!collabwin', 'utiljs', 'rendererjs', 'rboxjs', 'toolbarjs',
 
           self.addData(imgFileArr);
         };
+
+        var loadButton = $('input', this);
+
+        loadButton[0].value = null; // makes possible to load the same file
 
         loadButton.off('change').on('change', loadFiles);
 
