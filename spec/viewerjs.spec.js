@@ -7,6 +7,7 @@ define(['viewerjs'], function(viewerjs) {
 
   describe('viewerjs', function() {
     var view;
+    var rndr;
 
     // Append container div
     $(document.body).append('<div id="viewercontainer"></div>');
@@ -17,7 +18,13 @@ define(['viewerjs'], function(viewerjs) {
       view = new viewerjs.Viewer('viewercontainer');
 
       view.init();
-      view.addData([{'url': '/local.nii'}]);
+      view.addData([{'url': '/src/js/components/mri_testdata/volumes/nii/s34654_df.nii'}]);
+
+      view.addRenderer(view.getImgFileObject(0), function(r) {
+
+        rndr = r;
+        done();
+      });
     });
 
     afterEach(function() {
@@ -26,11 +33,36 @@ define(['viewerjs'], function(viewerjs) {
       view.destroy();
     });
 
-    it('viewerjs.Viewer.prototype.getImgFileObject(0) returns image file object given its id',
+    /*it('viewerjs.Viewer.prototype.getImgFileObject(id) returns image file object given its id',
+
       function() {
+
         expect(view.getImgFileObject(0).id).toEqual(0);
-      }
-    );
+      });
+
+    it('viewerjs.Viewer.prototype.addRenderer(imgFileObj) adds a new renderer',
+
+      function() {
+
+        var id = view.getImgFileObject(0).id;
+
+        expect(view.rBox.getRendererContId(id)).toEqual(view.renderersIdPrefix + id);
+      });*/
+
+    it('viewerjs.Viewer.prototype.addRenderer(imgFileObj) adds a new volume',
+
+        function() {
+
+          //var id = view.getImgFileObject(0).id;
+          /*var auxArr = view.rBox.renderers.filter(function(rndr) {
+
+            return rndr.id === id;
+          });*/
+
+          expect(rndr).toBeNull();
+
+          //expect(vol.filedata).toEqual(jasmine.any(Array));
+        });
 
   });
 });

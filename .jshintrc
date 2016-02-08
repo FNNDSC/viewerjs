@@ -14,6 +14,6 @@
   "globals": {
     "jQuery": true, "$": true, "console": true, "alert": true, "document": true,
     "require": true, "describe": true, "it": true, "expect": true, "beforeEach": true,
-    "afterEach": true, "define": true
+    "afterEach": true, "define": true, "jasmine": true, "done": true
     }
 }

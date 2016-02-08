@@ -21,6 +21,9 @@
     "test",
     "tests"
   ],
+  "devDependencies": {
+    "mri_testdata": "https://github.com/FNNDSC/mri_testdata.git#master"
+    },
   "dependencies": {
     "rendererjs": "https://github.com/FNNDSC/rendererjs.git#master",
     "rboxjs": "https://github.com/FNNDSC/rboxjs.git#master",
