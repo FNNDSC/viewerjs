@@ -140,7 +140,11 @@ define(['text!collabwin', 'utiljs', 'rendererjs', 'rboxjs', 'toolbarjs',
 
         start: function() {
 
-          self.trash.show();
+          // trash doesn't show up during a realtime collaboration session
+          if (!self.collab || !self.collab.collabIsOn) {
+
+            self.trash.show();
+          }
         },
 
         beforeStop: function(evt, ui) {
@@ -1430,7 +1434,11 @@ define(['text!collabwin', 'utiljs', 'rendererjs', 'rboxjs', 'toolbarjs',
 
     thBar.onStart = function() {
 
-      self.trash.show();
+      // trash doesn't show up during a realtime collaboration session
+      if (!self.collab || !self.collab.collabIsOn) {
+
+        self.trash.show();
+      }
     };
 
     // append a thumbnails bar id to each array elem

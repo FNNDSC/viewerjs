@@ -6,63 +6,65 @@
 define(['viewerjs'], function(viewerjs) {
 
   describe('viewerjs', function() {
-    var view;
-    var rndr;
 
-    // Append container div
-    $(document.body).append('<div id="viewercontainer"></div>');
+    window.jasmine.DEFAULT_TIMEOUT_INTERVAL = 20000;
 
-    beforeEach(function() {
+    /*var fileArr = [{url: 'volumes/nii/s34654_df.nii', name: 's34654_df.nii', remote: true},
+      {'url': 'json/s34654_df.json', name: 's34654_df.json', 'remote': true}];*/
 
-      // Create a new viewerjs.Viewer object
-      view = new viewerjs.Viewer('viewercontainer');
+    // append a container for the whole viewer
+    var container = $('<div id="viewercontainer"></div>');
+    $(document.body).append(container);
 
-      view.init();
-      view.addData([{'url': '/src/js/components/mri_testdata/volumes/nii/s34654_df.nii'}]);
+    var view; // viewer
 
-      view.addRenderer(view.getImgFileObject(0), function(r) {
+    describe('viewerjs test suit1', function() {
 
-        rndr = r;
-        done();
-      });
-    });
+      beforeEach(function() {
 
-    afterEach(function() {
-
-      // Destroy viewerjs.Viewer object
-      view.destroy();
-    });
-
-    /*it('viewerjs.Viewer.prototype.getImgFileObject(id) returns image file object given its id',
-
-      function() {
-
-        expect(view.getImgFileObject(0).id).toEqual(0);
+        // Create a new viewerjs.Viewer object
+        view = new viewerjs.Viewer('viewercontainer');
       });
 
-    it('viewerjs.Viewer.prototype.addRenderer(imgFileObj) adds a new renderer',
+      afterEach(function() {
 
-      function() {
+        // Destroy viewer
+        view.destroy();
+      });
 
-        var id = view.getImgFileObject(0).id;
-
-        expect(view.rBox.getRendererContId(id)).toEqual(view.renderersIdPrefix + id);
-      });*/
-
-    it('viewerjs.Viewer.prototype.addRenderer(imgFileObj) adds a new volume',
+      it('viewerjs.Viewer.prototype.getImgFileObject(id) returns image file object given its id',
 
         function() {
 
-          //var id = view.getImgFileObject(0).id;
-          /*var auxArr = view.rBox.renderers.filter(function(rndr) {
+          expect(view.getImgFileObject(0).id).toEqual(0);
+        });
+    });
 
-            return rndr.id === id;
-          });*/
+    describe('viewerjs test suit2', function() {
 
-          expect(rndr).toBeNull();
+      beforeEach(function() {
 
-          //expect(vol.filedata).toEqual(jasmine.any(Array));
+        view = new viewerjs.Viewer('viewercontainer');
+
+        /*view.init(imgFileObj, function() {
+
+          done();
+        });*/
+      });
+
+      afterEach(function() {
+
+        // Destroy renderer
+        view.destroy();
+      });
+
+      it('viewerjs.Viewer.prototype.getImgFileObject(id) returns image file object given its id',
+
+        function() {
+
+          expect(view.getImgFileObject(0).id).toEqual(0);
         });
 
+    });
   });
 });
