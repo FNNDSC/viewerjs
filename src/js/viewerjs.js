@@ -2099,10 +2099,11 @@ define(['text!collabwin', 'utiljs', 'rendererjs', 'rboxjs', 'toolbarjs',
      */
     viewerjs.Viewer.prototype.cleanUI = function() {
 
-      this.rBox.destroy();
+      if (this.rBox) { this.rBox.destroy(); }
       this.rBox = null;
 
-      this.toolBar.destroy();
+      if (this.toolBar) { this.toolBar.destroy(); }
+
       this.toolBar = null;
 
       for (var i = this.thBars.length - 1; i >= 0; i--) {
@@ -2117,7 +2118,8 @@ define(['text!collabwin', 'utiljs', 'rendererjs', 'rboxjs', 'toolbarjs',
 
       if (this.collabWin) { this.collabWin.dialog('destroy'); }
       this.collabWin = null;
-      this.libraryWin.dialog('destroy');
+
+      if (this.libraryWin) { this.libraryWin.dialog('destroy'); }
       this.libraryWin = null;
 
       // remove html
