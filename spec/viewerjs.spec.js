@@ -153,11 +153,46 @@ define(['viewerjs'], function(viewerjs) {
         view.destroy();
       });
 
+      it('rendererjs.Renderer.prototype.removeData removes data from the viewer',
+
+        function() {
+
+          view.removeData(0); // remove imgFileObj with id=0
+
+          expect(view.imgFileArr[0]).toBeNull();
+          expect(view.thBars[0]).toBeNull();
+        }
+      );
+
+      it('rendererjs.Renderer.prototype.addRenderer adds a renderer to the' +
+        ' viewer renderers box',
+
+        function(done) {
+
+          view.addRenderer(view.imgFileArr[0], function(rndr) {
+
+            expect(view.rBox.renderers[0]).toBe(rndr);
+            expect(rndr.selected).toEqual(true);
+
+            done();
+          });
+        }
+      );
+
       it('viewerjs.Viewer.prototype.getImgFileObject(id) returns image file object given its id',
 
         function() {
 
           expect(view.getImgFileObject(0).id).toEqual(0);
+        }
+      );
+
+      it('viewerjs.Viewer.prototype.getThumbnailsBarObject(id) returns the' +
+        'corresponding thumbnails bar object ',
+
+        function() {
+
+          expect(view.getThumbnailsBarObject(0)).toBe(view.thBars[0]);
         }
       );
     });
