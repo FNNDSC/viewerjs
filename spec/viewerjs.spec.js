@@ -3,13 +3,13 @@
  *
  */
 
-define(['viewerjs'], function(viewerjs) {
+define(['viewerjsPackage', 'jquery', 'jquery_ui'], function(viewerjs, $) {
 
   describe('viewerjs', function() {
 
     window.jasmine.DEFAULT_TIMEOUT_INTERVAL = 20000;
 
-    var fileObjArr = [{url: 'volumes/nii/s34654_df.nii', name: 's34654_df.nii',
+    var fileObjArr = [{url: 'mri_testdata/volumes/nii/s34654_df.nii', name: 's34654_df.nii',
       remote: true}];
 
     // append a container for the whole viewer
@@ -86,9 +86,9 @@ define(['viewerjs'], function(viewerjs) {
 
           expect(imgFileArr[0]).toEqual({
             id: 0,
-            baseUrl: 'volumes/nii/',
+            baseUrl: 'mri_testdata/volumes/nii/',
             imgType: 'vol',
-            files: [{url: 'volumes/nii/s34654_df.nii', name: 's34654_df.nii', remote: true}],
+            files: [{url: 'mri_testdata/volumes/nii/s34654_df.nii', name: 's34654_df.nii', remote: true}],
           });
         }
       );
@@ -120,9 +120,9 @@ define(['viewerjs'], function(viewerjs) {
             expect(view.imgFileArr[0]).toEqual({
               id: 0,
               thBarId: 0,
-              baseUrl: 'volumes/nii/',
+              baseUrl: 'mri_testdata/volumes/nii/',
               imgType: 'vol',
-              files: [{url: 'volumes/nii/s34654_df.nii', name: 's34654_df.nii', remote: true}],
+              files: [{url: 'mri_testdata/volumes/nii/s34654_df.nii', name: 's34654_df.nii', remote: true}],
             });
 
             expect($('.view-thumbnailsbar', view.container).length).toEqual(1);

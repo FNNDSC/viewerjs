@@ -14,11 +14,10 @@ module.exports = function(grunt) {
 
     // Custome Paths
     srcFiles: ['src/js/*.js'], // source files
+    componentsDir: 'bower_components', // bower components
     testFiles: ['spec/*.spec.js'], // test files (jasmine specs)
-    componentsDir: 'src/js/components', // bower components
 
     // Task configuration.
-
     jscs: { // check javascript style
       options: {
         config: '.jscsrc',  // configuration file
@@ -54,18 +53,19 @@ module.exports = function(grunt) {
     connect: {
       test: {
         options: {
-          hostname: 'localhost',
-          port: 8101,
+          port: 8001,
           base: [
             '.',
-            'src/js/components/mri_testdata'
+            'bower_components'
           ]
         }
       }
     },
 
-    jasmine: {
+    jasmine: { // run tests
       test: {
+        // comment when using the define function within the specs files
+        //src: '<%= jshint.source.src %>',
         options: {
           host: 'http://<%= connect.test.options.hostname %>:<%= connect.test.options.port %>/',
           src: '<%= jshint.source.src %>',
@@ -73,51 +73,47 @@ module.exports = function(grunt) {
           template: require('grunt-template-jasmine-requirejs'),
           templateOptions: {
             version: '<%= componentsDir %>/requirejs/require.js',
-            requireConfigFile: 'src/main.js', // requireJS's config file
+            requireConfigFile: 'demo/config.js', // requireJS's config file
             requireConfig: {
-              baseUrl: '<%= componentsDir %>' // change base url to execute tests from local FS
+              baseUrl: '.' // change base url to execute tests from local FS
             }
           }
         }
       }
     },
 
-    requirejs: {
+    requirejs: { // concat and minimize AMD modules
       compile: {
         options: {
-          baseUrl: '<%= componentsDir %>',
-          paths: {
-            jquery: 'empty:', // does not include jquery in the output
-            jquery_ui: 'empty:' // does not include jquery_ui in the output
-          },
-          name: '<%= pkg.name %>',
-          mainConfigFile: 'src/main.js',
-          out: 'dist/js/<%= pkg.name %>.min.js'
+          baseUrl: '.',
+          include: 'dist/<%= pkg.name %>/src/js/<%= pkg.name %>.js',
+          mainConfigFile: 'dist/<%= pkg.name %>/src/js/<%= pkg.name %>.js',
+          out: 'dist/<%= pkg.name %>.min.js'
         }
       }
     },
 
-    cssmin: {
+    cssmin: { // concat and minimize css
       dist: {
         files: {
-          'dist/styles/<%= pkg.name %>.css': ['<%= componentsDir %>/rendererjs/src/styles/*.css',
-          '<%= componentsDir %>/rboxjs/src/styles/*.css',
-          '<%= componentsDir %>/thbarjs/src/styles/*.css',
-          '<%= componentsDir %>/toolbarjs/src/styles/*.css',
-          '<%= componentsDir %>/chatjs/src/styles/*.css',
-          'src/styles/**/*.css']
+          'dist/styles/<%= pkg.name %>.css': ['src/styles/**/*.css']
         }
       }
     },
 
     copy: {
-      components: { // copy requiered bower components which were not concatenated
+      components: {
         files: [
-          {expand: true,
+          {
+            expand: true,
             cwd: '<%= componentsDir %>',
-            src: ['requirejs/require.js', 'jquery/dist/jquery.min.js',
-              'jquery-ui/jquery-ui.min.js', 'jquery-ui/themes/smoothness/**'],
-            dest: 'dist/js/components'}]
+            src: ['**/*'],
+            dest: 'dist/'
+          },
+          {
+            expand: true,
+            src: 'src/**/*',
+            dest: 'dist/<%= pkg.name %>/'}]
       }
     },
 
@@ -140,6 +136,9 @@ module.exports = function(grunt) {
       dev: {
         bsFiles: {
           src: [
+              'demo/**/*.js',
+              'demo/**/*.css',
+              'demo/**/*.html',
               'src/**/*.js',
               'src/**/*.css',
               'src/**/*.html'
@@ -147,9 +146,12 @@ module.exports = function(grunt) {
         },
         options: {
           watchTask: true,
-          // test to move bower_components out...
-          // bower_components not used yet...
-          server: ['src', 'bower_components']
+          // serve base dir
+          // AND
+          // bower_components
+          // AT SAME LEVEL
+          server: ['.', 'bower_components'],
+          startPath: '/demo'
         }
       }
     }
@@ -164,6 +166,7 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-jscs');
   grunt.loadNpmTasks('grunt-contrib-watch');
+  grunt.loadNpmTasks('grunt-contrib-connect');
   grunt.loadNpmTasks('grunt-browser-sync');
   grunt.loadNpmTasks('grunt-contrib-requirejs');
 
@@ -181,12 +184,18 @@ module.exports = function(grunt) {
       'watch'
     ]);
   });
-
   // Test task.
+
+  // Build task.
+  grunt.registerTask('build',
+    ['cssmin', 'jscs', 'jshint', 'connect', 'jasmine', 'copy', 'requirejs']);
+
   grunt.registerTask('test', ['connect', 'jscs', 'jshint', 'jasmine']);
   // Build task.
-  grunt.registerTask('build', ['cssmin', 'test', 'requirejs', 'copy']);
+  //grunt.registerTask('build', ['cssmin', 'test', 'requirejs', 'copy']);
+
   // Default task.
-  grunt.registerTask('default', ['build']);
+  grunt.registerTask('default',
+    ['build']);
 
 };
