@@ -3,26 +3,17 @@
  * realtime collaboration through the collaborator object injected into viewerjs.Viewer constructor.
  */
 
- var dependencies = [
-/**
-//
-// NEEDS JQUERY AND JQUERY UI
-/// LOADED @ APP LEVEL
-//
-*/
-
-// bower
-'../../../text/text!../templates/collabwin.html',
-'../../../utiljs/src/js/utiljs',
-'../../../rendererjs/src/js/rendererjs',
-'../../../rboxjs/src/js/rboxjs',
-'../../../toolbarjs/src/js/toolbarjs',
-'../../../thbarjs/src/js/thbarjs',
-'../../../chatjs/src/js/chatjs'
-];
-
 // define a new module
-define(dependencies, function(collabwin, util, render, rbox, toolbar, thbar, chat) {
+define(
+  [
+  '../../../text/text!../templates/collabwin.html',
+  '../../../utiljs/src/js/utiljs',
+  '../../../rendererjs/src/js/rendererjs',
+  '../../../rboxjs/src/js/rboxjs',
+  '../../../toolbarjs/src/js/toolbarjs',
+  '../../../thbarjs/src/js/thbarjs',
+  '../../../chatjs/src/js/chatjs'
+  ], function(collabwin, util, render, rbox, toolbar, thbar, chat) {
 
   /**
    * Provide a namespace for the viewer module
