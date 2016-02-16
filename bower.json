@@ -25,11 +25,11 @@
     "mri_testdata": "https://github.com/FNNDSC/mri_testdata.git#master"
     },
   "dependencies": {
-    "rendererjs": "https://github.com/FNNDSC/rendererjs.git#refactor",
-    "rboxjs": "https://github.com/FNNDSC/rboxjs.git#refactor",
-    "thbarjs": "https://github.com/FNNDSC/thbarjs.git#refactor",
-    "toolbarjs": "https://github.com/FNNDSC/toolbarjs.git#refactor",
-    "chatjs": "https://github.com/FNNDSC/chatjs.git#refactor",
+    "rendererjs": "https://github.com/FNNDSC/rendererjs.git#master",
+    "rboxjs": "https://github.com/FNNDSC/rboxjs.git#master",
+    "thbarjs": "https://github.com/FNNDSC/thbarjs.git#master",
+    "toolbarjs": "https://github.com/FNNDSC/toolbarjs.git#master",
+    "chatjs": "https://github.com/FNNDSC/chatjs.git#master",
     "text": "~2.0.14"
   }
 }
