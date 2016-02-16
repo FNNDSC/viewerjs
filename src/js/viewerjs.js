@@ -4,111 +4,130 @@
  */
 
 // define a new module
-define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], function(util, render, rbox, toolbar, thbar, chat) {
+define(
+  [
+  '../../../text/text!../templates/collabwin.html',
+  '../../../utiljs/src/js/utiljs',
+  '../../../rendererjs/src/js/rendererjs',
+  '../../../rboxjs/src/js/rboxjs',
+  '../../../toolbarjs/src/js/toolbarjs',
+  '../../../thbarjs/src/js/thbarjs',
+  '../../../chatjs/src/js/chatjs'
+  ], function(collabwin, util, render, rbox, toolbar, thbar, chat) {
 
   /**
    * Provide a namespace for the viewer module
    *
    * @namespace
    */
-   var viewerjs = viewerjs || {};
+  var viewerjs = viewerjs || {};
 
-   /**
-    * Class implementing the medical image viewer
-    *
-    * @constructor
-    * @param {String} viewer's container's DOM id.
-    * @param {Object} Optional collaborator object to enable realtime collaboration.
-    */
-    viewerjs.Viewer = function(containerId, collab) {
+  /**
+   * Class implementing the medical image viewer
+   *
+   * @constructor
+   * @param {String} viewer's container's DOM id.
+   * @param {Object} Optional collaborator object to enable realtime collaboration.
+   */
+  viewerjs.Viewer = function(containerId, collab) {
 
-      this.version = 0.0;
+    this.version = 0.0;
 
-      this.containerId = containerId;
+    this.containerId = containerId;
 
-      // viewer's container
-      this.container = $('#' + containerId);
+    // viewer's container
+    this.container = $('#' + containerId);
 
-      // tool bar object
-      this.toolBar = null;
+    // jQuery object for the trash
+    this.trash = null;
 
-      // prefix string for the DOM ids used for the toolbar's buttons
-      this.toolBarBtnsIdPrefix = containerId + '_tbarbtn';
+    // jQuery object for the collaboration dialog window
+    this.collabWin = null;
 
-      // renderers box object
-      this.rBox = null;
+    // jQuery object for the collaboration dialog window
+    this.libraryWin = null;
 
-      // prefix string for the DOM ids used for the internal XTK renderers' containers
-      this.renderersIdPrefix = containerId + '_renderer';
+    // tool bar object
+    this.toolBar = null;
 
-      // thumbnails bars
-      this.thBars = [];
+    // renderers box object
+    this.rBox = null;
 
-      // prefix string for the DOM ids used for the thumbnails' containers.
-      this.thumbnailsIdPrefix = containerId + '_thumbnail';
+    // prefix string for the DOM ids used for the internal XTK renderers' containers
+    this.renderersIdPrefix = containerId + '_renderer';
 
-      // array of objects containing the renderers box and thumbnails bars in their horizontal
-      // visual order (the toolbar is always at the same horizontal position as the renderers box)
-      this.componentsX = [];
+    // thumbnails bars
+    this.thBars = []; // can contain null elements
 
-      // array of image file objects, each object contains the following properties:
-      //  -id: Integer, the object's id
-      //  -baseUrl: String ‘directory/containing/the/files’
-      //  -imgType: String neuroimage type. Any of the possible values returned by rendererjs.Renderer.imgType
-      //  -files: Array of HTML5 File objects or custom file objects with properties:
-      //     -remote: a boolean indicating whether the file has not been read locally (with a filepicker)
-      //     -url the file's url
-      //     -cloudId: the id of the file in a cloud storage system if stored in the cloud
-      //     -name: file name
-      //  The files array contains a single file for imgType different from 'dicom' or 'dicomzip'
-      //  -thumbnail: Optional HTML5 File or custom file object (optional jpg file for a thumbnail image)
-      //  -json: Optional HTML5 File or custom file object (optional json file with the mri info for imgType different from 'dicom')
-      this.imgFileArr = [];
+    // prefix string for the DOM ids used for the thumbnails' containers.
+    this.thumbnailsIdPrefix = containerId + '_thumbnail';
 
-      //
-      // collaborator object
-      //
-      if (collab) {
+    // array of objects containing the renderers box and thumbnails bars in their horizontal visual order
+    this.componentsX = [];
 
-        this.collab = collab;
+    // array of image file objects, each object contains the following properties:
+    //  -id: Integer, the object's id
+    //  -baseUrl: String ‘directory/containing/the/files’
+    //  -imgType: String neuroimage type. Any of the possible values returned by rendererjs.Renderer.imgType
+    //  -files: Array of HTML5 File objects or custom file objects with properties:
+    //     -remote: a boolean indicating whether the file has not been read locally (with a filepicker)
+    //     -url: the file's url
+    //     -cloudId: the id of the file in a cloud storage system if stored in the cloud
+    //     -name: file name
+    //  The files array contains a single file for imgType different from 'dicom' or 'dicomzip'
+    //  -thumbnail: Optional HTML5 File or custom file object (optional jpg file for a thumbnail image)
+    //  -json: Optional HTML5 File or custom file object (optional json file with the mri info for imgType different from 'dicom')
+    this.imgFileArr = []; // can contain null elements
 
-        // associated chat object
-        this.chat = null;
+    //
+    // collaborator object
+    //
+    if (collab) {
 
-        // Collaboration event listeners
-        var self = this;
+      this.collab = collab;
 
-        // This is called when the collaboration has successfully started and is ready
-        this.collab.onConnect = function(collaboratorInfo) {
-          self.handleOnConnect(collaboratorInfo);
-        };
+      // associated chat object
+      this.chat = null;
 
-        // This is called everytime the collaboration owner has shared data files with a new collaborator
-        this.collab.onDataFilesShared = function(collaboratorInfo, fObjArr) {
-          self.handleOnDataFilesShared(collaboratorInfo, fObjArr);
-        };
+      // Collaboration event listeners
+      var self = this;
 
-        // This is called everytime the scene object is updated by a remote collaborator
-        this.collab.onCollabObjChanged = function() {
-          self.handleOnCollabObjChanged();
-        };
+      // This is called when the collaboration has successfully started and is ready
+      this.collab.onConnect = function(collaboratorInfo) {
 
-        // This method is called when a new chat msg is received from a remote collaborator
-        this.collab.onNewChatMessage = function(msgObj) {
-          self.handleOnNewChatMessage(msgObj);
-        };
+        self.handleOnConnect(collaboratorInfo);
+      };
 
-        // This method is called everytime a remote collaborator disconnects from the collaboration
-        this.collab.onDisconnect = function(collaboratorInfo) {
-          self.handleOnDisconnect(collaboratorInfo);
-        };
-      }
-    };
+      // This is called everytime the collaboration owner has shared data files with a new collaborator
+      this.collab.onDataFilesShared = function(collaboratorInfo, fObjArr) {
 
-    /**
-     * Initiliaze the UI's html.
-     */
-    viewerjs.Viewer.prototype.init = function() {
+        self.handleOnDataFilesShared(collaboratorInfo, fObjArr);
+      };
+
+      // This is called everytime the scene object is updated by a remote collaborator
+      this.collab.onCollabObjChanged = function() {
+
+        self.handleOnCollabObjChanged();
+      };
+
+      // This method is called when a new chat msg is received from a remote collaborator
+      this.collab.onNewChatMessage = function(msgObj) {
+
+        self.handleOnNewChatMessage(msgObj);
+      };
+
+      // This method is called everytime a remote collaborator disconnects from the collaboration
+      this.collab.onDisconnect = function(collaboratorInfo) {
+
+        self.handleOnDisconnect(collaboratorInfo);
+      };
+    }
+  };
+
+  /**
+   * Initiliaze the UI's html.
+   */
+  viewerjs.Viewer.prototype.init = function() {
       var self = this;
 
       self.container.css({
@@ -119,40 +138,91 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
         'box-sizing': 'border-box'
 
       }).sortable({ // a sortable viewer makes it possible for the thumbnails bars to move around
+        zIndex: 9999,
         cursor: 'move',
         containment: 'parent',
         distance: '150',
-        axis: 'x',
+        connectWith: '#' + self.container.attr('id') + ' .view-trash-sortable', // thumbnails bars can be trashed
+        dropOnEmpty: true,
+
+        start: function() {
+
+          // trash doesn't show up during a realtime collaboration session
+          if (!self.collab || !self.collab.collabIsOn) {
+
+            self.trash.show();
+          }
+        },
 
         beforeStop: function(evt, ui) {
 
-          // layout UI components (renderers box, thumbnails bars and toolbar)
-          for (var i=0; i<self.componentsX.length; i++) {
+          var parent = ui.placeholder.parent();
 
-            if (self.componentsX[i].container[0] === ui.item[0]) {
+          if (self.trash.hasClass('highlight')) {
 
-              var target = self.componentsX.splice(i,1);
+            self.trash.removeClass('highlight');
+            // thumbnails bar was deposited on the trash so remove it and its related data
 
-              if (ui.offset.left > ui.originalPosition.left) {
+            for (var j = 0; j < self.thBars.length; j++) {
 
-                // moved from left to right so position it at the right end
-                self.componentsX = self.componentsX.concat(target);
+              // find the trashed thumbnails bar's object
+              if (self.thBars[j] && self.thBars[j].container[0] === ui.item[0]) {
 
-              } else {
-
-                // moved from right to left so position it at the left end
-                self.componentsX = target.concat(self.componentsX);
+                var thBar = self.thBars[j];
+                break;
               }
-
-              self.layoutComponentsX();
-              break;
             }
+
+            var thumbnails = $('.view-thumbnail', ui.item);
+
+            thumbnails.each(function() {
+
+              var id = thBar.getThumbnailId(this.id);
+              self.removeData(id);
+            });
+
+          } else if (parent[0] === self.container[0]) {
+
+            // layout UI components (renderers box, thumbnails bars and toolbar)
+            for (var i = 0; i < self.componentsX.length; i++) {
+
+              if (self.componentsX[i].container[0] === ui.item[0]) {
+
+                var target = self.componentsX.splice(i,1);
+
+                if (ui.offset.left > ui.originalPosition.left) {
+
+                  // moved from left to right so position it at the right end
+                  self.componentsX = self.componentsX.concat(target);
+
+                } else {
+
+                  // moved from right to left so position it at the left end
+                  self.componentsX = target.concat(self.componentsX);
+                }
+
+                self.layoutComponentsX();
+                break;
+              }
+            }
+
+          } else {
+
+            // cancel ddRop
+            $(evt.target).sortable('cancel');
           }
+
+          self.trash.hide();
         }
       });
 
+      self.addTrash();
       self.addRenderersBox();
       self.addToolBar();
+
+      if (self.collab) { self.initCollabWindow(); }
+
+      self.initLibraryWindow();
 
       // set a dropzone
       util.setDropzone(self.containerId, function(fObjArr) {
@@ -161,205 +231,269 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
       });
     };
 
-    /**
-     * Add new data to the viewer. A new thumbnails bar is adde to the UI for the new data.
-     *
-     * @param {Array} array of file objects. Each object contains the following properties:
-     * -url:     String representing the file url
-     * -file:    HTML5 File object (optional but neccesary when the files are gotten through a
-     *           local filepicker or dropzone)
-     * -cloudId: String representing the file cloud id (optional but neccesary when the files
-     *           are gotten from a cloud storage like GDrive)
-     * @param {Function} optional callback to be called when the viewer is ready.
-     */
-    viewerjs.Viewer.prototype.addData = function(fObjArr, callback) {
-      var self = this;
+  /**
+   * Add new data to the viewer. A new thumbnails bar is added to the UI for the new data.
+   *
+   * @param {Array} array of file objects. Each object contains the following properties:
+   * -url:     String representing the file url
+   * -file:    HTML5 File object (optional but neccesary when the files are gotten through a
+   *           local filepicker or dropzone)
+   * -cloudId: String representing the file cloud id (optional but neccesary when the files
+   *           are gotten from a cloud storage like GDrive)
+   * @param {Function} optional callback to be called when the viewer is ready.
+   */
+  viewerjs.Viewer.prototype.addData = function(fObjArr, callback) {
+    var self = this;
 
-      if (self.collab && self.collab.collabIsOn) {
+    if (self.collab && self.collab.collabIsOn) {
 
-        // no new data can be added during a realtime collaboration session so just call the callback
-        if (callback) { callback(); }
+      // no new data can be added during a realtime collaboration session so just call the callback
+      if (callback) { callback(); }
+
+    } else {
+
+      if (fObjArr.length) {
+
+        var imgFileArr = self.buildImgFileArr(fObjArr);
+
+        self.addThumbnailsBar(imgFileArr, function() {
+
+          if (callback) { callback(); }
+        });
 
       } else {
 
-        if (fObjArr.length) {
+        if (callback) { callback(); }
+      }
+    }
+  };
 
-          var imgFileArr = self.buildImgFileArr(fObjArr);
+  /**
+   * Remove data from the viewer.
+   *
+   * @param {Number} image file object's integer id.
+   */
+  viewerjs.Viewer.prototype.removeData = function(id) {
+    var self = this;
 
-          self.addThumbnailsBar(imgFileArr, function() {
+    // no data can be removed during a realtime collaboration session
+    if (!self.collab || !self.collab.collabIsOn) {
 
-            if (callback) { callback(); }
-          });
+      var thBar = self.getThumbnailsBarObject(id);
 
-        } else {
+      if (thBar) {
 
-          if (callback) { callback(); }
+        // remove corresponding thumbnail
+        thBar.removeThumbnail(id);
+
+        if (thBar.numThumbnails === 0) {
+
+          // remove and destroy corresponding thumbnails bar if there is no thumbnail left
+
+          var thBarCont = thBar.container;
+
+          for (var j = 0; j < self.thBars.length; j++) {
+
+            if (self.thBars[j] && self.thBars[j].container[0] === thBarCont[0]) {
+
+              self.thBars[j] = null;
+              break;
+            }
+          }
+
+          for (j = 0; j < self.componentsX.length; j++) {
+
+            if (self.componentsX[j].container[0] === thBarCont[0]) {
+
+              self.componentsX.splice(j,1);
+              break;
+            }
+          }
+
+          thBar.destroy();
+          thBarCont.remove();
+
+          // recompute renderers box width
+          self.rBox.container.css({width: self.computeRBoxCSSWidth()});
+
+          self.layoutComponentsX();
+        }
+
+        // remove corresponding renderer in the renderers box if there is any
+        var rArr = self.rBox.renderers.filter(function(el) {
+
+          return el.id === id;
+        });
+
+        if (rArr.length) { self.rBox.removeRenderer(rArr[0]); }
+
+        self.imgFileArr[id] = null;
+      }
+    }
+  };
+
+  /**
+   * Build an array of image file objects (viewer's main data structure).
+   *
+   * @param {Array} array of file objects. Same as the one passed to the init method.
+   * @return {Array} array of image file objects, each object contains the following properties:
+   *  -id: Integer, the object's id
+   *  -baseUrl: String ‘directory/containing/the/files’
+   *  -imgType: String neuroimage type. Any of the possible values returned by rendererjs.Renderer.imgType
+   *  -files: Array of HTML5 File objects or custom file objects with properties:
+   *     -remote: a boolean indicating whether the file has not been read locally (with a filepicker)
+   *     -url the file's url
+   *     -cloudId: the id of the file in a cloud storage system if stored in the cloud
+   *     -name: file name
+   *  The files array contains a single file for imgType different from 'dicom' or 'dicomzip'
+   *  -thumbnail: Optional HTML5 File or custom file object (optional jpg file for a thumbnail image)
+   *  -json: Optional HTML5 File or custom file object (optional json file with the mri info for imgType different from 'dicom')
+   */
+  viewerjs.Viewer.prototype.buildImgFileArr = function(fObjArr) {
+    var self = this;
+
+    // define internal data structures
+    var imgFileArr = [];
+    var thumbnails = {}; // associative array of thumbnail image files
+    var jsons = {}; // associative array of json files
+    var dicoms = {}; // associative array of arrays with ordered DICOM files
+    var dicomZips = {}; // associative array of arrays with zipped DICOM files
+    var nonDcmData = []; // array of non-DICOM data
+    var path, name;
+
+    // function to add a file object into the proper internal data structure
+    function addFile(fileObj) {
+
+      var path = fileObj.url;
+      var baseUrl = path.substring(0, path.lastIndexOf('/') + 1);
+      var file;
+      var imgType;
+      var dashIndex;
+
+      if (fileObj.file) {
+
+        // get the HTML5 File object
+        file = fileObj.file;
+      } else {
+
+        // build a dummy File object with a property remote
+        file = {name: path.substring(path.lastIndexOf('/') + 1),
+               url: path,
+               remote: true};
+
+        if (fileObj.cloudId) {
+          file.cloudId = fileObj.cloudId;
         }
       }
-    };
 
-    /**
-     * Build an array of image file objects (viewer's main data structure).
-     *
-     * @param {Array} array of file objects. Same as the one passed to the init method.
-     * @return {Array} array of image file objects, each object contains the following properties:
-     *  -id: Integer, the object's id
-     *  -baseUrl: String ‘directory/containing/the/files’
-     *  -imgType: String neuroimage type. Any of the possible values returned by rendererjs.Renderer.imgType
-     *  -files: Array of HTML5 File objects or custom file objects with properties:
-     *     -remote: a boolean indicating whether the file has not been read locally (with a filepicker)
-     *     -url the file's url
-     *     -cloudId: the id of the file in a cloud storage system if stored in the cloud
-     *     -name: file name
-     *  The files array contains a single file for imgType different from 'dicom' or 'dicomzip'
-     *  -thumbnail: Optional HTML5 File or custom file object (optional jpg file for a thumbnail image)
-     *  -json: Optional HTML5 File or custom file object (optional json file with the mri info for imgType different from 'dicom')
-     */
-    viewerjs.Viewer.prototype.buildImgFileArr = function(fObjArr) {
-      var self = this;
+      imgType = render.Renderer.imgType(file);
 
-      // define internal data structures
-      var imgFileArr = [];
-      var thumbnails = {}; // associative array of thumbnail image files
-      var jsons = {}; // associative array of json files
-      var dicoms = {}; // associative array of arrays with ordered DICOM files
-      var dicomZips = {}; // associative array of arrays with zipped DICOM files
-      var nonDcmData = []; // array of non-DICOM data
-      var path, name;
+      if (imgType === 'dicom') {
 
-      // function to add a file object into the proper internal data structure
-      function addFile(fileObj) {
+        if (!dicoms[baseUrl]) {
+          dicoms[baseUrl] = [];
+        }
+        dicoms[baseUrl].push(file); // all dicoms with the same base url belong to the same volume
 
-       var path = fileObj.url;
-       var baseUrl = path.substring(0, path.lastIndexOf('/') + 1);
-       var file;
-       var imgType;
-       var dashIndex;
+      } else if (imgType === 'dicomzip') {
 
-       if (fileObj.file) {
+        if (!dicomZips[baseUrl]) {
+          dicomZips[baseUrl] = [];
+        }
+        dicomZips[baseUrl].push(file); // all dicom zip files with the same base url belong to the same volume
 
-         // get the HTML5 File object
-         file = fileObj.file;
-       } else {
+      } else if (imgType === 'thumbnail') {
 
-         // build a dummy File object with a property remote
-         file = {name: path.substring(path.lastIndexOf('/')+1),
-                url: path,
-                remote: true};
+        // save thumbnail file in an associative array
+        // array keys are the full path up to the first dash in the file name or the last period
+        dashIndex = path.indexOf('-', path.lastIndexOf('/'));
+        if (dashIndex === -1) {
+          thumbnails[path.substring(0, path.lastIndexOf('.'))] = file;
+        } else {
+          thumbnails[path.substring(0, dashIndex)] = file;
+        }
 
-          if (fileObj.cloudId) {
-            file.cloudId = fileObj.cloudId;
-          }
-       }
+      } else if (imgType === 'json') {
 
-       imgType = render.Renderer.imgType(file);
+        // array keys are the full path with the extension trimmed
+        jsons[path.substring(0, path.lastIndexOf('.'))] = file;
 
-       if (imgType === 'dicom') {
+      } else if (imgType !== 'unsupported') {
 
-         if (!dicoms[baseUrl]) {
-           dicoms[baseUrl] = [];
-         }
-         dicoms[baseUrl].push(file); // all dicoms with the same base url belong to the same volume
-
-       } else if (imgType === 'dicomzip') {
-
-         if (!dicomZips[baseUrl]) {
-           dicomZips[baseUrl] = [];
-         }
-         dicomZips[baseUrl].push(file); // all dicom zip files with the same base url belong to the same volume
-
-       } else if (imgType === 'thumbnail') {
-
-         // save thumbnail file in an associative array
-         // array keys are the full path up to the first dash in the file name or the last period
-         dashIndex = path.indexOf('-', path.lastIndexOf('/'));
-         if (dashIndex === -1) {
-           thumbnails[path.substring(0, path.lastIndexOf('.'))] = file;
-         } else {
-           thumbnails[path.substring(0, dashIndex)] = file;
-         }
-
-       } else if (imgType === 'json') {
-
-         // array keys are the full path with the extension trimmed
-         jsons[path.substring(0, path.lastIndexOf('.'))] = file;
-
-       } else if (imgType !== 'unsupported') {
-
-         // push fibers, meshes, volumes into nonDcmData
-         nonDcmData.push({
+        // push fibers, meshes, volumes into nonDcmData
+        nonDcmData.push({
            'baseUrl': baseUrl,
            'imgType': imgType,
            'files': [file]
          });
-       }
-     }
+      }
+    }
 
-     // function to assign utility files (thumbnail images or json files) to their corresponding
-     // image file object in imgFileArr
-     function assignUtilityFiles(files, filetype) {
+    // function to assign utility files (thumbnail images or json files) to their corresponding
+    // image file object in imgFileArr
+    function assignUtilityFiles(files, filetype) {
 
-       for (var key in files) {
+      for (var key in files) {
 
-         // Search for a neuroimage file with the same name as the current utility file
-         for (var i=0; i<imgFileArr.length; i++) {
-           var j = 0;
+        // Search for a neuroimage file with the same name as the current utility file
+        for (var i = 0; i < imgFileArr.length; i++) {
+          var j = 0;
 
-           do {
+          do {
 
-             path = imgFileArr[i].baseUrl + imgFileArr[i].files[j].name;
-             name = path.substring(0, path.lastIndexOf('.'));
+            path = imgFileArr[i].baseUrl + imgFileArr[i].files[j].name;
+            name = path.substring(0, path.lastIndexOf('.'));
 
-           } while ((++j<imgFileArr[i].files.length)  && (key!==name));
+          } while ((++j < imgFileArr[i].files.length)  && (key !== name));
 
-           if (key === name) {
-             imgFileArr[i][filetype] = files[key];
-             break;
-           }
-         }
-       }
-     }
+          if (key === name) {
+            imgFileArr[i][filetype] = files[key];
+            break;
+          }
+        }
+      }
+    }
 
-     // add files to proper internal data structures
-     for (var i=0; i<fObjArr.length; i++) {
-       addFile(fObjArr[i]);
-     }
+    // add files to proper internal data structures
+    for (var i = 0; i < fObjArr.length; i++) {
+      addFile(fObjArr[i]);
+    }
 
-     //
-     // now build imgFileArr from the internal data structures
-     //
+    //
+    // now build imgFileArr from the internal data structures
+    //
 
-     // push ordered DICOMs into imgFileArr
-     for (var baseUrl in dicoms) {
-       imgFileArr.push({
+    // push ordered DICOMs into imgFileArr
+    for (var baseUrl in dicoms) {
+      imgFileArr.push({
         'baseUrl': baseUrl,
         'imgType': 'dicom',
         'files': util.sortObjArr(dicoms[baseUrl], 'name')
-       });
-     }
+      });
+    }
 
-     // push DICOM zip files into imgFileArr
-     for (baseUrl in dicomZips) {
-       imgFileArr.push({
+    // push DICOM zip files into imgFileArr
+    for (baseUrl in dicomZips) {
+      imgFileArr.push({
         'baseUrl': baseUrl,
         'imgType': 'dicomzip',
         'files': util.sortObjArr(dicomZips[baseUrl], 'name')
-       });
-     }
+      });
+    }
 
-     // push non-DICOM data into imgFileArr
-     for (i=0; i<nonDcmData.length; i++) {
-       imgFileArr.push(nonDcmData[i]);
-     }
+    // push non-DICOM data into imgFileArr
+    for (i = 0; i < nonDcmData.length; i++) {
+      imgFileArr.push(nonDcmData[i]);
+    }
 
-     // add thumbnail images to imgFileArr
-     assignUtilityFiles(thumbnails, 'thumbnail');
+    // add thumbnail images to imgFileArr
+    assignUtilityFiles(thumbnails, 'thumbnail');
 
-     // add json files to imgFileArr
-     assignUtilityFiles(jsons, 'json');
+    // add json files to imgFileArr
+    assignUtilityFiles(jsons, 'json');
 
-     // sort the built array for consistency among possible collaborators
-     imgFileArr.sort(function(el1, el2) {
+    // sort the built array for consistency among possible collaborators
+    imgFileArr.sort(function(el1, el2) {
        var val1 = el1.baseUrl + el1.files[0].name.replace(/.zip$/, '');
        var val2 = el2.baseUrl + el2.files[0].name.replace(/.zip$/, '');
        var values = [val1, val2].sort();
@@ -373,242 +507,519 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
        }
      });
 
-     // assign an integer id to each array elem
-     var len = self.imgFileArr.length;
+    // assign an integer id to each array elem
+    var len = self.imgFileArr.length;
 
-     for (i=0; i<imgFileArr.length; i++) {
-       imgFileArr[i].id = i + len;
-     }
+    for (i = 0; i < imgFileArr.length; i++) {
+      imgFileArr[i].id = i + len;
+    }
 
-     return imgFileArr;
-   };
+    return imgFileArr;
+  };
 
-   /**
-    * Append a renderers box to the viewer.
-    */
-   viewerjs.Viewer.prototype.addRenderersBox = function() {
-     var self = this;
+  /**
+   * Append a trash box to the viewer.
+   */
+  viewerjs.Viewer.prototype.addTrash = function() {
 
-     if (self.rBox) {
-       return; // renderers box already exists
-     }
+    if (this.trash) {
+      return; // trash already exists
+    }
 
-     // append a div container for the renderers box to the viewer
-     var rBoxCont = $('<div></div>');
-     self.container.append(rBoxCont);
+    this.trash = $('<div class="view-trash">' +
+                      '<i class="fa fa-trash"></i>' +
+                      ' <div class="view-trash-sortable"></div>' +
+                    '</div>'
+                  );
 
-     // renderers box options object
-     var options = {
-       container: rBoxCont[0],
-       position: {
-         bottom: 0,
-         left: 0
-       },
-       renderersIdPrefix: self.renderersIdPrefix
-     };
+    this.container.append(this.trash);
+  };
 
-     // check if there is a cloud file manager available
-     var fileManager = null;
-     if (self.collab) { fileManager = self.collab.fileManager; }
+  /**
+   * Append a renderers box to the viewer.
+   */
+  viewerjs.Viewer.prototype.addRenderersBox = function() {
+    var self = this;
 
-     // create a renderers box object
-     self.rBox = new rbox.RenderersBox(options, fileManager);
-     self.rBox.init();
+    if (self.rBox) {
+      return; // renderers box already exists
+    }
 
-     // the renderers box doesn't move around
-     self.container.sortable( 'option', 'cancel', '.view-renderers');
+    // append a div container for the renderers box to the viewer
+    var rBoxCont = $('<div></div>');
+    self.container.append(rBoxCont);
 
-     // Insert renderers box's in the array of components
-     self.componentsX.push(self.rBox);
+    // renderers box options object
+    var options = {
+      container: rBoxCont[0],
+      position: {
+        bottom: 0,
+        left: 0
+      },
+      renderersIdPrefix: self.renderersIdPrefix
+    };
 
-     //
-     // renderers box event listeners
-     //
-     this.rBox.computeMovingHelper = function(evt, target) {
+    // check if there is a cloud file manager available
+    var fileManager = null;
+    if (self.collab) { fileManager = self.collab.fileManager; }
 
-       var thWidth =  $('.view-thumbnail').css('width');
-       var thHeight = $('.view-thumbnail').css('height');
+    // create a renderers box object
+    self.rBox = new rbox.RenderersBox(options, fileManager);
+    self.rBox.init();
 
-       // corresponding thumbnail and renderer have the same integer id
-       var id = self.rBox.getRendererId(target.find('.view-renderer-content').attr('id'));
-       var thContId = self.getThumbnailsBarObject(id).getThumbnailContId(id);
+    // the renderers box doesn't move around
+    self.container.sortable('option', 'cancel', '.view-renderers');
 
-       // the visually moving helper is a clone of the corresponding thumbnail
-       return $('#' + thContId).clone().css({
-         display:'block',
-         width: thWidth,
-         height: thHeight });
-     };
+    // Insert renderers box's in the array of components
+    self.componentsX.push(self.rBox);
 
-     this.rBox.onStart = function() {
+    //
+    // renderers box event listeners
+    //
+    this.rBox.computeMovingHelper = function(evt, target) {
 
-       // thumbnails bars' scroll bars have to be removed to make the moving helper visible
-       self.thBars.forEach( function(thBar) {
+      var thWidth =  $('.view-thumbnail').css('width');
+      var thHeight = $('.view-thumbnail').css('height');
 
-         thBar.container.css({ overflow: 'visible' });
-       });
-     };
+      // corresponding thumbnail and renderer have the same integer id
+      var id = self.rBox.getRendererId(target.find('.view-renderer-content').attr('id'));
+      var thContId = self.getThumbnailsBarObject(id).getThumbnailContId(id);
 
-     this.rBox.onBeforeStop = function(evt, ui) {
+      // the visually moving helper is a clone of the corresponding thumbnail
+      return $('#' + thContId).clone().css({
+        display: 'block',
+        width: thWidth,
+        height: thHeight});
+    };
 
-       var id = self.rBox.getRendererId(ui.item.find('.view-renderer-content').attr('id'));
+    this.rBox.onStart = function() {
 
-       if (ui.placeholder.parent().parent()[0] === self.getThumbnailsBarObject(id).container[0]) {
+      // thumbnails bars' scroll bars have to be removed to make the moving helper visible
+      self.thBars.forEach(function(thBar) {
 
-         $(evt.target).sortable('cancel');
-
-         var rArr = self.rBox.renderers.filter( function(el) {
-           return el.id === id;
-         });
-
-         self.rBox.removeRenderer(rArr[0]);
-
-       } else if (ui.placeholder.parent()[0] !== evt.target) {
-
-         $(evt.target).sortable('cancel');
-       }
-
-       // restore thumbnails bars' scroll bars
-       self.thBars.forEach( function(thBar) {
-
-         thBar.container.css({ overflow: 'auto' });
-       });
-     };
-
-     this.rBox.onRendererChange = function() {
-
-       self.updateCollabScene();
-     };
-
-     this.rBox.onRendererRemove = function(id) {
-
-       self.handleOnRendererRemove(id);
-       self.updateCollabScene();
-     };
-   };
-
-   /**
-     * Add a renderer to the renderers box.
-     *
-     * @param {Object} image file object with the following properties:
-     *  -id: Integer id
-     *  -baseUrl: String ‘directory/containing/the/files’
-     *  -imgType: String neuroimage type. Any of the possible values returned by rendererjs.Renderer.imgType
-     *  -files: Array of HTML5 File objects or custom file objects with properties:
-     *     -remote: a boolean indicating whether the file has not been read locally (with a filepicker)
-     *     -url the file's url
-     *     -cloudId: the id of the file in a cloud storage system if stored in the cloud
-     *     -name: file name
-     *  The files array contains a single file for imgType different from 'dicom' or 'dicomzip'
-     *  -json: Optional HTML5 or custom File object (optional json file with the mri info for imgType different from 'dicom')
-     * @param {Function} optional callback whose argument is the renderer object or null.
-     */
-    viewerjs.Viewer.prototype.addRenderer = function(imgFileObj, callback) {
-      var self = this;
-
-      var thBar = self.getThumbnailsBarObject(imgFileObj.id);
-
-      $('#' + thBar.getThumbnailContId(imgFileObj.id)).css({ display:"none" });
-
-      self.rBox.addRenderer(imgFileObj, 'Z', function(renderer) {
-
-        if (renderer) {
-
-          if (self.rBox.numOfRenderers===2) {
-
-            // if there are now 2 renderers in the renderers box then show the Link views button
-            $('#' + self.toolBarBtnsIdPrefix + 'link').css({display: '' });
-          }
-
-        } else {
-
-          // could not add renderer so restore the corresponding thumbnail
-          $('#' + thBar.getThumbnailContId(imgFileObj.id)).css({ display:"" });
-        }
-
-        if (callback) {callback(renderer);}
+        if (thBar) { thBar.container.css({overflow: 'visible'}); }
       });
     };
 
-    /**
-      * Handle the renderers box's onRendererRemove event.
-      *
-      * @param {Number} renderer's integer id.
-      */
-     viewerjs.Viewer.prototype.handleOnRendererRemove = function(id) {
+    this.rBox.onBeforeStop = function(evt, ui) {
 
-       // corresponding thumbnail and renderer have the same integer id
-       var thContId = this.getThumbnailsBarObject(id).getThumbnailContId(id);
+      var id = self.rBox.getRendererId(ui.item.find('.view-renderer-content').attr('id'));
 
-       // display the removed renderer's thumbnail
-       $('#' + thContId).css({ display:'block' });
+      if (ui.placeholder.parent().parent()[0] === self.getThumbnailsBarObject(id).container[0]) {
 
-       // if there is now a single renderer then hide the Link views button
-       if (this.rBox.numOfRenderers===1) {
+        $(evt.target).sortable('cancel');
 
-         $('#' + this.toolBarBtnsIdPrefix + 'link').css({display: 'none' });
+        var rArr = self.rBox.renderers.filter(function(el) {
+            return el.id === id;
+          });
 
-         if (this.rBox.renderersLinked) {
-           this.handleToolBarButtonLinkClick();
-         }
-       }
-     };
+        self.rBox.removeRenderer(rArr[0]);
 
-    /**
-     * Create and add a toolbar to the viewer.
-     */
-    viewerjs.Viewer.prototype.addToolBar = function() {
-      var self = this;
+      } else if (ui.placeholder.parent()[0] !== evt.target) {
 
-      if (self.toolBar) {
-        return; // tool bar already exists
+        $(evt.target).sortable('cancel');
       }
 
-      // append a div container for the toolbar to the viewer
-      var toolBarCont = $('<div></div>');
-      self.container.append(toolBarCont);
+      // restore thumbnails bars' scroll bars
+      self.thBars.forEach(function(thBar) {
 
-      // the toolbar doesn't move around
-      self.container.sortable( 'option', 'cancel', '.view-toolbar');
-
-      // toolbar options object
-      var options = {
-        container: toolBarCont[0],
-        position: {
-          top: '5px',
-          left: 0
-        }
-      };
-
-      // create a tool bar object
-      self.toolBar = new toolbar.ToolBar(options);
-      self.toolBar.init();
-
-      //
-      // add buttons to the tool bar
-      //
-      var btnsIdsPrefix = self.toolBarBtnsIdPrefix;
-
-      self.toolBar.addButton({
-        id: btnsIdsPrefix + 'link',
-        title: 'Link views',
-        caption: '<i class="fa fa-link"></i>',
-
-        onclick: function() {
-
-          self.handleToolBarButtonLinkClick();
-          self.updateCollabScene();
-        }
+        if (thBar) { thBar.container.css({overflow: 'auto'}); }
       });
+    };
 
-      // hide the button
-      self.toolBar.hideButton(btnsIdsPrefix + 'link');
+    this.rBox.onRendererChange = function(evt) {
 
+      if ((evt.type === 'click') && $(evt.currentTarget).hasClass('view-renderer-titlebar-buttonpane-pin')) {
+
+        var selectedArr = this.getSelectedRenderers();
+
+        if (self.renderersLinked && selectedArr.length <= 1) {
+
+          // at most one renderer is selected so change state to unlinked
+          self.handleToolBarButtonLinkClick();
+
+          if (selectedArr.length === 1) {
+
+            selectedArr[0].select(); // reselect the only previously selected renderer
+          }
+
+        } else if (!self.renderersLinked && selectedArr.length === this.renderers.length) {
+
+          // all renderers are selected so change state to linked
+          self.handleToolBarButtonLinkClick();
+        }
+      }
+
+      self.updateCollabScene();
+    };
+
+    this.rBox.onRendererRemove = function(id) {
+
+      self.handleOnRendererRemove(id);
+      self.updateCollabScene();
+    };
+  };
+
+  /**
+    * Add a renderer to the renderers box.
+    *
+    * @param {Object} image file object with the following properties:
+    *  -id: Integer id
+    *  -baseUrl: String ‘directory/containing/the/files’
+    *  -imgType: String neuroimage type. Any of the possible values returned by rendererjs.Renderer.imgType
+    *  -files: Array of HTML5 File objects or custom file objects with properties:
+    *     -remote: a boolean indicating whether the file has not been read locally (with a filepicker)
+    *     -url the file's url
+    *     -cloudId: the id of the file in a cloud storage system if stored in the cloud
+    *     -name: file name
+    *  The files array contains a single file for imgType different from 'dicom' or 'dicomzip'
+    *  -json: Optional HTML5 or custom File object (optional json file with the mri info for imgType different from 'dicom')
+    * @param {Function} optional callback whose argument is the renderer object or null.
+    */
+  viewerjs.Viewer.prototype.addRenderer = function(imgFileObj, callback) {
+    var self = this;
+
+    var thBar = self.getThumbnailsBarObject(imgFileObj.id);
+
+    $('#' + thBar.getThumbnailContId(imgFileObj.id)).css({display: 'none'});
+
+    self.rBox.addRenderer(imgFileObj, 'Z', function(renderer) {
+
+      if (renderer) {
+
+        // deselect all renderers in the UI
+        self.rBox.renderers.forEach(function(rndr) {
+
+          if (rndr.selected) { rndr.deselect(); }
+        });
+
+        // select the newly added renderer
+        renderer.select();
+
+        if (self.rBox.numOfRenderers === 2) {
+
+          // if there are now 2 renderers in the renderers box then show the Link views button
+          self.toolBar.showButton('link');
+        }
+
+      } else {
+
+        // could not add renderer so restore the corresponding thumbnail
+        $('#' + thBar.getThumbnailContId(imgFileObj.id)).css({display: ''});
+      }
+
+      if (callback) { callback(renderer); }
+    });
+  };
+
+  /**
+    * Handle the renderers box's onRendererRemove event.
+    *
+    * @param {Number} renderer's integer id.
+    */
+  viewerjs.Viewer.prototype.handleOnRendererRemove = function(id) {
+
+    var thBar = this.getThumbnailsBarObject(id);
+
+    if (thBar) {
+
+      // corresponding thumbnail and renderer have the same integer id
+      var thContId = thBar.getThumbnailContId(id);
+
+      // display the removed renderer's thumbnail
+      $('#' + thContId).css({display: 'block'});
+    }
+
+    // if there is now a single renderer then hide the Link views button and make it selected
+    if (this.rBox.numOfRenderers === 1) {
+
+      this.toolBar.hideButton('link');
+
+      if (this.renderersLinked) {
+
+        // unlink renderers
+        this.handleToolBarButtonLinkClick();
+      }
+
+      var rndr = this.rBox.renderers[0];
+      if (!rndr.selected) { rndr.select(); }
+    }
+  };
+
+  /**
+   * Create and add a toolbar to the viewer.
+   */
+  viewerjs.Viewer.prototype.addToolBar = function() {
+    var self = this;
+
+    if (self.toolBar) {
+      return; // tool bar already exists
+    }
+
+    // append a div container for the toolbar to the viewer
+    var toolBarCont = $('<div></div>');
+    self.container.append(toolBarCont);
+
+    // the toolbar doesn't move around
+    self.container.sortable('option', 'cancel', '.view-toolbar');
+
+    // toolbar options object
+    var options = {
+      container: toolBarCont[0],
+      position: {
+        top: '5px',
+        left: 0
+      }
+    };
+
+    // create a tool bar object
+    self.toolBar = new toolbar.ToolBar(options);
+    self.toolBar.init();
+
+    //
+    // add buttons to the tool bar
+    //
+
+    //
+    // Load directory
+    self.toolBar.addButton({
+      id: 'load',
+      title: 'Load data',
+      caption: '<i class="fa fa-folder-open"></i>  <input type="file"' +
+        '  webkitdirectory="" multiple style="display:none">',
+      label: 'Load',
+
+      onclick: function() {
+
+        var loadFiles = function(e) {
+
+          var files = e.target.files;
+          var fileObj;
+
+          // Source data array for the new Viewer object
+          var imgFileArr = [];
+
+          for (var i = 0; i < files.length; i++) {
+
+            fileObj = files[i];
+
+            if ('webkitRelativePath' in fileObj) {
+
+              fileObj.fullPath = fileObj.webkitRelativePath;
+
+            } else if (!('fullPath' in fileObj)) {
+
+              fileObj.fullPath = fileObj.name;
+            }
+
+            imgFileArr.push({
+              'url': fileObj.fullPath,
+              'file': fileObj
+            });
+          }
+
+          self.addData(imgFileArr);
+        };
+
+        var loadButton = $('input', this);
+
+        loadButton[0].value = null; // makes possible to load the same file
+
+        loadButton.off('change').on('change', loadFiles);
+
+        loadButton[0].click(function(event) {
+
+          event.stopPropagation();
+        });
+      }
+    });
+
+    //
+    // Load file
+    self.toolBar.addButton({
+      id: 'book',
+      title: 'Load from library',
+      caption: '<i class="fa fa-book"></i>',
+      onclick: function() {
+
+        self.libraryWin.dialog('open');
+
+      }
+    });
+
+    //
+    // X orientation button
+    self.toolBar.addButton({
+      id: 'acquisitionX',
+      title: 'acquisitionX',
+      caption: 'X',
+      label: 'Orientation',
+      onclick: function() {
+
+        self.handleChangeOrientation('X');
+        self.updateCollabScene();
+      }
+    });
+
+    //
+    // Y orientation button
+    self.toolBar.addButton({
+      id: 'acquisitionY',
+      title: 'acquisitionY',
+      caption: 'Y',
+      onclick: function() {
+
+        self.handleChangeOrientation('Y');
+        self.updateCollabScene();
+      }
+    });
+
+    //
+    // Z orientation button
+    self.toolBar.addButton({
+      id: 'acquisitionZ',
+      title: 'acquisitionZ',
+      caption: 'Z',
+      onclick: function() {
+
+        self.handleChangeOrientation('Z');
+        self.updateCollabScene();
+      }
+    });
+
+    //
+    // Fiducial widget button
+    self.toolBar.addButton({
+      id: 'fiducial',
+      title: 'Add fiducial',
+      caption: '<i class="fa fa-thumb-tack"></i>',
+      label: 'Tools',
+      onclick: function() {
+
+        window.console.log('hi fiducial there...');
+
+      }
+    });
+
+    self.toolBar.disableButton('fiducial');
+
+    //
+    // Distance widget button
+    self.toolBar.addButton({
+      id: 'distance',
+      title: 'Measure distance',
+      caption: '<i class="fa fa-arrows-h"></i>',
+      onclick: function() {
+
+        window.console.log('hi distance there...');
+
+      }
+    });
+
+    self.toolBar.disableButton('distance');
+
+    //
+    // Angle widget button
+    self.toolBar.addButton({
+      id: 'angle',
+      title: 'Measure angle',
+      caption: '<i class="fa fa-rss"></i>',
+      onclick: function() {
+
+        window.console.log('hi angle there...');
+
+      }
+    });
+
+    self.toolBar.disableButton('angle');
+
+    //
+    // Note widget button
+    self.toolBar.addButton({
+      id: 'note',
+      title: 'Add a note',
+      caption: '<i class="fa fa-sticky-note-o"></i>',
+      onclick: function() {
+
+        window.console.log('hi note there...');
+
+      }
+    });
+
+    self.toolBar.disableButton('note');
+
+    //
+    // Pointer interactor button
+    self.toolBar.addButton({
+      id: 'pointer',
+      title: 'Pointer',
+      caption: '<i class="fa fa-mouse-pointer"></i>',
+      label: 'Interactors',
+      onclick: function() {
+
+        window.console.log('hi zoom there...');
+
+      }
+    });
+
+    self.toolBar.disableButton('pointer');
+
+    //
+    // Zoom interactor button
+    self.toolBar.addButton({
+      id: 'search',
+      title: 'Zoom',
+      caption: '<i class="fa fa-search"></i>',
+      onclick: function() {
+
+        window.console.log('hi zoom there...');
+
+      }
+    });
+
+    self.toolBar.disableButton('search');
+
+    //
+    // Window Level interactor button
+    self.toolBar.addButton({
+      id: 'adjust',
+      title: 'Window Level',
+      caption: '<i class="fa fa-adjust"></i>',
+      onclick: function() {
+
+        window.console.log('hi window level there...');
+
+      }
+    });
+
+    self.toolBar.disableButton('adjust');
+
+    //
+    // Pan interactor button
+    self.toolBar.addButton({
+      id: 'arrows',
+      title: 'Pan',
+      caption: '<i class="fa fa-arrows"></i>',
+      onclick: function() {
+
+        window.console.log('hi pan there...');
+
+      }
+    });
+
+    self.toolBar.disableButton('arrows');
+
+    //
+    // Start collaboration button
+    if (self.collab) {
+
+      // collab button is added only when there is a collab object available
       self.toolBar.addButton({
-        id: btnsIdsPrefix + 'collab',
+
+        id: 'collab',
         title: 'Start collaboration',
         caption: '<i class="fa fa-users"></i>',
-
+        label: 'More',
         onclick: function() {
 
           if (self.collab.collabIsOn) {
@@ -621,759 +1032,1120 @@ define(['utiljs', 'rendererjs', 'rboxjs', 'toolbarjs', 'thbarjs', 'chatjs'], fun
           }
         }
       });
+    }
 
-      self.toolBar.addButton({
-        id: btnsIdsPrefix + 'auth',
-        title: 'Authorize',
-        caption: '<i class="fa fa-certificate"></i>',
-      });
+    //
+    // Link views button
+    self.toolBar.addButton({
+      id: 'link',
+      title: 'Link views',
+      caption: '<i class="fa fa-link"></i>',
 
-      // hide the button
-      self.toolBar.hideButton(btnsIdsPrefix + 'auth');
+      onclick: function() {
 
-      self.toolBar.addButton({
-        id: btnsIdsPrefix + 'help',
-        title: 'Wiki help',
-        caption: '<i class="fa fa-question"></i>',
-        onclick: function() {
-          window.open('https://github.com/FNNDSC/viewerjs/wiki');
-        }
-      });
+        self.handleToolBarButtonLinkClick();
+        self.updateCollabScene();
+      }
+    });
 
-      // tool bar event listeners
-      this.handleToolBarButtonLinkClick = function() {
+    self.toolBar.hideButton('link');
 
-        var jqButton = $('#' +  btnsIdsPrefix + 'link');
+    //
+    // Settings button
+    self.toolBar.addButton({
+      id: 'gear',
+      title: 'Settings',
+      caption: '<i class="fa fa-gear"></i>',
+      onclick: function() {
 
-        if (self.rBox.renderersLinked) {
+        window.open('https://github.com/FNNDSC/viewerjs/wiki');
 
-          self.rBox.renderersLinked = false;
-          jqButton.html('<i class="fa fa-link"></i>');
-          jqButton.attr('title', 'Link views');
-
-        } else {
-
-          self.rBox.renderersLinked = true;
-          jqButton.html('<i class="fa fa-chain-broken"></i>');
-          jqButton.attr('title', 'Unlink views');
-        }
-      };
-
-      // make space for the toolbar
-      var renderersTopEdge = parseInt(self.toolBar.container.css('top')) + parseInt(self.toolBar.container.css('height')) + 5;
-      self.rBox.container.css({ top: renderersTopEdge + 'px' });
-      self.rBox.container.css({ height: 'calc(100% - ' + renderersTopEdge + 'px)' });
-    };
-
-    /**
-     * Create and add a thumbnails bar to the viewer.
-     *
-     * @return {Array} array of image file objects, each object contains the following properties:
-     *  -id: Integer, the object's id
-     *  -baseUrl: String ‘directory/containing/the/files’
-     *  -imgType: String neuroimage type. Any of the possible values returned by rendererjs.Renderer.imgType
-     *  -files: Array of HTML5 File objects or custom file objects with properties:
-     *     -remote: a boolean indicating whether the file has not been read locally (with a filepicker)
-     *     -url the file's url
-     *     -cloudId: the id of the file in a cloud storage system if stored in the cloud
-     *     -name: file name
-     *  The files array contains a single file for imgType different from 'dicom' or 'dicomzip'
-     *  -thumbnail: Optional HTML5 File or custom file object (optional jpg file for a thumbnail image)
-     * @param {Function} optional callback to be called when the thumbnails bar is ready.
-     */
-    viewerjs.Viewer.prototype.addThumbnailsBar = function(imgFileArr, callback) {
-      var self = this;
-
-      if(!imgFileArr.length) {
-
-        if (callback) { callback(); }
-        return;
       }
 
-      // append a div container for the thumbnails bar to the viewer
-      var thBarCont = $('<div></div>');
-      self.container.append(thBarCont);
+    });
 
-      // thumbnails bar's options object
-      var options = {
-        container: thBarCont[0],
-        position: {
-          top: '5px',
-          left: '5px'
-        },
-        layout: 'vertical',
-        thumbnailsIdPrefix: self.thumbnailsIdPrefix
-      };
+    self.toolBar.disableButton('gear');
 
-      // check if there is a cloud file manager available
-      var fileManager = null;
-      if (self.collab) { fileManager = self.collab.fileManager; }
+    //
+    // Help button
+    self.toolBar.addButton({
+      id: 'help',
+      title: 'Wiki help',
+      caption: '<i class="fa fa-question"></i>',
+      onclick: function() {
 
-      // create the thumbnails bar object
-      var thBar = new thbar.ThumbnailsBar(options, fileManager);
+        window.open('https://github.com/FNNDSC/viewerjs/wiki');
 
-      thBar.init(imgFileArr, function() {
-
-        // hide any thumbnail with a corresponding renderer (same integer id suffix) already added to the renderers box
-        for (var i=0; i<self.rBox.renderers.length; i++) {
-
-          // corresponding thumbnail and renderer have the same integer id
-          var id = self.rBox.renderers[i].id;
-          var thContId = thBar.getThumbnailContId(id);
-
-          $('#' + thContId).css({ display:"none" });
-        }
-
-        if (callback) { callback(); }
-      });
-
-      // link the thumbnails bar with the renderers box
-      self.rBox.setComplementarySortableElems('#' + self.container.attr('id') + ' .view-thumbnailsbar-sortable');
-      thBar.setComplementarySortableElems('#' + self.container.attr('id') + ' .view-renderers');
-
-      //
-      // thumbnails bar event listeners
-      //
-      thBar.onBeforeStop = function(evt, ui) {
-
-        if (ui.placeholder.parent()[0] === self.rBox.container[0]) {
-          $(evt.target).sortable("cancel");
-
-          var id = thBar.getThumbnailId(ui.item.attr("id"));
-
-          // add the corresponding renderer (with the same integer id) to the UI
-          self.addRenderer(self.getImgFileObject(id), function(renderer) {
-
-            if (renderer) {
-
-              self.updateCollabScene();
-            }
-          });
-        }
-      };
-
-      // append a thumbnails bar id to each array elem
-      for (var i=0; i<imgFileArr.length; i++) {
-        imgFileArr[i].thBarId = self.thBars.length;
       }
+    });
 
-      // add the new data array to the viewer's main array
-      self.imgFileArr = self.imgFileArr.concat(imgFileArr);
+    //
+    // toolbar event listeners
+    //
+    this.handleChangeOrientation = function(orientation) {
 
-      // push thumbnails bar in the array of thumbnails bar object
-      self.thBars.push(thBar);
+      self.rBox.getSelectedRenderers().forEach(function(rndr) {
 
-      // insert thumbnails bar in front of the array of horizontal components
-      self.componentsX.unshift(thBar);
-
-      // make space for the thumbnails bar
-      var thBarSpace = parseInt(thBar.container.css('left')) + parseInt(thBar.container.css('width')) + 5;
-
-      var rBoxCSSWidth = 'calc(100% - ' + (thBarSpace * self.thBars.length) + 'px)';
-      self.rBox.container.css({ width: rBoxCSSWidth });
-
-      self.toolBar.container.css({ width: rBoxCSSWidth });
-
-      self.layoutComponentsX();
-    };
-
-    /**
-     * Layout viewer's components along the horizontal axis.
-     */
-    viewerjs.Viewer.prototype.layoutComponentsX = function() {
-      var self = this;
-
-      var left = 5;
-      var right = 0;
-      var rBIx;
-
-      // find the position of the renderers box
-      for (var i=0; i<self.componentsX.length; i++) {
-
-        if (self.componentsX[i].renderers) {
-          rBIx = i;
-          break;
-        }
-      }
-
-      // position elements to the left of the renderers box including it
-      var comps = self.componentsX.slice(0, rBIx + 1);
-
-      comps.forEach( function(el, ix) {
-
-        if (self.toolBar && (ix === rBIx)) {
-
-          // toolbar is always on the same column as renderers box
-          self.toolBar.container.css({ left: left + 'px', right: 'auto' });
-        }
-
-        el.container.css({ left: left + 'px', right: 'auto' });
-        left += parseInt(el.container.css('width')) + 5 ;
-      });
-
-      // position  elements to the right of the renderers box
-      comps = self.componentsX.slice(rBIx + 1);
-
-      comps.reverse().forEach( function(el) {
-
-        el.container.css({ left: 'auto', right: right + 'px' });
-        right += parseInt(el.container.css('width')) + 5 ;
+        rndr.changeOrientation(orientation);
       });
     };
 
-    /**
-     * Return image file object given its id.
-     *
-     * @param {Number} Integer number between 0 and this.imgFileArr.length-1.
-     * @return {Object} null or image file object with the following properties:
-     *  -id: Integer id
-     *  -baseUrl: String ‘directory/containing/the/files’
-     *  -imgType: String neuroimage type. Any of the possible values returned by rendererjs.Renderer.imgType
-     *  -files: Array of HTML5 File objects or custom file objects with properties:
-     *     -remote: a boolean indicating whether the file has not been read locally (with a filepicker)
-     *     -url the file's url
-     *     -cloudId: the id of the file in a cloud storage system if stored in the cloud
-     *     -name: file name
-     *  The files array contains a single file for imgType different from 'dicom' or 'dicomzip'
-     *  -thumbnail: Optional HTML5 File or custom file object (optional jpg file for a thumbnail image)
-     *  -json: Optional HTML5 or custom File object (optional json file with the mri info for imgType different from 'dicom')
-     */
-    viewerjs.Viewer.prototype.getImgFileObject = function(id) {
+    this.handleToolBarButtonLinkClick = function() {
 
-      if (id<0 || id>=this.imgFileArr.length) {
+      if (self.renderersLinked) {
 
-        return null;
+        self.rBox.unlinkRenderers();
+        self.renderersLinked = false;
+
+      } else {
+
+        self.rBox.linkRenderers();
+        self.renderersLinked = true;
       }
 
-      return this.imgFileArr[id];
+      self.toggleToolbarButtonActivation('link');
     };
 
-    /**
-     * Given an image file object id get the thumbnails bar object that contains the associated thumbnail image.
-     *
-     * @param {Number} Integer number between 0 and this.imgFileArr.length-1.
-     * @return {Object} thumbnails bar object or null.
-     */
-    viewerjs.Viewer.prototype.getThumbnailsBarObject = function(id) {
+    // make space for the toolbar
+    var renderersTopEdge = parseInt(self.toolBar.container.css('top')) + parseInt(self.toolBar.container.css('height')) + 5;
+    self.rBox.container.css({top: renderersTopEdge + 'px'});
+    self.rBox.container.css({height: 'calc(100% - ' + renderersTopEdge + 'px)'});
+  };
 
-      if (id<0 || id>=this.imgFileArr.length) {
+  /**
+   * Toggle a toolbar's button activated/deactivated UI state.
+   */
+  viewerjs.Viewer.prototype.toggleToolbarButtonActivation = function(btnId) {
 
-        return null;
+    var btnObj = this.toolBar.getButton(btnId);
+
+    if (btnObj) {
+
+      var btn = btnObj.button;
+
+      if (btnObj.activated) {
+
+        // deactivate the button
+
+        btnObj.activated = false;
+        btn.removeClass('active');
+
+        if (btnId === 'collab') {
+
+          btn.attr('title', 'Start collaboration');
+
+        } else if (btnId === 'link') {
+
+          btn.attr('title', 'Link views');
+        }
+
+      } else {
+
+        // activate the button
+
+        btnObj.activated = true;
+        btn.addClass('active');
+
+        if (btnId === 'collab') {
+
+          btn.attr('title', 'End collaboration');
+
+        } else if (btnId === 'link') {
+
+          btn.attr('title', 'Unlink views');
+        }
+      }
+    }
+  };
+
+  /**
+   * Initilize collaboration window's HTML and event handlers.
+   */
+  viewerjs.Viewer.prototype.initCollabWindow = function() {
+    var self = this;
+
+    self.collabWin = $('<div></div>');
+
+    // convert the previous div into a floating window with a close button
+    self.collabWin.dialog({
+      title: 'Start collaboration',
+      modal: true,
+      autoOpen: false,
+      minHeight: 300,
+      height: 350,
+      minWidth: 550,
+      width: 600
+    });
+
+    // add contents to the floating window from its HTML template
+    self.collabWin.append($(collabwin).filter('.view-collabwin'));
+  };
+
+  /**
+   * Initilize library window's HTML and event handlers.
+   */
+  viewerjs.Viewer.prototype.initLibraryWindow = function() {
+    var self = this;
+
+    self.libraryWin = $('<div></div>');
+
+    // convert the previous div into a floating window with a close button
+    self.libraryWin.dialog({
+      title: 'Load additional data',
+      modal: true,
+      autoOpen: false,
+      minHeight: 400,
+      height: 600,
+      minWidth: 700,
+      width: 800
+    });
+
+    var library = [
+    {
+      sectionLabel: 'Day 0 to 14',
+      notes: 'Oh yes I\'m a cool notes',
+      datasets: [
+        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
+        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
+        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
+        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii'
+      ]
+    },
+    {
+      sectionLabel: 'Quarter 0',
+      notes: 'Me too!',
+      datasets: [
+        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
+        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
+        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
+        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii'
+      ]
+    },
+    {
+      sectionLabel: 'Quarter 1',
+      notes: 'Oh yes I\'m a cool notes too',
+      datasets: [
+        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
+        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
+        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
+        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii'
+      ]
+    }];
+
+    var libraryContainerDiv = document.createElement('div');
+    $(libraryContainerDiv)
+        .addClass('library');
+    self.libraryWin.append($(libraryContainerDiv));
+
+    for (var i = 0; i < library.length; i++) {
+      // section
+      var sectionDiv = document.createElement('div');
+      $(sectionDiv)
+        .addClass('section')
+        .attr('sectionIndex', i);
+      $(libraryContainerDiv).append($(sectionDiv));
+
+      // title
+      var titleDiv = document.createElement('div');
+      $(titleDiv)
+        .addClass('title')
+        .html(library[i].sectionLabel);
+      $(sectionDiv).append($(titleDiv));
+
+      // note
+      var notesDiv = document.createElement('div');
+      $(notesDiv)
+        .addClass('notes')
+        .html(library[i].notes);
+      $(sectionDiv).append($(notesDiv));
+
+      // thumbnails
+      var thumbnailsContainerDiv = document.createElement('div');
+      $(thumbnailsContainerDiv)
+        .addClass('thumbnailsContainer');
+      $(sectionDiv).append($(thumbnailsContainerDiv));
+
+      for (var j = 0; j < library[i].datasets.length; j++) {
+        var thumbnailDiv = document.createElement('div');
+        $(thumbnailDiv)
+          .addClass('thumbnail')
+          .css('background-image', 'url(' + library[i].datasets[j] + '.jpg)');
+        $(thumbnailsContainerDiv).append(thumbnailDiv);
+      }
+    }
+
+    // fill content (no need for append)
+
+    // connect search bar...
+    // $('.view-librarywin-input').keyup(function() {
+    //   var valThis = $(this).val();
+    //   window.console.log('connecter: ' + valThis);
+    //   $('.navList>li').each(function() {
+    //     var text = $(this).text().toLowerCase();
+    //     return (text.indexOf(valThis) === 0) ? $(this).show() : $(this).hide();
+    //   });
+    // });
+
+    // connect each element of the lists to nii, json and jpg
+    $('.library > .section').on('click', function() {
+
+      var sectionIndex = $(this).attr('sectionIndex');
+      window.console.log(sectionIndex);
+
+      // build list
+      var imgFileArr = [];
+
+      for (var i = 0; i < library[sectionIndex].datasets.length; i++) {
+        imgFileArr.push({
+          'url': library[sectionIndex].datasets[i] + '.gz'
+        });
+
+        imgFileArr.push({
+          'url': library[sectionIndex].datasets[i] + '.jpg'
+        });
+
+        imgFileArr.push({
+          'url': library[sectionIndex].datasets[i] + '.json'
+        });
       }
 
-      return this.thBars[this.getImgFileObject(id).thBarId];
+      // load atlases
+      self.addData(imgFileArr);
+
+      // close window
+      self.libraryWin.dialog('close');
+    });
+  };
+
+  /**
+   * Create and add a thumbnails bar to the viewer.
+   *
+   * @return {Array} array of image file objects, each object contains the following properties:
+   *  -id: Integer, the object's id
+   *  -baseUrl: String ‘directory/containing/the/files’
+   *  -imgType: String neuroimage type. Any of the possible values returned by rendererjs.Renderer.imgType
+   *  -files: Array of HTML5 File objects or custom file objects with properties:
+   *     -remote: a boolean indicating whether the file has not been read locally (with a filepicker)
+   *     -url the file's url
+   *     -cloudId: the id of the file in a cloud storage system if stored in the cloud
+   *     -name: file name
+   *  The files array contains a single file for imgType different from 'dicom' or 'dicomzip'
+   *  -thumbnail: Optional HTML5 File or custom file object (optional jpg file for a thumbnail image)
+   * @param {Function} optional callback to be called when the thumbnails bar is ready.
+   */
+  viewerjs.Viewer.prototype.addThumbnailsBar = function(imgFileArr, callback) {
+    var self = this;
+
+    if (!imgFileArr.length) {
+
+      if (callback) { callback(); }
+      return;
+    }
+
+    // append a div container for the thumbnails bar to the viewer
+    var thBarCont = $('<div></div>');
+    self.container.append(thBarCont);
+
+    // thumbnails bar's options object
+    var options = {
+      container: thBarCont[0],
+      position: {
+        top: self.rBox.container.css('top'), // thumbnails bar at the same vertical level as the renderers box
+        left: '5px'
+      },
+      layout: 'vertical',
+      thumbnailsIdPrefix: self.thumbnailsIdPrefix
     };
 
-    /**
-     * Render the current scene.
-     */
-    viewerjs.Viewer.prototype.renderScene = function() {
-      var self = this;
+    // check if there is a cloud file manager available
+    var fileManager = null;
+    if (self.collab) { fileManager = self.collab.fileManager; }
 
-      var scene;
+    // create the thumbnails bar object
+    var thBar = new thbar.ThumbnailsBar(options, fileManager);
 
-      // define function to render the renderers in the renderers box
-      function renderRenderers() {
+    thBar.init(imgFileArr, function() {
 
-        var id;
-        var renderers2DIds = [];
-        var renderers2DProps = [];
+      // hide any thumbnail with a corresponding renderer (same integer id suffix) already added to the renderers box
+      for (var i = 0; i < self.rBox.renderers.length; i++) {
 
-        var updateRenderer = function(renderer) {
+        // corresponding thumbnail and renderer have the same integer id
+        var id = self.rBox.renderers[i].id;
+        var thContId = thBar.getThumbnailContId(id);
 
-          var ix = renderers2DIds.indexOf(renderer.id);
+        $('#' + thContId).css({display: 'none'});
+      }
 
-          // update the volume properties
-          renderer.volume.lowerThreshold = renderers2DProps[ix].volume.lowerThreshold;
-          renderer.volume.upperThreshold = renderers2DProps[ix].volume.upperThreshold;
-          renderer.volume.windowLow = renderers2DProps[ix].volume.lowerWindowLevel;
-          renderer.volume.windowHigh = renderers2DProps[ix].volume.upperWindowLevel;
-          renderer.volume.indexX = renderers2DProps[ix].volume.indexX;
-          renderer.volume.indexY = renderers2DProps[ix].volume.indexY;
-          renderer.volume.indexZ = renderers2DProps[ix].volume.indexZ;
+      if (callback) { callback(); }
+    });
 
-          // update the camera
-          var obj = JSON.parse(renderers2DProps[ix].renderer.viewMatrix);
-          var arr = $.map(obj, function(el) { return el; });
-          renderer.renderer.camera.view = new Float32Array(arr);
+    // get the jQuery sortable for the trash element
+    $('.view-trash-sortable', self.trash).sortable({
 
-          // update the flip orientation
-          renderer.renderer.flipColumns = renderers2DProps[ix].renderer.flipColumns;
-          renderer.renderer.flipRows = renderers2DProps[ix].renderer.flipRows;
+      over: function() {
 
-          // update the pointing position
-          renderer.renderer.pointer = renderers2DProps[ix].renderer.pointer;
+        self.trash.addClass('highlight');
+      },
 
-          // update the slice info HTML
-          renderer.updateUISliceInfo();
-        };
+      out: function() {
 
-        // get the collab scene's 2D renderer ids
-        for (var i=0; i<scene.renderers.length; i++) {
+        self.trash.removeClass('highlight');
+      }
+    });
 
-          if (scene.renderers[i].general.type = '2D') {
+    // link the thumbnails bar with the renderers box
+    var viewerSelector = '#' + self.container.attr('id');
+    self.rBox.setComplementarySortableElems(viewerSelector + ' .view-thumbnailsbar-sortable');
+    thBar.setComplementarySortableElems(viewerSelector + ' .view-renderers');
 
-            renderers2DIds.push(scene.renderers[i].general.id);
-            renderers2DProps.push(scene.renderers[i]);
+    // link the thumbnails bar with the trash's sortable element
+    thBar.jqSortable.sortable('option', 'connectWith', viewerSelector + ' .view-renderers, ' +
+      viewerSelector + ' .view-trash-sortable');
+
+    //
+    // thumbnails bar event listeners
+    //
+    thBar.onBeforeStop = function(evt, ui) {
+
+      var id = thBar.getThumbnailId(ui.item.attr('id'));
+      var parent = ui.placeholder.parent();
+
+      if (self.trash.hasClass('highlight')) {
+
+        self.trash.removeClass('highlight');
+
+        $(evt.target).sortable('cancel');
+        self.removeData(id);
+
+      } else if (parent[0] === self.rBox.container[0]) {
+
+        $(evt.target).sortable('cancel');
+
+        // add the corresponding renderer (with the same integer id) to the UI
+        self.addRenderer(self.getImgFileObject(id), function(renderer) {
+
+          if (renderer) {
+
+            self.updateCollabScene();
           }
-        }
+        });
 
-        // remove the 2D renderers from the local scene that were removed from the collab scene
-        for (i=0; i<self.rBox.renderers.length; i++) {
+      } else if (parent[0] !== thBar.jqSortable[0]) {
 
-          id = self.rBox.renderers[i].id;
-
-          if (renderers2DIds.indexOf(id) === -1) {
-
-            var thContId = self.getThumbnailsBarObject(id).getThumbnailContId(id);
-
-            $('#' + thContId).css({ display: "block" });
-
-            self.rBox.removeRenderer(self.rBox.renderers[i]);
-          }
-        }
-
-        for (i=0; i<renderers2DIds.length; i++) {
-
-          // add a 2D renderer to the local scene that was added to the collab scene
-          id = renderers2DIds[i];
-
-          $('#' + self.getThumbnailsBarObject(id).getThumbnailContId(id)).css({ display: "none" });
-
-          self.addRenderer(self.getImgFileObject(id), updateRenderer);
-        }
+        // cancel ddRop
+        $(evt.target).sortable('cancel');
       }
 
+      self.trash.hide();
+    };
+
+    thBar.onStart = function() {
+
+      // trash doesn't show up during a realtime collaboration session
+      if (!self.collab || !self.collab.collabIsOn) {
+
+        self.trash.show();
+      }
+    };
+
+    // append a thumbnails bar id to each array elem
+    for (var i = 0; i < imgFileArr.length; i++) {
+
+      imgFileArr[i].thBarId = self.thBars.length;
+    }
+
+    // add the new data array to the viewer's main array
+    self.imgFileArr = self.imgFileArr.concat(imgFileArr);
+
+    // push thumbnails bar in the array of thumbnails bar object
+    self.thBars.push(thBar);
+
+    // insert thumbnails bar in front of the array of horizontal components
+    self.componentsX.unshift(thBar);
+
+    self.rBox.container.css({width: self.computeRBoxCSSWidth()});
+
+    self.layoutComponentsX();
+  };
+
+  /**
+   * Compute CSS width of the viewer's renderers box.
+   *
+   * @return {String} CSS width string.
+   */
+  viewerjs.Viewer.prototype.computeRBoxCSSWidth = function() {
+
+    var nTh = 0; // number of thumbnails bars in the viewer
+    var ix, rBoxCSSWidth;
+
+    for (var i = 0; i < this.thBars.length; i++) {
+
+      if (this.thBars[i]) {
+
+        nTh++;
+        ix = i; // save the index of a non-null thumbnails bar object
+      }
+    }
+
+    if (nTh) {
+
+      var thBarSpace = parseInt(this.thBars[ix].container.css('width')) + 10;
+      rBoxCSSWidth = 'calc(100% - ' + (thBarSpace * nTh) + 'px)';
+
+    } else {
+
+      rBoxCSSWidth = '100%';
+    }
+
+    return rBoxCSSWidth;
+  };
+
+  /**
+   * Layout viewer's components along the horizontal axis.
+   */
+  viewerjs.Viewer.prototype.layoutComponentsX = function() {
+    var self = this;
+
+    var left = 5;
+    var right = 0;
+    var rBIx;
+
+    // find the position of the renderers box
+    for (var i = 0; i < self.componentsX.length; i++) {
+
+      if (self.componentsX[i].renderers) {
+        rBIx = i;
+        break;
+      }
+    }
+
+    // position elements to the left of the renderers box including it
+    var comps = self.componentsX.slice(0, rBIx + 1);
+
+    comps.forEach(function(el) {
+
+      el.container.css({left: left + 'px', right: 'auto'});
+      left += parseInt(el.container.css('width')) + 5 ;
+    });
+
+    // position  elements to the right of the renderers box
+    comps = self.componentsX.slice(rBIx + 1);
+
+    comps.reverse().forEach(function(el) {
+
+      el.container.css({left: 'auto', right: right + 'px'});
+      right += parseInt(el.container.css('width')) + 5 ;
+    });
+  };
+
+  /**
+   * Return image file object given its id.
+   *
+   * @param {Number} Integer number between 0 and this.imgFileArr.length-1.
+   * @return {Object} null or image file object with the following properties:
+   *  -id: Integer id
+   *  -baseUrl: String ‘directory/containing/the/files’
+   *  -imgType: String neuroimage type. Any of the possible values returned by rendererjs.Renderer.imgType
+   *  -files: Array of HTML5 File objects or custom file objects with properties:
+   *     -remote: a boolean indicating whether the file has not been read locally (with a filepicker)
+   *     -url the file's url
+   *     -cloudId: the id of the file in a cloud storage system if stored in the cloud
+   *     -name: file name
+   *  The files array contains a single file for imgType different from 'dicom' or 'dicomzip'
+   *  -thumbnail: Optional HTML5 File or custom file object (optional jpg file for a thumbnail image)
+   *  -json: Optional HTML5 or custom File object (optional json file with the mri info for imgType different from 'dicom')
+   */
+  viewerjs.Viewer.prototype.getImgFileObject = function(id) {
+
+    if (id < 0 || id >= this.imgFileArr.length) {
+
+      return null;
+    }
+
+    return this.imgFileArr[id];
+  };
+
+  /**
+   * Given an image file object id get the thumbnails bar object that contains the associated thumbnail image.
+   *
+   * @param {Number} Integer number between 0 and this.imgFileArr.length-1.
+   * @return {Object} thumbnails bar object or null.
+   */
+  viewerjs.Viewer.prototype.getThumbnailsBarObject = function(id) {
+
+    var imgFileObj = this.getImgFileObject(id);
+
+    if (!imgFileObj) { return null; }
+
+    return this.thBars[imgFileObj.thBarId];
+  };
+
+  /**
+   * Render the current scene.
+   */
+  viewerjs.Viewer.prototype.renderScene = function() {
+      var self = this;
 
       if (self.collab && self.collab.collabIsOn) {
 
         // collaboration is on, so get and render the scene
-        scene = self.getCollabScene();
+        var scene = self.getCollabScene();
+        var renderers2DIds = [];
+        var renderers2DProps = [];
 
-        if (self.rBox.renderersLinked !== scene.toolBar.renderersLinked) {
+        if (self.renderersLinked !== scene.toolBar.renderersLinked) {
 
           self.handleToolBarButtonLinkClick();
         }
 
-        renderRenderers();
+        //
+        // render the renderers in the renderers box
+        //
+        var updateRenderer = function(rObj) {
+
+          var r2DProps = renderers2DProps[renderers2DIds.indexOf(rObj.id)];
+
+          // update the volume properties
+          rObj.volume.lowerThreshold = r2DProps.volume.lowerThreshold;
+          rObj.volume.upperThreshold = r2DProps.volume.upperThreshold;
+          rObj.volume.windowLow = r2DProps.volume.lowerWindowLevel;
+          rObj.volume.windowHigh = r2DProps.volume.upperWindowLevel;
+          rObj.volume.indexX = r2DProps.volume.indexX;
+          rObj.volume.indexY = r2DProps.volume.indexY;
+          rObj.volume.indexZ = r2DProps.volume.indexZ;
+
+          // update the camera
+          var obj = JSON.parse(r2DProps.renderer.viewMatrix);
+          var arr = $.map(obj, function(el) { return el; });
+          rObj.renderer.camera.view = new Float32Array(arr);
+
+          // update the flip orientation
+          rObj.renderer.flipColumns = r2DProps.renderer.flipColumns;
+          rObj.renderer.flipRows = r2DProps.renderer.flipRows;
+
+          // update the orientation
+          if (rObj.renderer.orientation !== r2DProps.renderer.orientation) {
+
+            self.handleChangeOrientation(r2DProps.renderer.orientation);
+          }
+
+          // update the pointing position
+          rObj.renderer.pointer = r2DProps.renderer.pointer;
+
+          // update the slice info HTML
+          rObj.updateUISliceInfo();
+        };
+
+        // get the collab scene's 2D renderer ids
+        scene.renderers.forEach(function(rInfo) {
+
+          if (rInfo.general.type = '2D') {
+
+            renderers2DIds.push(rInfo.general.id);
+            renderers2DProps.push(rInfo);
+          }
+        });
+
+        // remove the 2D renderers from the local scene that were removed from the collab scene
+        self.rBox.renderers.forEach(function(rObj) {
+
+          if (renderers2DIds.indexOf(rObj.id) === -1) {
+
+            var thContId = self.getThumbnailsBarObject(rObj.id).getThumbnailContId(rObj.id);
+
+            $('#' + thContId).css({display: 'block'});
+
+            self.rBox.removeRenderer(rObj);
+          }
+        });
+
+        // add 2D renderers to the local scene that were added to the collab scene
+        renderers2DIds.forEach(function(id) {
+
+          $('#' + self.getThumbnailsBarObject(id).getThumbnailContId(id)).css({display: 'none'});
+
+          self.addRenderer(self.getImgFileObject(id), updateRenderer);
+        });
+
+        // update the renderer's window state
+        self.rBox.renderers.forEach(function(rObj) {
+
+          var r2DProps = renderers2DProps[renderers2DIds.indexOf(rObj.id)];
+
+          if (rObj.selected !== r2DProps.selected) {
+
+            if (rObj.selected) {
+
+              rObj.deselect();
+
+            } else {
+
+              rObj.select();
+            }
+          }
+        });
       }
     };
 
-    /**
-     * Create and return a scene object describing the current scene.
-     */
-    viewerjs.Viewer.prototype.getLocalScene = function() {
+  /**
+   * Create and return a scene object describing the current scene.
+   */
+  viewerjs.Viewer.prototype.getLocalScene = function() {
 
-      var scene = {};
-      var renderers = this.rBox.renderers;
+    var scene = {};
 
-      // set toolbar's properties
-      scene.toolBar = {};
-      scene.toolBar.renderersLinked = this.rBox.renderersLinked;
+    // set toolbar's properties
+    scene.toolBar = {};
+    scene.toolBar.renderersLinked = this.renderersLinked;
 
-      // set renderers' properties
-      // https://docs.google.com/document/d/1GHT7DtSq1ds4TyplA0E2Efy4fuv2xf17APcorqzBZjc/edit
-      scene.renderers = [];
+    // set renderers' properties
+    // https://docs.google.com/document/d/1GHT7DtSq1ds4TyplA0E2Efy4fuv2xf17APcorqzBZjc/edit
+    scene.renderers = [];
 
-      // parse each renderer and get information to be synchronized
-      for (var j=0; j<renderers.length; j++) {
-        var rInfo = {};
+    // parse each renderer and get information to be synchronized
+    for (var j = 0; j < this.rBox.renderers.length; j++) {
 
-        // set general information about the renderer
-        rInfo.general = {};
+      var rObj = this.rBox.renderers[j];
+      var rInfo = {};
 
-        rInfo.general.id = renderers[j].id;
-        rInfo.general.type = '2D';
+      // set general information about the renderer
+      rInfo.general = {};
+      rInfo.general.id = rObj.id;
+      rInfo.general.type = '2D';
 
-        // set renderer specific information
-        rInfo.renderer = {};
-        rInfo.renderer.viewMatrix = JSON.stringify(renderers[j].renderer.camera.view);
-        rInfo.renderer.flipColumns = renderers[j].renderer.flipColumns;
-        rInfo.renderer.flipRows = renderers[j].renderer.flipRows;
-        rInfo.renderer.pointer = renderers[j].renderer.pointer;
+      // set renderer specific information
+      rInfo.renderer = {};
+      rInfo.renderer.viewMatrix = JSON.stringify(rObj.renderer.camera.view);
+      rInfo.renderer.flipColumns = rObj.renderer.flipColumns;
+      rInfo.renderer.flipRows = rObj.renderer.flipRows;
+      rInfo.renderer.pointer = rObj.renderer.pointer;
+      rInfo.renderer.orientation = rObj.renderer.orientation;
 
-        // set volume specific information
-        // only supports 1 volume for now....
-        rInfo.volume = {};
-        rInfo.volume.file = renderers[j].volume.file;
-        rInfo.volume.lowerThreshold = renderers[j].volume.lowerThreshold;
-        rInfo.volume.upperThreshold = renderers[j].volume.upperThreshold;
-        rInfo.volume.lowerWindowLevel = renderers[j].volume.windowLow;
-        rInfo.volume.upperWindowLevel = renderers[j].volume.windowHigh;
-        rInfo.volume.indexX = renderers[j].volume.indexX;
-        rInfo.volume.indexY = renderers[j].volume.indexY;
-        rInfo.volume.indexZ = renderers[j].volume.indexZ;
+      // set volume specific information
+      // only supports 1 volume for now....
+      rInfo.volume = {};
+      rInfo.volume.file = rObj.volume.file;
+      rInfo.volume.lowerThreshold = rObj.volume.lowerThreshold;
+      rInfo.volume.upperThreshold = rObj.volume.upperThreshold;
+      rInfo.volume.lowerWindowLevel = rObj.volume.windowLow;
+      rInfo.volume.upperWindowLevel = rObj.volume.windowHigh;
+      rInfo.volume.indexX = rObj.volume.indexX;
+      rInfo.volume.indexY = rObj.volume.indexY;
+      rInfo.volume.indexZ = rObj.volume.indexZ;
 
-        // set interactor specific information
-        rInfo.interactor = {};
+      // set interactor specific information
+      rInfo.interactor = {};
 
-        // set camera specific information
-        rInfo.camera = {};
+      // set camera specific information
+      rInfo.camera = {};
 
-        // set pointer specific information
-        rInfo.pointer = {};
+      // set pointer specific information
+      rInfo.pointer = {};
 
-        scene.renderers.push(rInfo);
+      // renderer window's state
+      rInfo.selected = rObj.selected;
+
+      scene.renderers.push(rInfo);
+    }
+
+    return scene;
+  };
+
+  /**
+   * Return the current collaboration scene object.
+   */
+  viewerjs.Viewer.prototype.getCollabScene = function() {
+
+    if (this.collab && this.collab.collabIsOn) {
+
+      return this.collab.getCollabObj();
+    }
+  };
+
+  /**
+   * Update the collaboration scene.
+   */
+  viewerjs.Viewer.prototype.updateCollabScene = function() {
+
+    // if collaboration is on then update the collaboration scene
+    if (this.collab && this.collab.collabIsOn) {
+
+      var newScene = this.getLocalScene();
+      this.collab.setCollabObj(newScene);
+    }
+  };
+
+  /**
+   * Start the realtime collaboration.
+   */
+  viewerjs.Viewer.prototype.startCollaboration = function() {
+    var self = this;
+
+    if (self.collab) {
+
+      self.collabWin.dialog('open');
+
+      var startCollaboration = function() {
+
+        var roomIdInput = $('.view-collabwin-input input', self.collabWin)[0];
+
+        if (roomIdInput.value) {
+
+          // start the collaboration as an additional collaborator
+          self.collab.joinRealtimeCollaboration(roomIdInput.value);
+
+        } else {
+
+          // start as the collaboration owner
+          self.collab.startRealtimeCollaboration(self.getLocalScene());
+        }
+
+        self.collabWin.dialog('close');
+        self.toolBar.disableButton('collab');
+      };
+
+      self.collab.authorizeAndLoadApi(true, function(granted) {
+
+        var goButton = $('.view-collabwin-input button', self.collabWin)[0];
+
+        if (granted) {
+
+          // realtime API ready
+          goButton.onclick = function() {
+
+            startCollaboration();
+          };
+
+        } else {
+
+          goButton.onclick = function() {
+
+            self.collab.authorizeAndLoadApi(false, function(granted) {
+
+              if (granted) {
+
+                // realtime API ready
+                startCollaboration();
+              }
+            });
+          };
+        }
+      });
+
+    } else {
+
+      console.error('Collaboration was not enabled for this viewer instance');
+    }
+  };
+
+  /**
+   * Start the realtime collaboration's chat.
+   */
+  viewerjs.Viewer.prototype.startCollaborationChat = function() {
+
+    if (this.collab && this.collab.collabIsOn) {
+
+      this.chat = new chat.Chat(this.collab);
+      this.chat.init();
+    }
+  };
+
+  /**
+   * Leave the realtime collaboration.
+   */
+  viewerjs.Viewer.prototype.leaveCollaboration = function() {
+
+    if (this.collab && this.collab.collabIsOn) {
+
+      this.collab.leaveRealtimeCollaboration();
+
+      // update the toolbar's UI
+      this.toggleToolbarButtonActivation('collab');
+      this.toolBar.enableButton('load');
+      this.toolBar.enableButton('book');
+
+      // destroy the chat object
+      this.chat.destroy();
+      this.chat = null;
+    }
+  };
+
+  /**
+   * Handle the onConnect event when the collaboration has successfully started and is ready.
+   *
+   * @param {Obj} new collaborator info object.
+   */
+  viewerjs.Viewer.prototype.handleOnConnect = function(collaboratorInfo) {
+    var self = this;
+
+    // total number of files to be uploaded to GDrive
+    var totalNumFiles = (function() {
+      var nFiles = 0;
+
+      for (var i = 0; i < self.imgFileArr.length; i++) {
+        ++nFiles;
+
+        if (self.imgFileArr[i].json) {
+          ++nFiles;
+        }
       }
 
-      return scene;
-    };
+      return nFiles;
+    }());
 
-    /**
-     * Return the current collaboration scene object.
-     */
-    viewerjs.Viewer.prototype.getCollabScene = function() {
+    // callback to load a file into GDrive
+    var fObjArr = [];
+    var loadFile = function(fInfo, fData) {
 
-      if (this.collab && this.collab.collabIsOn) {
+      function writeToGdrive(info, data) {
 
-        return this.collab.getCollabObj();
+        var name = info.url.substring(info.url.lastIndexOf('/') + 1);
+
+        self.collab.fileManager.writeFile(self.collab.dataFilesBaseDir + '/' + name, data, function(fileResp) {
+
+          fObjArr.push({id: fileResp.id, url: info.url, thBarId: info.thBarId});
+
+          if (fObjArr.length === totalNumFiles) {
+
+            // all data files have been uploaded to GDrive
+            self.collab.setDataFileList(fObjArr);
+          }
+        });
+      }
+
+      if (fInfo.url.search(/.dcm.zip$|.ima.zip$|.zip$/i) !== -1) {
+
+        // fData is an array of arrayBuffer so instead of one file now fData.length files need to be uploaded
+        totalNumFiles += fData.length - 1;
+        writeToGdrive(fInfo, fData[0]);
+
+        for (var j = 1; j < fData.length; j++) {
+
+          fInfo.url = fInfo.url.replace(/.dcm.zip$|.ima.zip$|.zip$/i, j + '$&');
+          writeToGdrive(fInfo, fData[j]);
+        }
+
+      } else {
+
+        // fData is just a single arrayBuffer
+        writeToGdrive(fInfo, fData);
       }
     };
 
-    /**
-     * Update the collaboration scene.
-     */
-    viewerjs.Viewer.prototype.updateCollabScene = function() {
+    if (self.collab.collaboratorInfo.id === collaboratorInfo.id) {
 
-      // if collaboration is on then update the collaboration scene
-      if (this.collab && this.collab.collabIsOn) {
+      // local on connect
 
-        var newScene = this.getLocalScene();
-        this.collab.setCollabObj(newScene);
-      }
-    };
+      if (self.collab.collabOwner) {
 
-    /**
-     * Start the realtime collaboration as a collaboration/scene owner.
-     */
-    viewerjs.Viewer.prototype.startCollaboration = function() {
-      var self = this;
+        self.toolBar.enableButton('collab');
 
-      if (self.collab) {
+        // update the toolbar's UI
+        self.toggleToolbarButtonActivation('collab');
+        self.toolBar.disableButton('load');
+        self.toolBar.disableButton('book');
 
-        var collabButton = document.getElementById(self.toolBarBtnsIdPrefix + 'collab');
-        var authButton = document.getElementById(self.toolBarBtnsIdPrefix + 'auth');
+        // asyncronously load all files to GDrive
+        self.collab.fileManager.createPath(self.collab.dataFilesBaseDir, function() {
 
-        self.collab.authorizeAndLoadApi(true, function(granted) {
+          // create a rendererjs.Renderer object to use its methods
+          var r = new render.Renderer({container: null, rendererId: ''}, self.collab);
 
-          if (granted) {
+          for (var i = 0; i < self.imgFileArr.length; i++) {
 
-            // realtime API ready.
-            self.collab.startRealtimeCollaboration(self.getLocalScene());
+            var imgFileObj = self.imgFileArr[i];
+            var thBarId = imgFileObj.thBarId;
+            var url;
 
-          } else {
+            if (imgFileObj.json) {
 
-            // show the auth button to start the authorization flow
-            collabButton.style.display = 'none';
-            authButton.style.display = '';
+              url = imgFileObj.baseUrl + imgFileObj.json.name;
+              r.readFile(imgFileObj.json, 'readAsArrayBuffer', loadFile.bind(null, {url: url, thBarId: thBarId}));
+            }
 
-            authButton.onclick = function() {
+            if (imgFileObj.files.length > 1) {
 
-              self.collab.authorizeAndLoadApi(false, function(granted) {
+              // if there are many files (dicoms) then compress them into a single .zip file before uploading
+              url = imgFileObj.baseUrl + imgFileObj.files[0].name + '.zip';
+              r.zipFiles(imgFileObj.files, loadFile.bind(null, {url: url, thBarId: thBarId}));
 
-                if (granted) {
-                  // realtime API ready.
-                  self.collab.startRealtimeCollaboration(self.getLocalScene());
-                }
-              });
-            };
+            } else {
+
+              url = imgFileObj.baseUrl + imgFileObj.files[0].name;
+              r.readFile(imgFileObj.files[0], 'readAsArrayBuffer', loadFile.bind(null, {url: url, thBarId: thBarId}));
+            }
           }
         });
 
       } else {
 
-        console.error('Collaboration was not enabled for this viewer instance');
-      }
-    };
+        // this is a new collaborator (not the collaboration owner)
 
-    /**
-     * Start the realtime collaboration's chat.
-     */
-    viewerjs.Viewer.prototype.startCollaborationChat = function() {
+        // wipe current visualization
+        self.cleanUI();
 
-      if (this.collab && this.collab.collabIsOn) {
+        // insert initial wait text div to manage user expectatives
+        self.container.append('<div class="view-initialwaittext">' + 'Please wait while loading the viewer...</div>');
 
-        this.chat = new chat.Chat(this.collab);
-        this.chat.init();
-      }
-    };
-
-    /**
-     * Leave the realtime collaboration.
-     */
-    viewerjs.Viewer.prototype.leaveCollaboration = function() {
-
-      if (this.collab && this.collab.collabIsOn) {
-
-        this.collab.leaveRealtimeCollaboration();
-
-        // update the UI
-        var collabButton = document.getElementById(this.toolBarBtnsIdPrefix + 'collab');
-        collabButton.innerHTML = '<i class="fa fa-users"></i>';
-        collabButton.title = 'Start collaboration';
-
-        // destroy the chat object
-        this.chat.destroy();
-        this.chat = null;
-      }
-    };
-
-    /**
-     * Handle the onConnect event when the collaboration has successfully started and is ready.
-     *
-     * @param {Obj} new collaborator info object.
-     */
-    viewerjs.Viewer.prototype.handleOnConnect = function(collaboratorInfo) {
-      var self = this;
-
-      // total number of files to be uploaded to GDrive
-      var totalNumFiles = (function() {
-        var nFiles = 0;
-
-        for (var i=0; i<self.imgFileArr.length; i++) {
-          ++nFiles;
-
-          if (self.imgFileArr[i].json) {
-            ++nFiles;
-          }
-        }
-
-        return nFiles;
-      }());
-
-      // function to load a file into GDrive
-      var fObjArr = [];
-      function loadFile(fInfo, fData) {
-
-        function writeToGdrive(info, data) {
-
-          var name = info.url.substring(info.url.lastIndexOf('/') + 1);
-
-          self.collab.fileManager.writeFile(self.collab.dataFilesBaseDir + '/' + name, data, function(fileResp) {
-
-            fObjArr.push({id: fileResp.id, url: info.url, thBarId: info.thBarId});
-
-            if (fObjArr.length===totalNumFiles) {
-
-              // all data files have been uploaded to GDrive
-              self.collab.setDataFileList(fObjArr);
-            }
-          });
-        }
-
-        if (fInfo.url.search(/.dcm.zip$|.ima.zip$|.zip$/i) !== -1) {
-
-          // fData is an array of arrayBuffer so instead of one file now fData.length files need to be uploaded
-          totalNumFiles += fData.length-1;
-          writeToGdrive(fInfo, fData[0]);
-
-          for (var j=1; j<fData.length; j++) {
-
-            fInfo.url = fInfo.url.replace(/.dcm.zip$|.ima.zip$|.zip$/i, j+'$&');
-            writeToGdrive(fInfo, fData[j]);
-          }
-
-        } else {
-
-          // fData is just a single arrayBuffer
-          writeToGdrive(fInfo, fData);
-        }
+        $('.view-initialwaittext', self.container).css({'color': 'white'});
       }
 
-      if (self.collab.collaboratorInfo.id === collaboratorInfo.id) {
+      self.startCollaborationChat();
 
-        // local on connect
+    } else {
 
-        if (self.collab.collabOwner) {
+      // a remote collaborator has connected so just update the collaborators list
+      self.chat.updateCollaboratorList();
+    }
+  };
 
-          // update the UI
-          var collabButton = document.getElementById(self.toolBarBtnsIdPrefix + 'collab');
-          collabButton.style.display = '';
-          collabButton.innerHTML = '<i class="fa fa-user-times"></i>';
-          collabButton.title = 'End collaboration';
+  /**
+   * Handle the onDataFilesShared event when the collaboration owner has shared all data files with this collaborator.
+   *
+   * @param {Object} collaborator info object with a mail property (collaborator's mail).
+   * @param {Object} array of file objects with properties: url, cloudId and thBarId (thumbnails bar's id).
+   */
+  viewerjs.Viewer.prototype.handleOnDataFilesShared = function(collaboratorInfo, fObjArr) {
+     var self = this;
 
-          var authButton = document.getElementById(self.toolBarBtnsIdPrefix + 'auth');
-          authButton.style.display = 'none';
+     if (self.collab.collaboratorInfo.id === collaboratorInfo.id) {
 
-          // asyncronously load all files to GDrive
-          self.collab.fileManager.createPath(self.collab.dataFilesBaseDir, function() {
+       // GDrive files have been shared with this collaborator
 
-            // create a rendererjs.Renderer object to use its methods
-            var r = new render.Renderer({ container: null, rendererId: "" }, self.collab);
+       var fileArr = []; // two dimensional array of data arrays
 
-            for (var i=0; i<self.imgFileArr.length; i++) {
+       for (var i = 0; i < fObjArr.length; i++) {
 
-              var imgFileObj = self.imgFileArr[i];
-              var thBarId = imgFileObj.thBarId;
-              var url;
+         if (!fileArr[fObjArr[i].thBarId]) {
 
-              if (imgFileObj.json) {
-
-                url = imgFileObj.baseUrl + imgFileObj.json.name;
-                r.readFile(imgFileObj.json, 'readAsArrayBuffer', loadFile.bind(null, {url: url, thBarId: thBarId}));
-              }
-
-              if (imgFileObj.files.length > 1) {
-
-                // if there are many files (dicoms) then compress them into a single .zip file before uploading
-                url = imgFileObj.baseUrl + imgFileObj.files[0].name + '.zip';
-                r.zipFiles(imgFileObj.files, loadFile.bind(null, {url: url, thBarId: thBarId}));
-
-              } else {
-
-                url = imgFileObj.baseUrl + imgFileObj.files[0].name;
-                r.readFile(imgFileObj.files[0], 'readAsArrayBuffer', loadFile.bind(null, {url: url, thBarId: thBarId}));
-              }
-            }
-          });
-
-        } else {
-
-          // insert initial wait text div to manage user expectatives
-          self.container.append( '<div class="view-initialwaittext">' + 'Please wait while loading the viewer...</div>' );
-
-          $('.view-initialwaittext', self.container).css( {'color': 'white'} );
-        }
-
-        self.startCollaborationChat();
-
-      } else {
-
-        // a remote collaborator has connected so just update the collaborators list
-        self.chat.updateCollaboratorList();
-      }
-    };
-
-    /**
-     * Handle the onDataFilesShared event when the collaboration owner has shared all data files with this collaborator.
-     *
-     * @param {Object} collaborator info object with a mail property (collaborator's mail).
-     * @param {Object} array of file objects with properties: url, cloudId and thBarId (thumbnails bar's id).
-     */
-     viewerjs.Viewer.prototype.handleOnDataFilesShared = function(collaboratorInfo, fObjArr) {
-       var self = this;
-
-       if (self.collab.collaboratorInfo.id === collaboratorInfo.id) {
-
-         // GDrive files have been shared with this collaborator
-
-         var fileArr = []; // two dimensional array of data arrays
-
-         for (var i=0; i<fObjArr.length; i++) {
-
-           if (!fileArr[fObjArr[i].thBarId]) {
-
-             fileArr[fObjArr[i].thBarId] = [];
-           }
-
-           fileArr[fObjArr[i].thBarId].push({url: fObjArr[i].url, cloudId: fObjArr[i].id});
+           fileArr[fObjArr[i].thBarId] = [];
          }
 
-         // wipe the initial wait text in the collaborators's viewer container
-         $('.view-initialwaittext', self.container).remove();
-
-         // start the viewer
-         self.init();
-
-         // update the toolbar's UI
-         var collabButton = document.getElementById(this.toolBarBtnsIdPrefix + 'collab');
-         collabButton.innerHTML = '<i class="fa fa-user-times"></i>';
-         collabButton.title = 'End collaboration';
-
-         var numOfLoadedThumbnailsBar = 0;
-
-         var checkIfViewerReady = function() {
-
-           if (++numOfLoadedThumbnailsBar === fileArr.length) {
-
-             self.onViewerReady();
-           }
-         };
-
-         for (i=0; i<fileArr.length; i++) {
-
-           // add thumbnails bars
-           var imgFileArr = self.buildImgFileArr(fileArr[i]);
-           self.addThumbnailsBar(imgFileArr, checkIfViewerReady);
-         }
-
-         self.renderScene();
+         fileArr[fObjArr[i].thBarId].push({url: fObjArr[i].url, cloudId: fObjArr[i].id});
        }
-     };
 
-    /**
-     * Handle the onCollabObjChanged event when the scene object has been modified by a remote collaborator.
-     */
-     viewerjs.Viewer.prototype.handleOnCollabObjChanged = function() {
+       // wipe the initial wait text in the collaborators's viewer container
+       $('.view-initialwaittext', self.container).remove();
 
-       this.renderScene();
-     };
+       // restart the viewer
+       self.init();
 
-    /**
-     * Handle the onNewChatMessage event when a new chat msg is received from a remote collaborator.
-     *
-     * @param {Obj} chat message object.
-     */
-    viewerjs.Viewer.prototype.handleOnNewChatMessage = function(msgObj) {
+       // update the toolbar's UI
+       self.toggleToolbarButtonActivation('collab');
+       self.toolBar.disableButton('load');
+       self.toolBar.disableButton('book');
 
-      if (this.chat) {
-        this.chat.updateTextArea(msgObj);
-      }
-    };
+       var numOfLoadedThumbnailsBar = 0;
 
-    /**
-     * Handle the onDisconnect event everytime a remote collaborator disconnects from the collaboration.
-     *
-     * @param {Obj} collaborator info object.
-     */
-    viewerjs.Viewer.prototype.handleOnDisconnect = function(collaboratorInfo) {
+       var checkIfViewerReady = function() {
 
-      if (this.chat) {
+         if (++numOfLoadedThumbnailsBar === fileArr.length) {
 
-        // create a chat message object
-        var msgObj = {user: collaboratorInfo.name, msg: 'I have disconnected.'};
+           self.onViewerReady();
+         }
+       };
 
-        this.chat.updateTextArea(msgObj);
-        this.chat.updateCollaboratorList();
-      }
-    };
+       for (i = 0; i < fileArr.length; i++) {
 
-    /**
-     * This method is called when all the thumbnails bars have been loaded in a collaborator's viewer instance.
-     */
-     viewerjs.Viewer.prototype.onViewerReady = function() {
+         // add thumbnails bars
+         var imgFileArr = self.buildImgFileArr(fileArr[i]);
+         self.addThumbnailsBar(imgFileArr, checkIfViewerReady);
+       }
 
-       console.log('onViewerReady not overwritten!');
-     };
+       self.renderScene();
+     }
+   };
 
-    /**
-     * Destroy all objects and remove html interface
-     */
-    viewerjs.Viewer.prototype.destroy = function() {
+  /**
+   * Handle the onCollabObjChanged event when the scene object has been modified by a remote collaborator.
+   */
+  viewerjs.Viewer.prototype.handleOnCollabObjChanged = function() {
 
-      if (this.collab && this.collab.collabIsOn) {
-        this.leaveCollaboration();
-      }
+    this.renderScene();
+  };
 
-      // destroy objects
-      this.rBox.destroy();
-      this.rBox = null;
+  /**
+   * Handle the onNewChatMessage event when a new chat msg is received from a remote collaborator.
+   *
+   * @param {Obj} chat message object.
+   */
+  viewerjs.Viewer.prototype.handleOnNewChatMessage = function(msgObj) {
 
-      this.toolBar.destroy();
-      this.toolBar = null;
+    if (this.chat) {
+      this.chat.updateTextArea(msgObj);
+    }
+  };
 
-      for (var i=this.thBars.length-1; i>=0; i--) {
+  /**
+   * Handle the onDisconnect event everytime a remote collaborator disconnects from the collaboration.
+   *
+   * @param {Obj} collaborator info object.
+   */
+  viewerjs.Viewer.prototype.handleOnDisconnect = function(collaboratorInfo) {
 
-        this.thBars[i].destroy();
-        this.thBars.splice(i, 1);
-      }
+    if (this.chat) {
 
-      this.imgFileArr = [];
+      // create a chat message object
+      var msgObj = {user: collaboratorInfo.name, msg: 'I have disconnected.'};
 
-      // remove html
-      this.container.empty();
-    };
+      this.chat.updateTextArea(msgObj);
+      this.chat.updateCollaboratorList();
+    }
+  };
 
+  /**
+   * This method is called when all the thumbnails bars have been loaded in a collaborator's viewer instance.
+   */
+  viewerjs.Viewer.prototype.onViewerReady = function() {
+
+    console.log('onViewerReady not overwritten!');
+  };
+
+  /**
+   * Destroy all internal objects and remove html interface
+   */
+  viewerjs.Viewer.prototype.cleanUI = function() {
+
+    if (this.rBox) { this.rBox.destroy(); }
+    this.rBox = null;
+
+    if (this.toolBar) { this.toolBar.destroy(); }
+
+    this.toolBar = null;
+
+    for (var i = this.thBars.length - 1; i >= 0; i--) {
+
+      if (this.thBars[i]) { this.thBars[i].destroy(); }
+      this.thBars.splice(i, 1);
+    }
+
+    this.componentsX = [];
+
+    this.imgFileArr = [];
+
+    if (this.collabWin) { this.collabWin.dialog('destroy'); }
+    this.collabWin = null;
+
+    if (this.libraryWin) { this.libraryWin.dialog('destroy'); }
+    this.libraryWin = null;
+
+    // remove html
+    this.container.empty();
+  };
+
+  /**
+   * Destroy the viewer and leave collaboration if it is active
+   */
+  viewerjs.Viewer.prototype.destroy = function() {
+
+    if (this.collab && this.collab.collabIsOn) {
+
+      this.leaveCollaboration();
+    }
+
+    this.cleanUI();
+    this.container = null;
+  };
 
   return viewerjs;
 });
