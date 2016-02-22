@@ -6,14 +6,21 @@
 // define a new module
 define(
   [
-  '../../../text/text!../templates/collabwin.html',
+  // bower components
   '../../../utiljs/src/js/utiljs',
   '../../../rendererjs/src/js/rendererjs',
   '../../../rboxjs/src/js/rboxjs',
   '../../../toolbarjs/src/js/toolbarjs',
   '../../../thbarjs/src/js/thbarjs',
-  '../../../chatjs/src/js/chatjs'
-  ], function(collabwin, util, render, rbox, toolbar, thbar, chat) {
+  '../../../chatjs/src/js/chatjs',
+
+  // html templates (requires the 'text' bower component)
+  '../../../text/text!../templates/collabwin.html',
+
+  // jquery is special because it is AMD but doesn't return an object
+  'jquery_ui'
+
+  ], function(util, render, rbox, toolbar, thbar, chat, collabwin) {
 
     /**
      * Provide a namespace for the viewer module

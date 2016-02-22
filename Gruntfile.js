@@ -55,10 +55,7 @@ module.exports = function(grunt) {
         options: {
           hostname: 'localhost',
           port: 8001,
-          base: [
-            '.',
-            'bower_components'
-          ]
+          base: ['.']
         }
       }
     },
@@ -68,16 +65,16 @@ module.exports = function(grunt) {
         // comment when using the define function within the specs files
         //src: '<%= jshint.source.src %>',
         options: {
+          debug: true,
           host: 'http://<%= connect.test.options.hostname %>:<%= connect.test.options.port %>/',
-          src: '<%= jshint.source.src %>',
           specs: '<%= jshint.test.src %>',
           template: require('grunt-template-jasmine-requirejs'),
           templateOptions: {
             version: '<%= componentsDir %>/requirejs/require.js',
             requireConfigFile: 'demo/config.js', // requireJS's config file
-            requireConfig: {
+            /*requireConfig: {
               baseUrl: '.' // change base url to execute tests from local FS
-            }
+            }*/
           }
         }
       }
@@ -86,9 +83,13 @@ module.exports = function(grunt) {
     requirejs: { // concat and minimize AMD modules
       compile: {
         options: {
-          baseUrl: '.',
-          include: 'dist/<%= pkg.name %>/src/js/<%= pkg.name %>.js',
-          mainConfigFile: 'dist/<%= pkg.name %>/src/js/<%= pkg.name %>.js',
+          baseUrl: '<%= componentsDir %>',
+          paths: {
+            jquery: 'empty:', // does not include jquery in the output
+            jquery_ui: 'empty:', // does not include jquery_ui in the output
+          },
+          name: '<%= pkg.name %>Package',
+          mainConfigFile: 'demo/config.js',
           out: 'dist/<%= pkg.name %>.min.js'
         }
       }
@@ -103,33 +104,37 @@ module.exports = function(grunt) {
     },
 
     copy: {
-      components: {
+      components: { // copy the bower components that were not concat to dist/
         files: [
           {
             expand: true,
             cwd: '<%= componentsDir %>',
-            src: ['**/*'],
-            dest: 'dist/'
-          },
+            src: ['requirejs/require.js', 'jquery/dist/jquery.min.js',
+                         'jquery-ui/jquery-ui.min.js', 'jquery-ui/themes/**'],
+            dest: 'dist/dependencies'}]
+      },
+      module: { // copy the module as a bower component to <%= componentsDir %>
+        files: [
           {
             expand: true,
             src: 'src/**/*',
-            dest: 'dist/<%= pkg.name %>/'}]
+            dest: '<%= componentsDir %>/<%= pkg.name %>/'
+          }]
       }
     },
 
     watch: {
       source: {
         files: '<%= jshint.source.src %>',
-        tasks: ['jshint:source']
+        tasks: ['jscs:source', 'jshint:source', 'copy:module']
       },
       gruntfile: {
         files: '<%= jshint.gruntfile.src %>',
-        tasks: ['jshint:gruntfile']
+        tasks: ['jscs:source', 'jshint:gruntfile']
       },
       test: {
         files: '<%= jshint.test.src %>',
-        tasks: ['jshint:test', 'jasmine']
+        tasks: ['jscs:source', 'jshint:test', 'jasmine']
       }
     },
 
@@ -148,10 +153,7 @@ module.exports = function(grunt) {
         options: {
           watchTask: true,
           // serve base dir
-          // AND
-          // bower_components
-          // AT SAME LEVEL
-          server: ['.', 'bower_components'],
+          server: ['.'],
           startPath: '/demo'
         }
       }
@@ -160,7 +162,6 @@ module.exports = function(grunt) {
   });
 
   // These plugins provide necessary tasks.
-  grunt.loadNpmTasks('grunt-contrib-connect');
   grunt.loadNpmTasks('grunt-contrib-cssmin');
   grunt.loadNpmTasks('grunt-contrib-copy');
   grunt.loadNpmTasks('grunt-contrib-jasmine');
@@ -173,30 +174,21 @@ module.exports = function(grunt) {
 
   // Serve task.
   grunt.registerTask('serve', function(/*target*/) {
-    // grunt server:dist not implemented yet...
-
-    // if (target === 'dist') {
-    //   return grunt.task.run(['build', 'browserSync:dist',
-    //   'watch']);
-    // }
 
     grunt.task.run([
+      'copy:module',
       'browserSync:dev',
       'watch'
     ]);
   });
+
   // Test task.
+  grunt.registerTask('test', ['jscs', 'jshint', 'copy:module', 'connect', 'jasmine']);
 
   // Build task.
-  grunt.registerTask('build',
-    ['cssmin', 'jscs', 'jshint', 'connect', 'jasmine', 'copy', 'requirejs']);
-
-  grunt.registerTask('test', ['connect', 'jscs', 'jshint', 'jasmine']);
-  // Build task.
-  //grunt.registerTask('build', ['cssmin', 'test', 'requirejs', 'copy']);
+  grunt.registerTask('build', ['cssmin', 'test', 'requirejs', 'copy']);
 
   // Default task.
-  grunt.registerTask('default',
-    ['build']);
+  grunt.registerTask('default', ['build']);
 
 };
