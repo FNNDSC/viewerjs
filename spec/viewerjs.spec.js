@@ -3,7 +3,7 @@
  *
  */
 
-define(['viewerjsPackage'], function(viewerjs) {
+define(['viewerjs'], function(viewerjs) {
 
   describe('viewerjs', function() {
 

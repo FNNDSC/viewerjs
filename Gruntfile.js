@@ -88,7 +88,7 @@ module.exports = function(grunt) {
             jquery: 'empty:', // does not include jquery in the output
             jquery_ui: 'empty:', // does not include jquery_ui in the output
           },
-          name: '<%= pkg.name %>Package',
+          name: '<%= pkg.name %>',
           mainConfigFile: 'demo/config.js',
           out: 'dist/<%= pkg.name %>.min.js'
         }
@@ -157,6 +157,10 @@ module.exports = function(grunt) {
           startPath: '/demo'
         }
       }
+    },
+
+    clean: {
+      all: ['dist']
     }
 
   });
@@ -171,6 +175,7 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-connect');
   grunt.loadNpmTasks('grunt-browser-sync');
   grunt.loadNpmTasks('grunt-contrib-requirejs');
+  grunt.loadNpmTasks('grunt-contrib-clean');
 
   // Serve task.
   grunt.registerTask('serve', function(/*target*/) {
@@ -186,7 +191,7 @@ module.exports = function(grunt) {
   grunt.registerTask('test', ['jscs', 'jshint', 'copy:module', 'connect', 'jasmine']);
 
   // Build task.
-  grunt.registerTask('build', ['cssmin', 'test', 'requirejs', 'copy']);
+  grunt.registerTask('build', ['clean:all', 'cssmin', 'test', 'requirejs', 'copy']);
 
   // Default task.
   grunt.registerTask('default', ['build']);

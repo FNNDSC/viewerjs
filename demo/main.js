@@ -1,6 +1,6 @@
 require(['./config'], function() {
 
-  require(['gcjsPackage', 'viewerjsPackage'], function(cjs, viewerjs) {
+  require(['gcjs', 'viewerjs'], function(cjs, viewerjs) {
 
     // Client ID from the Google's developer console
     var CLIENT_ID = '1050768372633-ap5v43nedv10gagid9l70a2vae8p9nah.apps.googleusercontent.com';
