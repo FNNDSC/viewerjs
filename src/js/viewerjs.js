@@ -20,7 +20,7 @@ define(
   // jquery is special because it is AMD but doesn't return an object
   'jquery_ui'
 
-  ], function(util, render, rbox, toolbar, thbar, chat, collabwin) {
+  ],function(util, render, rbox, toolbar, thbar, chat, collabwin) {
 
     /**
      * Provide a namespace for the viewer module
@@ -281,63 +281,63 @@ define(
      * @param {Number} image file object's integer id.
      */
     viewerjs.Viewer.prototype.removeData = function(id) {
-    var self = this;
+      var self = this;
 
-    // no data can be removed during a realtime collaboration session
-    if (!self.collab || !self.collab.collabIsOn) {
+      // no data can be removed during a realtime collaboration session
+      if (!self.collab || !self.collab.collabIsOn) {
 
-      var thBar = self.getThumbnailsBarObject(id);
+        var thBar = self.getThumbnailsBarObject(id);
 
-      if (thBar) {
+        if (thBar) {
 
-        // remove corresponding thumbnail
-        thBar.removeThumbnail(id);
+          // remove corresponding thumbnail
+          thBar.removeThumbnail(id);
 
-        if (thBar.numThumbnails === 0) {
+          if (thBar.numThumbnails === 0) {
 
-          // remove and destroy corresponding thumbnails bar if there is no thumbnail left
+            // remove and destroy corresponding thumbnails bar if there is no thumbnail left
 
-          var thBarCont = thBar.container;
+            var thBarCont = thBar.container;
 
-          for (var j = 0; j < self.thBars.length; j++) {
+            for (var j = 0; j < self.thBars.length; j++) {
 
-            if (self.thBars[j] && self.thBars[j].container[0] === thBarCont[0]) {
+              if (self.thBars[j] && self.thBars[j].container[0] === thBarCont[0]) {
 
-              self.thBars[j] = null;
-              break;
+                self.thBars[j] = null;
+                break;
+              }
             }
+
+            for (j = 0; j < self.componentsX.length; j++) {
+
+              if (self.componentsX[j].container[0] === thBarCont[0]) {
+
+                self.componentsX.splice(j,1);
+                break;
+              }
+            }
+
+            thBar.destroy();
+            thBarCont.remove();
+
+            // recompute renderers box width
+            self.rBox.container.css({width: self.computeRBoxCSSWidth()});
+
+            self.layoutComponentsX();
           }
 
-          for (j = 0; j < self.componentsX.length; j++) {
+          // remove corresponding renderer in the renderers box if there is any
+          var rArr = self.rBox.renderers.filter(function(el) {
 
-            if (self.componentsX[j].container[0] === thBarCont[0]) {
+            return el.id === id;
+          });
 
-              self.componentsX.splice(j,1);
-              break;
-            }
-          }
+          if (rArr.length) { self.rBox.removeRenderer(rArr[0]); }
 
-          thBar.destroy();
-          thBarCont.remove();
-
-          // recompute renderers box width
-          self.rBox.container.css({width: self.computeRBoxCSSWidth()});
-
-          self.layoutComponentsX();
+          self.imgFileArr[id] = null;
         }
-
-        // remove corresponding renderer in the renderers box if there is any
-        var rArr = self.rBox.renderers.filter(function(el) {
-
-          return el.id === id;
-        });
-
-        if (rArr.length) { self.rBox.removeRenderer(rArr[0]); }
-
-        self.imgFileArr[id] = null;
       }
-    }
-  };
+    };
 
     /**
      * Build an array of image file objects (viewer's main data structure).
@@ -357,150 +357,150 @@ define(
      *  -json: Optional HTML5 File or custom file object (optional json file with the mri info for imgType different from 'dicom')
      */
     viewerjs.Viewer.prototype.buildImgFileArr = function(fObjArr) {
-    var self = this;
+      var self = this;
 
-    // define internal data structures
-    var imgFileArr = [];
-    var thumbnails = {}; // associative array of thumbnail image files
-    var jsons = {}; // associative array of json files
-    var dicoms = {}; // associative array of arrays with ordered DICOM files
-    var dicomZips = {}; // associative array of arrays with zipped DICOM files
-    var nonDcmData = []; // array of non-DICOM data
-    var path, name;
+      // define internal data structures
+      var imgFileArr = [];
+      var thumbnails = {}; // associative array of thumbnail image files
+      var jsons = {}; // associative array of json files
+      var dicoms = {}; // associative array of arrays with ordered DICOM files
+      var dicomZips = {}; // associative array of arrays with zipped DICOM files
+      var nonDcmData = []; // array of non-DICOM data
+      var path, name;
 
-    // function to add a file object into the proper internal data structure
-    function addFile(fileObj) {
+      // function to add a file object into the proper internal data structure
+      function addFile(fileObj) {
 
-      var path = fileObj.url;
-      var baseUrl = path.substring(0, path.lastIndexOf('/') + 1);
-      var file;
-      var imgType;
-      var dashIndex;
+        var path = fileObj.url;
+        var baseUrl = path.substring(0, path.lastIndexOf('/') + 1);
+        var file;
+        var imgType;
+        var dashIndex;
 
-      if (fileObj.file) {
+        if (fileObj.file) {
 
-        // get the HTML5 File object
-        file = fileObj.file;
-      } else {
-
-        // build a dummy File object with a property remote
-        file = {name: path.substring(path.lastIndexOf('/') + 1),
-               url: path,
-               remote: true};
-
-        if (fileObj.cloudId) {
-          file.cloudId = fileObj.cloudId;
-        }
-      }
-
-      imgType = render.Renderer.imgType(file);
-
-      if (imgType === 'dicom') {
-
-        if (!dicoms[baseUrl]) {
-          dicoms[baseUrl] = [];
-        }
-        dicoms[baseUrl].push(file); // all dicoms with the same base url belong to the same volume
-
-      } else if (imgType === 'dicomzip') {
-
-        if (!dicomZips[baseUrl]) {
-          dicomZips[baseUrl] = [];
-        }
-        dicomZips[baseUrl].push(file); // all dicom zip files with the same base url belong to the same volume
-
-      } else if (imgType === 'thumbnail') {
-
-        // save thumbnail file in an associative array
-        // array keys are the full path up to the first dash in the file name or the last period
-        dashIndex = path.indexOf('-', path.lastIndexOf('/'));
-        if (dashIndex === -1) {
-          thumbnails[path.substring(0, path.lastIndexOf('.'))] = file;
+          // get the HTML5 File object
+          file = fileObj.file;
         } else {
-          thumbnails[path.substring(0, dashIndex)] = file;
+
+          // build a dummy File object with a property remote
+          file = {name: path.substring(path.lastIndexOf('/') + 1),
+                 url: path,
+                 remote: true};
+
+          if (fileObj.cloudId) {
+            file.cloudId = fileObj.cloudId;
+          }
         }
 
-      } else if (imgType === 'json') {
+        imgType = render.Renderer.imgType(file);
 
-        // array keys are the full path with the extension trimmed
-        jsons[path.substring(0, path.lastIndexOf('.'))] = file;
+        if (imgType === 'dicom') {
 
-      } else if (imgType !== 'unsupported') {
+          if (!dicoms[baseUrl]) {
+            dicoms[baseUrl] = [];
+          }
+          dicoms[baseUrl].push(file); // all dicoms with the same base url belong to the same volume
 
-        // push fibers, meshes, volumes into nonDcmData
-        nonDcmData.push({
+        } else if (imgType === 'dicomzip') {
+
+          if (!dicomZips[baseUrl]) {
+            dicomZips[baseUrl] = [];
+          }
+          dicomZips[baseUrl].push(file); // all dicom zip files with the same base url belong to the same volume
+
+        } else if (imgType === 'thumbnail') {
+
+          // save thumbnail file in an associative array
+          // array keys are the full path up to the first dash in the file name or the last period
+          dashIndex = path.indexOf('-', path.lastIndexOf('/'));
+          if (dashIndex === -1) {
+            thumbnails[path.substring(0, path.lastIndexOf('.'))] = file;
+          } else {
+            thumbnails[path.substring(0, dashIndex)] = file;
+          }
+
+        } else if (imgType === 'json') {
+
+          // array keys are the full path with the extension trimmed
+          jsons[path.substring(0, path.lastIndexOf('.'))] = file;
+
+        } else if (imgType !== 'unsupported') {
+
+          // push fibers, meshes, volumes into nonDcmData
+          nonDcmData.push({
            'baseUrl': baseUrl,
            'imgType': imgType,
            'files': [file]
          });
+        }
       }
-    }
 
-    // function to assign utility files (thumbnail images or json files) to their corresponding
-    // image file object in imgFileArr
-    function assignUtilityFiles(files, filetype) {
+      // function to assign utility files (thumbnail images or json files) to their corresponding
+      // image file object in imgFileArr
+      function assignUtilityFiles(files, filetype) {
 
-      for (var key in files) {
+        for (var key in files) {
 
-        // Search for a neuroimage file with the same name as the current utility file
-        for (var i = 0; i < imgFileArr.length; i++) {
-          var j = 0;
+          // Search for a neuroimage file with the same name as the current utility file
+          for (var i = 0; i < imgFileArr.length; i++) {
+            var j = 0;
 
-          do {
+            do {
 
-            path = imgFileArr[i].baseUrl + imgFileArr[i].files[j].name;
-            name = path.substring(0, path.lastIndexOf('.'));
+              path = imgFileArr[i].baseUrl + imgFileArr[i].files[j].name;
+              name = path.substring(0, path.lastIndexOf('.'));
 
-          } while ((++j < imgFileArr[i].files.length)  && (key !== name));
+            } while ((++j < imgFileArr[i].files.length)  && (key !== name));
 
-          if (key === name) {
-            imgFileArr[i][filetype] = files[key];
-            break;
+            if (key === name) {
+              imgFileArr[i][filetype] = files[key];
+              break;
+            }
           }
         }
       }
-    }
 
-    // add files to proper internal data structures
-    for (var i = 0; i < fObjArr.length; i++) {
-      addFile(fObjArr[i]);
-    }
+      // add files to proper internal data structures
+      for (var i = 0; i < fObjArr.length; i++) {
+        addFile(fObjArr[i]);
+      }
 
-    //
-    // now build imgFileArr from the internal data structures
-    //
+      //
+      // now build imgFileArr from the internal data structures
+      //
 
-    // push ordered DICOMs into imgFileArr
-    for (var baseUrl in dicoms) {
-      imgFileArr.push({
+      // push ordered DICOMs into imgFileArr
+      for (var baseUrl in dicoms) {
+        imgFileArr.push({
         'baseUrl': baseUrl,
         'imgType': 'dicom',
         'files': util.sortObjArr(dicoms[baseUrl], 'name')
       });
-    }
+      }
 
-    // push DICOM zip files into imgFileArr
-    for (baseUrl in dicomZips) {
-      imgFileArr.push({
+      // push DICOM zip files into imgFileArr
+      for (baseUrl in dicomZips) {
+        imgFileArr.push({
         'baseUrl': baseUrl,
         'imgType': 'dicomzip',
         'files': util.sortObjArr(dicomZips[baseUrl], 'name')
       });
-    }
+      }
 
-    // push non-DICOM data into imgFileArr
-    for (i = 0; i < nonDcmData.length; i++) {
-      imgFileArr.push(nonDcmData[i]);
-    }
+      // push non-DICOM data into imgFileArr
+      for (i = 0; i < nonDcmData.length; i++) {
+        imgFileArr.push(nonDcmData[i]);
+      }
 
-    // add thumbnail images to imgFileArr
-    assignUtilityFiles(thumbnails, 'thumbnail');
+      // add thumbnail images to imgFileArr
+      assignUtilityFiles(thumbnails, 'thumbnail');
 
-    // add json files to imgFileArr
-    assignUtilityFiles(jsons, 'json');
+      // add json files to imgFileArr
+      assignUtilityFiles(jsons, 'json');
 
-    // sort the built array for consistency among possible collaborators
-    imgFileArr.sort(function(el1, el2) {
+      // sort the built array for consistency among possible collaborators
+      imgFileArr.sort(function(el1, el2) {
        var val1 = el1.baseUrl + el1.files[0].name.replace(/.zip$/, '');
        var val2 = el2.baseUrl + el2.files[0].name.replace(/.zip$/, '');
        var values = [val1, val2].sort();
@@ -514,15 +514,15 @@ define(
        }
      });
 
-    // assign an integer id to each array elem
-    var len = self.imgFileArr.length;
+      // assign an integer id to each array elem
+      var len = self.imgFileArr.length;
 
-    for (i = 0; i < imgFileArr.length; i++) {
-      imgFileArr[i].id = i + len;
-    }
+      for (i = 0; i < imgFileArr.length; i++) {
+        imgFileArr[i].id = i + len;
+      }
 
-    return imgFileArr;
-  };
+      return imgFileArr;
+    };
 
     /**
      * Append a trash box to the viewer.
@@ -546,126 +546,126 @@ define(
      * Append a renderers box to the viewer.
      */
     viewerjs.Viewer.prototype.addRenderersBox = function() {
-    var self = this;
+      var self = this;
 
-    if (self.rBox) {
-      return; // renderers box already exists
-    }
+      if (self.rBox) {
+        return; // renderers box already exists
+      }
 
-    // append a div container for the renderers box to the viewer
-    var rBoxCont = $('<div></div>');
-    self.container.append(rBoxCont);
+      // append a div container for the renderers box to the viewer
+      var rBoxCont = $('<div></div>');
+      self.container.append(rBoxCont);
 
-    // renderers box options object
-    var options = {
-      container: rBoxCont[0],
-      position: {
+      // renderers box options object
+      var options = {
+        container: rBoxCont[0],
+        position: {
         bottom: 0,
         left: 0
       },
-      renderersIdPrefix: self.renderersIdPrefix
-    };
+        renderersIdPrefix: self.renderersIdPrefix
+      };
 
-    // check if there is a cloud file manager available
-    var fileManager = null;
-    if (self.collab) { fileManager = self.collab.fileManager; }
+      // check if there is a cloud file manager available
+      var fileManager = null;
+      if (self.collab) { fileManager = self.collab.fileManager; }
 
-    // create a renderers box object
-    self.rBox = new rbox.RenderersBox(options, fileManager);
-    self.rBox.init();
+      // create a renderers box object
+      self.rBox = new rbox.RenderersBox(options, fileManager);
+      self.rBox.init();
 
-    // the renderers box doesn't move around
-    self.container.sortable('option', 'cancel', '.view-renderers');
+      // the renderers box doesn't move around
+      self.container.sortable('option', 'cancel', '.view-renderers');
 
-    // Insert renderers box's in the array of components
-    self.componentsX.push(self.rBox);
+      // Insert renderers box's in the array of components
+      self.componentsX.push(self.rBox);
 
-    //
-    // renderers box event listeners
-    //
-    this.rBox.computeMovingHelper = function(evt, target) {
+      //
+      // renderers box event listeners
+      //
+      this.rBox.computeMovingHelper = function(evt, target) {
 
-      var thWidth =  $('.view-thumbnail').css('width');
-      var thHeight = $('.view-thumbnail').css('height');
+        var thWidth =  $('.view-thumbnail').css('width');
+        var thHeight = $('.view-thumbnail').css('height');
 
-      // corresponding thumbnail and renderer have the same integer id
-      var id = self.rBox.getRendererId(target.find('.view-renderer-content').attr('id'));
-      var thContId = self.getThumbnailsBarObject(id).getThumbnailContId(id);
+        // corresponding thumbnail and renderer have the same integer id
+        var id = self.rBox.getRendererId(target.find('.view-renderer-content').attr('id'));
+        var thContId = self.getThumbnailsBarObject(id).getThumbnailContId(id);
 
-      // the visually moving helper is a clone of the corresponding thumbnail
-      return $('#' + thContId).clone().css({
-        display: 'block',
-        width: thWidth,
-        height: thHeight});
-    };
+        // the visually moving helper is a clone of the corresponding thumbnail
+        return $('#' + thContId).clone().css({
+          display: 'block',
+          width: thWidth,
+          height: thHeight});
+      };
 
-    this.rBox.onStart = function() {
+      this.rBox.onStart = function() {
 
-      // thumbnails bars' scroll bars have to be removed to make the moving helper visible
-      self.thBars.forEach(function(thBar) {
+        // thumbnails bars' scroll bars have to be removed to make the moving helper visible
+        self.thBars.forEach(function(thBar) {
 
-        if (thBar) { thBar.container.css({overflow: 'visible'}); }
-      });
-    };
+          if (thBar) { thBar.container.css({overflow: 'visible'}); }
+        });
+      };
 
-    this.rBox.onBeforeStop = function(evt, ui) {
+      this.rBox.onBeforeStop = function(evt, ui) {
 
-      var id = self.rBox.getRendererId(ui.item.find('.view-renderer-content').attr('id'));
+        var id = self.rBox.getRendererId(ui.item.find('.view-renderer-content').attr('id'));
 
-      if (ui.placeholder.parent().parent()[0] === self.getThumbnailsBarObject(id).container[0]) {
+        if (ui.placeholder.parent().parent()[0] === self.getThumbnailsBarObject(id).container[0]) {
 
-        $(evt.target).sortable('cancel');
+          $(evt.target).sortable('cancel');
 
-        var rArr = self.rBox.renderers.filter(function(el) {
+          var rArr = self.rBox.renderers.filter(function(el) {
             return el.id === id;
           });
 
-        self.rBox.removeRenderer(rArr[0]);
+          self.rBox.removeRenderer(rArr[0]);
 
-      } else if (ui.placeholder.parent()[0] !== evt.target) {
+        } else if (ui.placeholder.parent()[0] !== evt.target) {
 
-        $(evt.target).sortable('cancel');
-      }
-
-      // restore thumbnails bars' scroll bars
-      self.thBars.forEach(function(thBar) {
-
-        if (thBar) { thBar.container.css({overflow: 'auto'}); }
-      });
-    };
-
-    this.rBox.onRendererChange = function(evt) {
-
-      if ((evt.type === 'click') && $(evt.currentTarget).hasClass('view-renderer-titlebar-buttonpane-pin')) {
-
-        var selectedArr = this.getSelectedRenderers();
-
-        if (self.renderersLinked && selectedArr.length <= 1) {
-
-          // at most one renderer is selected so change state to unlinked
-          self.handleToolBarButtonLinkClick();
-
-          if (selectedArr.length === 1) {
-
-            selectedArr[0].select(); // reselect the only previously selected renderer
-          }
-
-        } else if (!self.renderersLinked && selectedArr.length === this.renderers.length) {
-
-          // all renderers are selected so change state to linked
-          self.handleToolBarButtonLinkClick();
+          $(evt.target).sortable('cancel');
         }
-      }
 
-      self.updateCollabScene();
+        // restore thumbnails bars' scroll bars
+        self.thBars.forEach(function(thBar) {
+
+          if (thBar) { thBar.container.css({overflow: 'auto'}); }
+        });
+      };
+
+      this.rBox.onRendererChange = function(evt) {
+
+        if ((evt.type === 'click') && $(evt.currentTarget).hasClass('view-renderer-titlebar-buttonpane-pin')) {
+
+          var selectedArr = this.getSelectedRenderers();
+
+          if (self.renderersLinked && selectedArr.length <= 1) {
+
+            // at most one renderer is selected so change state to unlinked
+            self.handleToolBarButtonLinkClick();
+
+            if (selectedArr.length === 1) {
+
+              selectedArr[0].select(); // reselect the only previously selected renderer
+            }
+
+          } else if (!self.renderersLinked && selectedArr.length === this.renderers.length) {
+
+            // all renderers are selected so change state to linked
+            self.handleToolBarButtonLinkClick();
+          }
+        }
+
+        self.updateCollabScene();
+      };
+
+      this.rBox.onRendererRemove = function(id) {
+
+        self.handleOnRendererRemove(id);
+        self.updateCollabScene();
+      };
     };
-
-    this.rBox.onRendererRemove = function(id) {
-
-      self.handleOnRendererRemove(id);
-      self.updateCollabScene();
-    };
-  };
 
     /**
       * Add a renderer to the renderers box.
@@ -684,40 +684,40 @@ define(
       * @param {Function} optional callback whose argument is the renderer object or null.
       */
     viewerjs.Viewer.prototype.addRenderer = function(imgFileObj, callback) {
-    var self = this;
+      var self = this;
 
-    var thBar = self.getThumbnailsBarObject(imgFileObj.id);
+      var thBar = self.getThumbnailsBarObject(imgFileObj.id);
 
-    $('#' + thBar.getThumbnailContId(imgFileObj.id)).css({display: 'none'});
+      $('#' + thBar.getThumbnailContId(imgFileObj.id)).css({display: 'none'});
 
-    self.rBox.addRenderer(imgFileObj, 'Z', function(renderer) {
+      self.rBox.addRenderer(imgFileObj, 'Z', function(renderer) {
 
-      if (renderer) {
+        if (renderer) {
 
-        // deselect all renderers in the UI
-        self.rBox.renderers.forEach(function(rndr) {
+          // deselect all renderers in the UI
+          self.rBox.renderers.forEach(function(rndr) {
 
-          if (rndr.selected) { rndr.deselect(); }
-        });
+            if (rndr.selected) { rndr.deselect(); }
+          });
 
-        // select the newly added renderer
-        renderer.select();
+          // select the newly added renderer
+          renderer.select();
 
-        if (self.rBox.numOfRenderers === 2) {
+          if (self.rBox.numOfRenderers === 2) {
 
-          // if there are now 2 renderers in the renderers box then show the Link views button
-          self.toolBar.showButton('link');
+            // if there are now 2 renderers in the renderers box then show the Link views button
+            self.toolBar.showButton('link');
+          }
+
+        } else {
+
+          // could not add renderer so restore the corresponding thumbnail
+          $('#' + thBar.getThumbnailContId(imgFileObj.id)).css({display: ''});
         }
 
-      } else {
-
-        // could not add renderer so restore the corresponding thumbnail
-        $('#' + thBar.getThumbnailContId(imgFileObj.id)).css({display: ''});
-      }
-
-      if (callback) { callback(renderer); }
-    });
-  };
+        if (callback) { callback(renderer); }
+      });
+    };
 
     /**
       * Handle the renderers box's onRendererRemove event.
@@ -757,367 +757,367 @@ define(
      * Create and add a toolbar to the viewer.
      */
     viewerjs.Viewer.prototype.addToolBar = function() {
-    var self = this;
+      var self = this;
 
-    if (self.toolBar) {
-      return; // tool bar already exists
-    }
-
-    // append a div container for the toolbar to the viewer
-    var toolBarCont = $('<div></div>');
-    self.container.append(toolBarCont);
-
-    // the toolbar doesn't move around
-    self.container.sortable('option', 'cancel', '.view-toolbar');
-
-    // toolbar options object
-    var options = {
-      container: toolBarCont[0],
-      position: {
-        top: '5px',
-        left: 0
+      if (self.toolBar) {
+        return; // tool bar already exists
       }
-    };
 
-    // create a tool bar object
-    self.toolBar = new toolbar.ToolBar(options);
-    self.toolBar.init();
+      // append a div container for the toolbar to the viewer
+      var toolBarCont = $('<div></div>');
+      self.container.append(toolBarCont);
 
-    //
-    // add buttons to the tool bar
-    //
+      // the toolbar doesn't move around
+      self.container.sortable('option', 'cancel', '.view-toolbar');
 
-    //
-    // Load directory
-    self.toolBar.addButton({
-      id: 'load',
-      title: 'Load data',
-      caption: '<i class="fa fa-folder-open"></i>  <input type="file"' +
-        '  webkitdirectory="" multiple style="display:none">',
-      label: 'Load',
+      // toolbar options object
+      var options = {
+        container: toolBarCont[0],
+        position: {
+          top: '5px',
+          left: 0
+        }
+      };
 
-      onclick: function() {
+      // create a tool bar object
+      self.toolBar = new toolbar.ToolBar(options);
+      self.toolBar.init();
 
-        var loadFiles = function(e) {
+      //
+      // add buttons to the tool bar
+      //
 
-          var files = e.target.files;
-          var fileObj;
+      //
+      // Load directory
+      self.toolBar.addButton({
+        id: 'load',
+        title: 'Load data',
+        caption: '<i class="fa fa-folder-open"></i>  <input type="file"' +
+          '  webkitdirectory="" multiple style="display:none">',
+        label: 'Load',
 
-          // Source data array for the new Viewer object
-          var imgFileArr = [];
+        onclick: function() {
 
-          for (var i = 0; i < files.length; i++) {
+          var loadFiles = function(e) {
 
-            fileObj = files[i];
+            var files = e.target.files;
+            var fileObj;
 
-            if ('webkitRelativePath' in fileObj) {
+            // Source data array for the new Viewer object
+            var imgFileArr = [];
 
-              fileObj.fullPath = fileObj.webkitRelativePath;
+            for (var i = 0; i < files.length; i++) {
 
-            } else if (!('fullPath' in fileObj)) {
+              fileObj = files[i];
 
-              fileObj.fullPath = fileObj.name;
-            }
+              if ('webkitRelativePath' in fileObj) {
 
-            imgFileArr.push({
+                fileObj.fullPath = fileObj.webkitRelativePath;
+
+              } else if (!('fullPath' in fileObj)) {
+
+                fileObj.fullPath = fileObj.name;
+              }
+
+              imgFileArr.push({
               'url': fileObj.fullPath,
               'file': fileObj
             });
-          }
+            }
 
-          self.addData(imgFileArr);
-        };
+            self.addData(imgFileArr);
+          };
 
-        var loadButton = $('input', this);
+          var loadButton = $('input', this);
 
-        loadButton[0].value = null; // makes possible to load the same file
+          loadButton[0].value = null; // makes possible to load the same file
 
-        loadButton.off('change').on('change', loadFiles);
+          loadButton.off('change').on('change', loadFiles);
 
-        loadButton[0].click(function(event) {
+          loadButton[0].click(function(event) {
 
-          event.stopPropagation();
-        });
-      }
-    });
-
-    //
-    // Load file
-    self.toolBar.addButton({
-      id: 'book',
-      title: 'Load from library',
-      caption: '<i class="fa fa-book"></i>',
-      onclick: function() {
-
-        self.libraryWin.dialog('open');
-
-      }
-    });
-
-    //
-    // X orientation button
-    self.toolBar.addButton({
-      id: 'acquisitionX',
-      title: 'acquisitionX',
-      caption: 'X',
-      label: 'Orientation',
-      onclick: function() {
-
-        self.handleChangeOrientation('X');
-        self.updateCollabScene();
-      }
-    });
-
-    //
-    // Y orientation button
-    self.toolBar.addButton({
-      id: 'acquisitionY',
-      title: 'acquisitionY',
-      caption: 'Y',
-      onclick: function() {
-
-        self.handleChangeOrientation('Y');
-        self.updateCollabScene();
-      }
-    });
-
-    //
-    // Z orientation button
-    self.toolBar.addButton({
-      id: 'acquisitionZ',
-      title: 'acquisitionZ',
-      caption: 'Z',
-      onclick: function() {
-
-        self.handleChangeOrientation('Z');
-        self.updateCollabScene();
-      }
-    });
-
-    //
-    // Fiducial widget button
-    self.toolBar.addButton({
-      id: 'fiducial',
-      title: 'Add fiducial',
-      caption: '<i class="fa fa-thumb-tack"></i>',
-      label: 'Tools',
-      onclick: function() {
-
-        window.console.log('hi fiducial there...');
-
-      }
-    });
-
-    self.toolBar.disableButton('fiducial');
-
-    //
-    // Distance widget button
-    self.toolBar.addButton({
-      id: 'distance',
-      title: 'Measure distance',
-      caption: '<i class="fa fa-arrows-h"></i>',
-      onclick: function() {
-
-        window.console.log('hi distance there...');
-
-      }
-    });
-
-    self.toolBar.disableButton('distance');
-
-    //
-    // Angle widget button
-    self.toolBar.addButton({
-      id: 'angle',
-      title: 'Measure angle',
-      caption: '<i class="fa fa-rss"></i>',
-      onclick: function() {
-
-        window.console.log('hi angle there...');
-
-      }
-    });
-
-    self.toolBar.disableButton('angle');
-
-    //
-    // Note widget button
-    self.toolBar.addButton({
-      id: 'note',
-      title: 'Add a note',
-      caption: '<i class="fa fa-sticky-note-o"></i>',
-      onclick: function() {
-
-        window.console.log('hi note there...');
-
-      }
-    });
-
-    self.toolBar.disableButton('note');
-
-    //
-    // Pointer interactor button
-    self.toolBar.addButton({
-      id: 'pointer',
-      title: 'Pointer',
-      caption: '<i class="fa fa-mouse-pointer"></i>',
-      label: 'Interactors',
-      onclick: function() {
-
-        window.console.log('hi zoom there...');
-
-      }
-    });
-
-    self.toolBar.disableButton('pointer');
-
-    //
-    // Zoom interactor button
-    self.toolBar.addButton({
-      id: 'search',
-      title: 'Zoom',
-      caption: '<i class="fa fa-search"></i>',
-      onclick: function() {
-
-        window.console.log('hi zoom there...');
-
-      }
-    });
-
-    self.toolBar.disableButton('search');
-
-    //
-    // Window Level interactor button
-    self.toolBar.addButton({
-      id: 'adjust',
-      title: 'Window Level',
-      caption: '<i class="fa fa-adjust"></i>',
-      onclick: function() {
-
-        window.console.log('hi window level there...');
-
-      }
-    });
-
-    self.toolBar.disableButton('adjust');
-
-    //
-    // Pan interactor button
-    self.toolBar.addButton({
-      id: 'arrows',
-      title: 'Pan',
-      caption: '<i class="fa fa-arrows"></i>',
-      onclick: function() {
-
-        window.console.log('hi pan there...');
-
-      }
-    });
-
-    self.toolBar.disableButton('arrows');
-
-    //
-    // Start collaboration button
-    if (self.collab) {
-
-      // collab button is added only when there is a collab object available
-      self.toolBar.addButton({
-
-        id: 'collab',
-        title: 'Start collaboration',
-        caption: '<i class="fa fa-users"></i>',
-        label: 'More',
-        onclick: function() {
-
-          if (self.collab.collabIsOn) {
-
-            self.leaveCollaboration();
-
-          } else {
-
-            self.startCollaboration();
-          }
+            event.stopPropagation();
+          });
         }
       });
-    }
 
-    //
-    // Link views button
-    self.toolBar.addButton({
-      id: 'link',
-      title: 'Link views',
-      caption: '<i class="fa fa-link"></i>',
+      //
+      // Load file
+      self.toolBar.addButton({
+        id: 'book',
+        title: 'Load from library',
+        caption: '<i class="fa fa-book"></i>',
+        onclick: function() {
 
-      onclick: function() {
+          self.libraryWin.dialog('open');
 
-        self.handleToolBarButtonLinkClick();
-        self.updateCollabScene();
-      }
-    });
-
-    self.toolBar.hideButton('link');
-
-    //
-    // Settings button
-    self.toolBar.addButton({
-      id: 'gear',
-      title: 'Settings',
-      caption: '<i class="fa fa-gear"></i>',
-      onclick: function() {
-
-        window.open('https://github.com/FNNDSC/viewerjs/wiki');
-
-      }
-
-    });
-
-    self.toolBar.disableButton('gear');
-
-    //
-    // Help button
-    self.toolBar.addButton({
-      id: 'help',
-      title: 'Wiki help',
-      caption: '<i class="fa fa-question"></i>',
-      onclick: function() {
-
-        window.open('https://github.com/FNNDSC/viewerjs/wiki');
-
-      }
-    });
-
-    //
-    // toolbar event listeners
-    //
-    this.handleChangeOrientation = function(orientation) {
-
-      self.rBox.getSelectedRenderers().forEach(function(rndr) {
-
-        rndr.changeOrientation(orientation);
+        }
       });
-    };
 
-    this.handleToolBarButtonLinkClick = function() {
+      //
+      // X orientation button
+      self.toolBar.addButton({
+        id: 'acquisitionX',
+        title: 'acquisitionX',
+        caption: 'X',
+        label: 'Orientation',
+        onclick: function() {
 
-      if (self.renderersLinked) {
+          self.handleChangeOrientation('X');
+          self.updateCollabScene();
+        }
+      });
 
-        self.rBox.unlinkRenderers();
-        self.renderersLinked = false;
+      //
+      // Y orientation button
+      self.toolBar.addButton({
+        id: 'acquisitionY',
+        title: 'acquisitionY',
+        caption: 'Y',
+        onclick: function() {
 
-      } else {
+          self.handleChangeOrientation('Y');
+          self.updateCollabScene();
+        }
+      });
 
-        self.rBox.linkRenderers();
-        self.renderersLinked = true;
+      //
+      // Z orientation button
+      self.toolBar.addButton({
+        id: 'acquisitionZ',
+        title: 'acquisitionZ',
+        caption: 'Z',
+        onclick: function() {
+
+          self.handleChangeOrientation('Z');
+          self.updateCollabScene();
+        }
+      });
+
+      //
+      // Fiducial widget button
+      self.toolBar.addButton({
+        id: 'fiducial',
+        title: 'Add fiducial',
+        caption: '<i class="fa fa-thumb-tack"></i>',
+        label: 'Tools',
+        onclick: function() {
+
+          window.console.log('hi fiducial there...');
+
+        }
+      });
+
+      self.toolBar.disableButton('fiducial');
+
+      //
+      // Distance widget button
+      self.toolBar.addButton({
+        id: 'distance',
+        title: 'Measure distance',
+        caption: '<i class="fa fa-arrows-h"></i>',
+        onclick: function() {
+
+          window.console.log('hi distance there...');
+
+        }
+      });
+
+      self.toolBar.disableButton('distance');
+
+      //
+      // Angle widget button
+      self.toolBar.addButton({
+        id: 'angle',
+        title: 'Measure angle',
+        caption: '<i class="fa fa-rss"></i>',
+        onclick: function() {
+
+          window.console.log('hi angle there...');
+
+        }
+      });
+
+      self.toolBar.disableButton('angle');
+
+      //
+      // Note widget button
+      self.toolBar.addButton({
+        id: 'note',
+        title: 'Add a note',
+        caption: '<i class="fa fa-sticky-note-o"></i>',
+        onclick: function() {
+
+          window.console.log('hi note there...');
+
+        }
+      });
+
+      self.toolBar.disableButton('note');
+
+      //
+      // Pointer interactor button
+      self.toolBar.addButton({
+        id: 'pointer',
+        title: 'Pointer',
+        caption: '<i class="fa fa-mouse-pointer"></i>',
+        label: 'Interactors',
+        onclick: function() {
+
+          window.console.log('hi zoom there...');
+
+        }
+      });
+
+      self.toolBar.disableButton('pointer');
+
+      //
+      // Zoom interactor button
+      self.toolBar.addButton({
+        id: 'search',
+        title: 'Zoom',
+        caption: '<i class="fa fa-search"></i>',
+        onclick: function() {
+
+          window.console.log('hi zoom there...');
+
+        }
+      });
+
+      self.toolBar.disableButton('search');
+
+      //
+      // Window Level interactor button
+      self.toolBar.addButton({
+        id: 'adjust',
+        title: 'Window Level',
+        caption: '<i class="fa fa-adjust"></i>',
+        onclick: function() {
+
+          window.console.log('hi window level there...');
+
+        }
+      });
+
+      self.toolBar.disableButton('adjust');
+
+      //
+      // Pan interactor button
+      self.toolBar.addButton({
+        id: 'arrows',
+        title: 'Pan',
+        caption: '<i class="fa fa-arrows"></i>',
+        onclick: function() {
+
+          window.console.log('hi pan there...');
+
+        }
+      });
+
+      self.toolBar.disableButton('arrows');
+
+      //
+      // Start collaboration button
+      if (self.collab) {
+
+        // collab button is added only when there is a collab object available
+        self.toolBar.addButton({
+
+          id: 'collab',
+          title: 'Start collaboration',
+          caption: '<i class="fa fa-users"></i>',
+          label: 'More',
+          onclick: function() {
+
+            if (self.collab.collabIsOn) {
+
+              self.leaveCollaboration();
+
+            } else {
+
+              self.startCollaboration();
+            }
+          }
+        });
       }
 
-      self.toggleToolbarButtonActivation('link');
-    };
+      //
+      // Link views button
+      self.toolBar.addButton({
+        id: 'link',
+        title: 'Link views',
+        caption: '<i class="fa fa-link"></i>',
 
-    // make space for the toolbar
-    var renderersTopEdge = parseInt(self.toolBar.container.css('top')) + parseInt(self.toolBar.container.css('height')) + 5;
-    self.rBox.container.css({top: renderersTopEdge + 'px'});
-    self.rBox.container.css({height: 'calc(100% - ' + renderersTopEdge + 'px)'});
-  };
+        onclick: function() {
+
+          self.handleToolBarButtonLinkClick();
+          self.updateCollabScene();
+        }
+      });
+
+      self.toolBar.hideButton('link');
+
+      //
+      // Settings button
+      self.toolBar.addButton({
+        id: 'gear',
+        title: 'Settings',
+        caption: '<i class="fa fa-gear"></i>',
+        onclick: function() {
+
+          window.open('https://github.com/FNNDSC/viewerjs/wiki');
+
+        }
+
+      });
+
+      self.toolBar.disableButton('gear');
+
+      //
+      // Help button
+      self.toolBar.addButton({
+        id: 'help',
+        title: 'Wiki help',
+        caption: '<i class="fa fa-question"></i>',
+        onclick: function() {
+
+          window.open('https://github.com/FNNDSC/viewerjs/wiki');
+
+        }
+      });
+
+      //
+      // toolbar event listeners
+      //
+      this.handleChangeOrientation = function(orientation) {
+
+        self.rBox.getSelectedRenderers().forEach(function(rndr) {
+
+          rndr.changeOrientation(orientation);
+        });
+      };
+
+      this.handleToolBarButtonLinkClick = function() {
+
+        if (self.renderersLinked) {
+
+          self.rBox.unlinkRenderers();
+          self.renderersLinked = false;
+
+        } else {
+
+          self.rBox.linkRenderers();
+          self.renderersLinked = true;
+        }
+
+        self.toggleToolbarButtonActivation('link');
+      };
+
+      // make space for the toolbar
+      var renderersTopEdge = parseInt(self.toolBar.container.css('top')) + parseInt(self.toolBar.container.css('height')) + 5;
+      self.rBox.container.css({top: renderersTopEdge + 'px'});
+      self.rBox.container.css({height: 'calc(100% - ' + renderersTopEdge + 'px)'});
+    };
 
     /**
      * Toggle a toolbar's button activated/deactivated UI state.
@@ -1169,160 +1169,159 @@ define(
      * Initilize collaboration window's HTML and event handlers.
      */
     viewerjs.Viewer.prototype.initCollabWindow = function() {
-    var self = this;
+      var self = this;
 
-    self.collabWin = $('<div></div>');
+      self.collabWin = $('<div></div>');
 
-    // convert the previous div into a floating window with a close button
-    self.collabWin.dialog({
-      title: 'Start collaboration',
-      modal: true,
-      autoOpen: false,
-      minHeight: 300,
-      height: 350,
-      minWidth: 550,
-      width: 600
-    });
+      // convert the previous div into a floating window with a close button
+      self.collabWin.dialog({
+        title: 'Start collaboration',
+        modal: true,
+        autoOpen: false,
+        minHeight: 300,
+        height: 350,
+        minWidth: 550,
+        width: 600
+      });
 
-    // add contents to the floating window from its HTML template
-    self.collabWin.append($(collabwin).filter('.view-collabwin'));
-  };
+      // add contents to the floating window from its HTML template
+      self.collabWin.append($(collabwin).filter('.view-collabwin'));
+    };
 
     /**
      * Initilize library window's HTML and event handlers.
      */
     viewerjs.Viewer.prototype.initLibraryWindow = function() {
-    var self = this;
+      var self = this;
 
-    self.libraryWin = $('<div></div>');
+      self.libraryWin = $('<div></div>');
 
-    // convert the previous div into a floating window with a close button
-    self.libraryWin.dialog({
-      title: 'Load additional data',
-      modal: true,
-      autoOpen: false,
-      minHeight: 400,
-      height: 600,
-      minWidth: 700,
-      width: 800
-    });
+      // convert the previous div into a floating window with a close button
+      self.libraryWin.dialog({
+        title: 'Load additional data',
+        modal: true,
+        autoOpen: false,
+        minHeight: 400,
+        height: 600,
+        minWidth: 700,
+        width: 800
+      });
 
-    var library = [
-    {
-      sectionLabel: 'Day 0 to 14',
-      notes: 'Oh yes I\'m a cool notes',
-      datasets: [
-        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
-        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
-        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
-        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii'
-      ]
-    },
-    {
-      sectionLabel: 'Quarter 0',
-      notes: 'Me too!',
-      datasets: [
-        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
-        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
-        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
-        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii'
-      ]
-    },
-    {
-      sectionLabel: 'Quarter 1',
-      notes: 'Oh yes I\'m a cool notes too',
-      datasets: [
-        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
-        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
-        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
-        'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii'
-      ]
-    }];
+      var library = [
+      {
+        sectionLabel: 'Day 0 to 14',
+        notes: 'Oh yes I\'m a cool notes',
+        datasets: [
+          'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
+          'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
+          'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
+          'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii'
+        ]
+      },
+      {
+        sectionLabel: 'Quarter 0',
+        notes: 'Me too!',
+        datasets: [
+          'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
+          'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
+          'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
+          'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii'
+        ]
+      },
+      {
+        sectionLabel: 'Quarter 1',
+        notes: 'Oh yes I\'m a cool notes too',
+        datasets: [
+          'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
+          'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
+          'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii',
+          'http://www.googledrive.com/host/0B8u7h0aKnydhd0xHX2h0NENsbEE/w0to1.nii'
+        ]
+      }];
 
-    var libraryContainerDiv = document.createElement('div');
-    $(libraryContainerDiv)
-        .addClass('library');
-    self.libraryWin.append($(libraryContainerDiv));
+      var libraryContainerDiv = document.createElement('div');
+      $(libraryContainerDiv)
+          .addClass('library');
+      self.libraryWin.append($(libraryContainerDiv));
 
-    for (var i = 0; i < library.length; i++) {
-      // section
-      var sectionDiv = document.createElement('div');
-      $(sectionDiv)
-        .addClass('section')
-        .attr('sectionIndex', i);
-      $(libraryContainerDiv).append($(sectionDiv));
+      for (var i = 0; i < library.length; i++) {
+        // section
+        var sectionDiv = document.createElement('div');
+        $(sectionDiv)
+          .addClass('section')
+          .attr('sectionIndex', i);
+        $(libraryContainerDiv).append($(sectionDiv));
 
-      // title
-      var titleDiv = document.createElement('div');
-      $(titleDiv)
-        .addClass('title')
-        .html(library[i].sectionLabel);
-      $(sectionDiv).append($(titleDiv));
+        // title
+        var titleDiv = document.createElement('div');
+        $(titleDiv)
+          .addClass('title')
+          .html(library[i].sectionLabel);
+        $(sectionDiv).append($(titleDiv));
 
-      // note
-      var notesDiv = document.createElement('div');
-      $(notesDiv)
-        .addClass('notes')
-        .html(library[i].notes);
-      $(sectionDiv).append($(notesDiv));
+        // note
+        var notesDiv = document.createElement('div');
+        $(notesDiv)
+          .addClass('notes')
+          .html(library[i].notes);
+        $(sectionDiv).append($(notesDiv));
 
-      // thumbnails
-      var thumbnailsContainerDiv = document.createElement('div');
-      $(thumbnailsContainerDiv)
-        .addClass('thumbnailsContainer');
-      $(sectionDiv).append($(thumbnailsContainerDiv));
+        // thumbnails
+        var thumbnailsContainerDiv = document.createElement('div');
+        $(thumbnailsContainerDiv)
+          .addClass('thumbnailsContainer');
+        $(sectionDiv).append($(thumbnailsContainerDiv));
 
-      for (var j = 0; j < library[i].datasets.length; j++) {
-        var thumbnailDiv = document.createElement('div');
-        $(thumbnailDiv)
-          .addClass('thumbnail')
-          .css('background-image', 'url(' + library[i].datasets[j] + '.jpg)');
-        $(thumbnailsContainerDiv).append(thumbnailDiv);
+        for (var j = 0; j < library[i].datasets.length; j++) {
+          var thumbnailDiv = document.createElement('div');
+          $(thumbnailDiv)
+            .addClass('thumbnail')
+            .css('background-image', 'url(' + library[i].datasets[j] + '.jpg)');
+          $(thumbnailsContainerDiv).append(thumbnailDiv);
+        }
       }
-    }
 
-    // fill content (no need for append)
+      // fill content (no need for append)
 
-    // connect search bar...
-    // $('.view-librarywin-input').keyup(function() {
-    //   var valThis = $(this).val();
-    //   window.console.log('connecter: ' + valThis);
-    //   $('.navList>li').each(function() {
-    //     var text = $(this).text().toLowerCase();
-    //     return (text.indexOf(valThis) === 0) ? $(this).show() : $(this).hide();
-    //   });
-    // });
+      // connect search bar...
+      // $('.view-librarywin-input').keyup(function() {
+      //   var valThis = $(this).val();
+      //   window.console.log('connecter: ' + valThis);
+      //   $('.navList>li').each(function() {
+      //     var text = $(this).text().toLowerCase();
+      //     return (text.indexOf(valThis) === 0) ? $(this).show() : $(this).hide();
+      //   });
+      // });
 
-    // connect each element of the lists to nii, json and jpg
-    $('.library > .section').on('click', function() {
+      // connect each element of the lists to nii, json and jpg
+      $('.library > .section').on('click', function() {
 
-      var sectionIndex = $(this).attr('sectionIndex');
-      window.console.log(sectionIndex);
+        var sectionIndex = $(this).attr('sectionIndex');
 
-      // build list
-      var imgFileArr = [];
+        // build list
+        var imgFileArr = [];
 
-      for (var i = 0; i < library[sectionIndex].datasets.length; i++) {
-        imgFileArr.push({
+        for (var i = 0; i < library[sectionIndex].datasets.length; i++) {
+          imgFileArr.push({
           'url': library[sectionIndex].datasets[i] + '.gz'
         });
 
-        imgFileArr.push({
+          imgFileArr.push({
           'url': library[sectionIndex].datasets[i] + '.jpg'
         });
 
-        imgFileArr.push({
+          imgFileArr.push({
           'url': library[sectionIndex].datasets[i] + '.json'
         });
-      }
+        }
 
-      // load atlases
-      self.addData(imgFileArr);
+        // load atlases
+        self.addData(imgFileArr);
 
-      // close window
-      self.libraryWin.dialog('close');
-    });
-  };
+        // close window
+        self.libraryWin.dialog('close');
+      });
+    };
 
     /**
      * Create and add a thumbnails bar to the viewer.
@@ -1341,139 +1340,139 @@ define(
      * @param {Function} optional callback to be called when the thumbnails bar is ready.
      */
     viewerjs.Viewer.prototype.addThumbnailsBar = function(imgFileArr, callback) {
-    var self = this;
+      var self = this;
 
-    if (!imgFileArr.length) {
+      if (!imgFileArr.length) {
 
-      if (callback) { callback(); }
-      return;
-    }
+        if (callback) { callback(); }
+        return;
+      }
 
-    // append a div container for the thumbnails bar to the viewer
-    var thBarCont = $('<div></div>');
-    self.container.append(thBarCont);
+      // append a div container for the thumbnails bar to the viewer
+      var thBarCont = $('<div></div>');
+      self.container.append(thBarCont);
 
-    // thumbnails bar's options object
-    var options = {
-      container: thBarCont[0],
-      position: {
-        top: self.rBox.container.css('top'), // thumbnails bar at the same vertical level as the renderers box
-        left: '5px'
-      },
-      layout: 'vertical',
-      thumbnailsIdPrefix: self.thumbnailsIdPrefix
+      // thumbnails bar's options object
+      var options = {
+        container: thBarCont[0],
+        position: {
+          top: self.rBox.container.css('top'), // thumbnails bar at the same vertical level as the renderers box
+          left: '5px'
+        },
+        layout: 'vertical',
+        thumbnailsIdPrefix: self.thumbnailsIdPrefix
+      };
+
+      // check if there is a cloud file manager available
+      var fileManager = null;
+      if (self.collab) { fileManager = self.collab.fileManager; }
+
+      // create the thumbnails bar object
+      var thBar = new thbar.ThumbnailsBar(options, fileManager);
+
+      thBar.init(imgFileArr, function() {
+
+        // hide any thumbnail with a corresponding renderer (same integer id suffix) already added to the renderers box
+        for (var i = 0; i < self.rBox.renderers.length; i++) {
+
+          // corresponding thumbnail and renderer have the same integer id
+          var id = self.rBox.renderers[i].id;
+          var thContId = thBar.getThumbnailContId(id);
+
+          $('#' + thContId).css({display: 'none'});
+        }
+
+        if (callback) { callback(); }
+      });
+
+      // get the jQuery sortable for the trash element
+      $('.view-trash-sortable', self.trash).sortable({
+
+        over: function() {
+
+          self.trash.addClass('highlight');
+        },
+
+        out: function() {
+
+          self.trash.removeClass('highlight');
+        }
+      });
+
+      // link the thumbnails bar with the renderers box
+      var viewerSelector = '#' + self.container.attr('id');
+      self.rBox.setComplementarySortableElems(viewerSelector + ' .view-thumbnailsbar-sortable');
+      thBar.setComplementarySortableElems(viewerSelector + ' .view-renderers');
+
+      // link the thumbnails bar with the trash's sortable element
+      thBar.jqSortable.sortable('option', 'connectWith', viewerSelector + ' .view-renderers, ' +
+        viewerSelector + ' .view-trash-sortable');
+
+      //
+      // thumbnails bar event listeners
+      //
+      thBar.onBeforeStop = function(evt, ui) {
+
+        var id = thBar.getThumbnailId(ui.item.attr('id'));
+        var parent = ui.placeholder.parent();
+
+        if (self.trash.hasClass('highlight')) {
+
+          self.trash.removeClass('highlight');
+
+          $(evt.target).sortable('cancel');
+          self.removeData(id);
+
+        } else if (parent[0] === self.rBox.container[0]) {
+
+          $(evt.target).sortable('cancel');
+
+          // add the corresponding renderer (with the same integer id) to the UI
+          self.addRenderer(self.getImgFileObject(id), function(renderer) {
+
+            if (renderer) {
+
+              self.updateCollabScene();
+            }
+          });
+
+        } else if (parent[0] !== thBar.jqSortable[0]) {
+
+          // cancel ddRop
+          $(evt.target).sortable('cancel');
+        }
+
+        self.trash.hide();
+      };
+
+      thBar.onStart = function() {
+
+        // trash doesn't show up during a realtime collaboration session
+        if (!self.collab || !self.collab.collabIsOn) {
+
+          self.trash.show();
+        }
+      };
+
+      // append a thumbnails bar id to each array elem
+      for (var i = 0; i < imgFileArr.length; i++) {
+
+        imgFileArr[i].thBarId = self.thBars.length;
+      }
+
+      // add the new data array to the viewer's main array
+      self.imgFileArr = self.imgFileArr.concat(imgFileArr);
+
+      // push thumbnails bar in the array of thumbnails bar object
+      self.thBars.push(thBar);
+
+      // insert thumbnails bar in front of the array of horizontal components
+      self.componentsX.unshift(thBar);
+
+      self.rBox.container.css({width: self.computeRBoxCSSWidth()});
+
+      self.layoutComponentsX();
     };
-
-    // check if there is a cloud file manager available
-    var fileManager = null;
-    if (self.collab) { fileManager = self.collab.fileManager; }
-
-    // create the thumbnails bar object
-    var thBar = new thbar.ThumbnailsBar(options, fileManager);
-
-    thBar.init(imgFileArr, function() {
-
-      // hide any thumbnail with a corresponding renderer (same integer id suffix) already added to the renderers box
-      for (var i = 0; i < self.rBox.renderers.length; i++) {
-
-        // corresponding thumbnail and renderer have the same integer id
-        var id = self.rBox.renderers[i].id;
-        var thContId = thBar.getThumbnailContId(id);
-
-        $('#' + thContId).css({display: 'none'});
-      }
-
-      if (callback) { callback(); }
-    });
-
-    // get the jQuery sortable for the trash element
-    $('.view-trash-sortable', self.trash).sortable({
-
-      over: function() {
-
-        self.trash.addClass('highlight');
-      },
-
-      out: function() {
-
-        self.trash.removeClass('highlight');
-      }
-    });
-
-    // link the thumbnails bar with the renderers box
-    var viewerSelector = '#' + self.container.attr('id');
-    self.rBox.setComplementarySortableElems(viewerSelector + ' .view-thumbnailsbar-sortable');
-    thBar.setComplementarySortableElems(viewerSelector + ' .view-renderers');
-
-    // link the thumbnails bar with the trash's sortable element
-    thBar.jqSortable.sortable('option', 'connectWith', viewerSelector + ' .view-renderers, ' +
-      viewerSelector + ' .view-trash-sortable');
-
-    //
-    // thumbnails bar event listeners
-    //
-    thBar.onBeforeStop = function(evt, ui) {
-
-      var id = thBar.getThumbnailId(ui.item.attr('id'));
-      var parent = ui.placeholder.parent();
-
-      if (self.trash.hasClass('highlight')) {
-
-        self.trash.removeClass('highlight');
-
-        $(evt.target).sortable('cancel');
-        self.removeData(id);
-
-      } else if (parent[0] === self.rBox.container[0]) {
-
-        $(evt.target).sortable('cancel');
-
-        // add the corresponding renderer (with the same integer id) to the UI
-        self.addRenderer(self.getImgFileObject(id), function(renderer) {
-
-          if (renderer) {
-
-            self.updateCollabScene();
-          }
-        });
-
-      } else if (parent[0] !== thBar.jqSortable[0]) {
-
-        // cancel ddRop
-        $(evt.target).sortable('cancel');
-      }
-
-      self.trash.hide();
-    };
-
-    thBar.onStart = function() {
-
-      // trash doesn't show up during a realtime collaboration session
-      if (!self.collab || !self.collab.collabIsOn) {
-
-        self.trash.show();
-      }
-    };
-
-    // append a thumbnails bar id to each array elem
-    for (var i = 0; i < imgFileArr.length; i++) {
-
-      imgFileArr[i].thBarId = self.thBars.length;
-    }
-
-    // add the new data array to the viewer's main array
-    self.imgFileArr = self.imgFileArr.concat(imgFileArr);
-
-    // push thumbnails bar in the array of thumbnails bar object
-    self.thBars.push(thBar);
-
-    // insert thumbnails bar in front of the array of horizontal components
-    self.componentsX.unshift(thBar);
-
-    self.rBox.container.css({width: self.computeRBoxCSSWidth()});
-
-    self.layoutComponentsX();
-  };
 
     /**
      * Compute CSS width of the viewer's renderers box.
@@ -1511,39 +1510,39 @@ define(
      * Layout viewer's components along the horizontal axis.
      */
     viewerjs.Viewer.prototype.layoutComponentsX = function() {
-    var self = this;
+      var self = this;
 
-    var left = 5;
-    var right = 0;
-    var rBIx;
+      var left = 5;
+      var right = 0;
+      var rBIx;
 
-    // find the position of the renderers box
-    for (var i = 0; i < self.componentsX.length; i++) {
+      // find the position of the renderers box
+      for (var i = 0; i < self.componentsX.length; i++) {
 
-      if (self.componentsX[i].renderers) {
-        rBIx = i;
-        break;
+        if (self.componentsX[i].renderers) {
+          rBIx = i;
+          break;
+        }
       }
-    }
 
-    // position elements to the left of the renderers box including it
-    var comps = self.componentsX.slice(0, rBIx + 1);
+      // position elements to the left of the renderers box including it
+      var comps = self.componentsX.slice(0, rBIx + 1);
 
-    comps.forEach(function(el) {
+      comps.forEach(function(el) {
 
-      el.container.css({left: left + 'px', right: 'auto'});
-      left += parseInt(el.container.css('width')) + 5 ;
-    });
+        el.container.css({left: left + 'px', right: 'auto'});
+        left += parseInt(el.container.css('width')) + 5 ;
+      });
 
-    // position  elements to the right of the renderers box
-    comps = self.componentsX.slice(rBIx + 1);
+      // position  elements to the right of the renderers box
+      comps = self.componentsX.slice(rBIx + 1);
 
-    comps.reverse().forEach(function(el) {
+      comps.reverse().forEach(function(el) {
 
-      el.container.css({left: 'auto', right: right + 'px'});
-      right += parseInt(el.container.css('width')) + 5 ;
-    });
-  };
+        el.container.css({left: 'auto', right: right + 'px'});
+        right += parseInt(el.container.css('width')) + 5 ;
+      });
+    };
 
     /**
      * Return image file object given its id.
@@ -1786,64 +1785,64 @@ define(
      * Start the realtime collaboration.
      */
     viewerjs.Viewer.prototype.startCollaboration = function() {
-    var self = this;
+      var self = this;
 
-    if (self.collab) {
+      if (self.collab) {
 
-      self.collabWin.dialog('open');
+        self.collabWin.dialog('open');
 
-      var startCollaboration = function() {
+        var startCollaboration = function() {
 
-        var roomIdInput = $('.view-collabwin-input input', self.collabWin)[0];
+          var roomIdInput = $('.view-collabwin-input input', self.collabWin)[0];
 
-        if (roomIdInput.value) {
+          if (roomIdInput.value) {
 
-          // start the collaboration as an additional collaborator
-          self.collab.joinRealtimeCollaboration(roomIdInput.value);
+            // start the collaboration as an additional collaborator
+            self.collab.joinRealtimeCollaboration(roomIdInput.value);
 
-        } else {
+          } else {
 
-          // start as the collaboration owner
-          self.collab.startRealtimeCollaboration(self.getLocalScene());
-        }
+            // start as the collaboration owner
+            self.collab.startRealtimeCollaboration(self.getLocalScene());
+          }
 
-        self.collabWin.dialog('close');
-        self.toolBar.disableButton('collab');
-      };
+          self.collabWin.dialog('close');
+          self.toolBar.disableButton('collab');
+        };
 
-      self.collab.authorizeAndLoadApi(true, function(granted) {
+        self.collab.authorizeAndLoadApi(true, function(granted) {
 
-        var goButton = $('.view-collabwin-input button', self.collabWin)[0];
+          var goButton = $('.view-collabwin-input button', self.collabWin)[0];
 
-        if (granted) {
+          if (granted) {
 
-          // realtime API ready
-          goButton.onclick = function() {
+            // realtime API ready
+            goButton.onclick = function() {
 
-            startCollaboration();
-          };
+              startCollaboration();
+            };
 
-        } else {
+          } else {
 
-          goButton.onclick = function() {
+            goButton.onclick = function() {
 
-            self.collab.authorizeAndLoadApi(false, function(granted) {
+              self.collab.authorizeAndLoadApi(false, function(granted) {
 
-              if (granted) {
+                if (granted) {
 
-                // realtime API ready
-                startCollaboration();
-              }
-            });
-          };
-        }
-      });
+                  // realtime API ready
+                  startCollaboration();
+                }
+              });
+            };
+          }
+        });
 
-    } else {
+      } else {
 
-      console.error('Collaboration was not enabled for this viewer instance');
-    }
-  };
+        console.error('Collaboration was not enabled for this viewer instance');
+      }
+    };
 
     /**
      * Start the realtime collaboration's chat.
@@ -1883,128 +1882,128 @@ define(
      * @param {Obj} new collaborator info object.
      */
     viewerjs.Viewer.prototype.handleOnConnect = function(collaboratorInfo) {
-    var self = this;
+      var self = this;
 
-    // total number of files to be uploaded to GDrive
-    var totalNumFiles = (function() {
-      var nFiles = 0;
+      // total number of files to be uploaded to GDrive
+      var totalNumFiles = (function() {
+        var nFiles = 0;
 
-      for (var i = 0; i < self.imgFileArr.length; i++) {
-        ++nFiles;
-
-        if (self.imgFileArr[i].json) {
+        for (var i = 0; i < self.imgFileArr.length; i++) {
           ++nFiles;
-        }
-      }
 
-      return nFiles;
-    }());
-
-    // callback to load a file into GDrive
-    var fObjArr = [];
-    var loadFile = function(fInfo, fData) {
-
-      function writeToGdrive(info, data) {
-
-        var name = info.url.substring(info.url.lastIndexOf('/') + 1);
-
-        self.collab.fileManager.writeFile(self.collab.dataFilesBaseDir + '/' + name, data, function(fileResp) {
-
-          fObjArr.push({id: fileResp.id, url: info.url, thBarId: info.thBarId});
-
-          if (fObjArr.length === totalNumFiles) {
-
-            // all data files have been uploaded to GDrive
-            self.collab.setDataFileList(fObjArr);
+          if (self.imgFileArr[i].json) {
+            ++nFiles;
           }
-        });
-      }
-
-      if (fInfo.url.search(/.dcm.zip$|.ima.zip$|.zip$/i) !== -1) {
-
-        // fData is an array of arrayBuffer so instead of one file now fData.length files need to be uploaded
-        totalNumFiles += fData.length - 1;
-        writeToGdrive(fInfo, fData[0]);
-
-        for (var j = 1; j < fData.length; j++) {
-
-          fInfo.url = fInfo.url.replace(/.dcm.zip$|.ima.zip$|.zip$/i, j + '$&');
-          writeToGdrive(fInfo, fData[j]);
         }
+
+        return nFiles;
+      }());
+
+      // callback to load a file into GDrive
+      var fObjArr = [];
+      var loadFile = function(fInfo, fData) {
+
+        function writeToGdrive(info, data) {
+
+          var name = info.url.substring(info.url.lastIndexOf('/') + 1);
+
+          self.collab.fileManager.writeFile(self.collab.dataFilesBaseDir + '/' + name, data, function(fileResp) {
+
+            fObjArr.push({id: fileResp.id, url: info.url, thBarId: info.thBarId});
+
+            if (fObjArr.length === totalNumFiles) {
+
+              // all data files have been uploaded to GDrive
+              self.collab.setDataFileList(fObjArr);
+            }
+          });
+        }
+
+        if (fInfo.url.search(/.dcm.zip$|.ima.zip$|.zip$/i) !== -1) {
+
+          // fData is an array of arrayBuffer so instead of one file now fData.length files need to be uploaded
+          totalNumFiles += fData.length - 1;
+          writeToGdrive(fInfo, fData[0]);
+
+          for (var j = 1; j < fData.length; j++) {
+
+            fInfo.url = fInfo.url.replace(/.dcm.zip$|.ima.zip$|.zip$/i, j + '$&');
+            writeToGdrive(fInfo, fData[j]);
+          }
+
+        } else {
+
+          // fData is just a single arrayBuffer
+          writeToGdrive(fInfo, fData);
+        }
+      };
+
+      if (self.collab.collaboratorInfo.id === collaboratorInfo.id) {
+
+        // local on connect
+
+        if (self.collab.collabOwner) {
+
+          self.toolBar.enableButton('collab');
+
+          // update the toolbar's UI
+          self.toggleToolbarButtonActivation('collab');
+          self.toolBar.disableButton('load');
+          self.toolBar.disableButton('book');
+
+          // asyncronously load all files to GDrive
+          self.collab.fileManager.createPath(self.collab.dataFilesBaseDir, function() {
+
+            // create a rendererjs.Renderer object to use its methods
+            var r = new render.Renderer({container: null, rendererId: ''}, self.collab);
+
+            for (var i = 0; i < self.imgFileArr.length; i++) {
+
+              var imgFileObj = self.imgFileArr[i];
+              var thBarId = imgFileObj.thBarId;
+              var url;
+
+              if (imgFileObj.json) {
+
+                url = imgFileObj.baseUrl + imgFileObj.json.name;
+                r.readFile(imgFileObj.json, 'readAsArrayBuffer', loadFile.bind(null, {url: url, thBarId: thBarId}));
+              }
+
+              if (imgFileObj.files.length > 1) {
+
+                // if there are many files (dicoms) then compress them into a single .zip file before uploading
+                url = imgFileObj.baseUrl + imgFileObj.files[0].name + '.zip';
+                r.zipFiles(imgFileObj.files, loadFile.bind(null, {url: url, thBarId: thBarId}));
+
+              } else {
+
+                url = imgFileObj.baseUrl + imgFileObj.files[0].name;
+                r.readFile(imgFileObj.files[0], 'readAsArrayBuffer', loadFile.bind(null, {url: url, thBarId: thBarId}));
+              }
+            }
+          });
+
+        } else {
+
+          // this is a new collaborator (not the collaboration owner)
+
+          // wipe current visualization
+          self.cleanUI();
+
+          // insert initial wait text div to manage user expectatives
+          self.container.append('<div class="view-initialwaittext">' + 'Please wait while loading the viewer...</div>');
+
+          $('.view-initialwaittext', self.container).css({'color': 'white'});
+        }
+
+        self.startCollaborationChat();
 
       } else {
 
-        // fData is just a single arrayBuffer
-        writeToGdrive(fInfo, fData);
+        // a remote collaborator has connected so just update the collaborators list
+        self.chat.updateCollaboratorList();
       }
     };
-
-    if (self.collab.collaboratorInfo.id === collaboratorInfo.id) {
-
-      // local on connect
-
-      if (self.collab.collabOwner) {
-
-        self.toolBar.enableButton('collab');
-
-        // update the toolbar's UI
-        self.toggleToolbarButtonActivation('collab');
-        self.toolBar.disableButton('load');
-        self.toolBar.disableButton('book');
-
-        // asyncronously load all files to GDrive
-        self.collab.fileManager.createPath(self.collab.dataFilesBaseDir, function() {
-
-          // create a rendererjs.Renderer object to use its methods
-          var r = new render.Renderer({container: null, rendererId: ''}, self.collab);
-
-          for (var i = 0; i < self.imgFileArr.length; i++) {
-
-            var imgFileObj = self.imgFileArr[i];
-            var thBarId = imgFileObj.thBarId;
-            var url;
-
-            if (imgFileObj.json) {
-
-              url = imgFileObj.baseUrl + imgFileObj.json.name;
-              r.readFile(imgFileObj.json, 'readAsArrayBuffer', loadFile.bind(null, {url: url, thBarId: thBarId}));
-            }
-
-            if (imgFileObj.files.length > 1) {
-
-              // if there are many files (dicoms) then compress them into a single .zip file before uploading
-              url = imgFileObj.baseUrl + imgFileObj.files[0].name + '.zip';
-              r.zipFiles(imgFileObj.files, loadFile.bind(null, {url: url, thBarId: thBarId}));
-
-            } else {
-
-              url = imgFileObj.baseUrl + imgFileObj.files[0].name;
-              r.readFile(imgFileObj.files[0], 'readAsArrayBuffer', loadFile.bind(null, {url: url, thBarId: thBarId}));
-            }
-          }
-        });
-
-      } else {
-
-        // this is a new collaborator (not the collaboration owner)
-
-        // wipe current visualization
-        self.cleanUI();
-
-        // insert initial wait text div to manage user expectatives
-        self.container.append('<div class="view-initialwaittext">' + 'Please wait while loading the viewer...</div>');
-
-        $('.view-initialwaittext', self.container).css({'color': 'white'});
-      }
-
-      self.startCollaborationChat();
-
-    } else {
-
-      // a remote collaborator has connected so just update the collaborators list
-      self.chat.updateCollaboratorList();
-    }
-  };
 
     /**
      * Handle the onDataFilesShared event when the collaboration owner has shared all data files with this collaborator.
@@ -2013,55 +2012,55 @@ define(
      * @param {Object} array of file objects with properties: url, cloudId and thBarId (thumbnails bar's id).
      */
     viewerjs.Viewer.prototype.handleOnDataFilesShared = function(collaboratorInfo, fObjArr) {
-     var self = this;
+      var self = this;
 
-     if (self.collab.collaboratorInfo.id === collaboratorInfo.id) {
+      if (self.collab.collaboratorInfo.id === collaboratorInfo.id) {
 
-       // GDrive files have been shared with this collaborator
+        // GDrive files have been shared with this collaborator
 
-       var fileArr = []; // two dimensional array of data arrays
+        var fileArr = []; // two dimensional array of data arrays
 
-       for (var i = 0; i < fObjArr.length; i++) {
+        for (var i = 0; i < fObjArr.length; i++) {
 
-         if (!fileArr[fObjArr[i].thBarId]) {
+          if (!fileArr[fObjArr[i].thBarId]) {
 
-           fileArr[fObjArr[i].thBarId] = [];
-         }
+            fileArr[fObjArr[i].thBarId] = [];
+          }
 
-         fileArr[fObjArr[i].thBarId].push({url: fObjArr[i].url, cloudId: fObjArr[i].id});
-       }
+          fileArr[fObjArr[i].thBarId].push({url: fObjArr[i].url, cloudId: fObjArr[i].id});
+        }
 
-       // wipe the initial wait text in the collaborators's viewer container
-       $('.view-initialwaittext', self.container).remove();
+        // wipe the initial wait text in the collaborators's viewer container
+        $('.view-initialwaittext', self.container).remove();
 
-       // restart the viewer
-       self.init();
+        // restart the viewer
+        self.init();
 
-       // update the toolbar's UI
-       self.toggleToolbarButtonActivation('collab');
-       self.toolBar.disableButton('load');
-       self.toolBar.disableButton('book');
+        // update the toolbar's UI
+        self.toggleToolbarButtonActivation('collab');
+        self.toolBar.disableButton('load');
+        self.toolBar.disableButton('book');
 
-       var numOfLoadedThumbnailsBar = 0;
+        var numOfLoadedThumbnailsBar = 0;
 
-       var checkIfViewerReady = function() {
+        var checkIfViewerReady = function() {
 
-         if (++numOfLoadedThumbnailsBar === fileArr.length) {
+          if (++numOfLoadedThumbnailsBar === fileArr.length) {
 
-           self.onViewerReady();
-         }
-       };
+            self.onViewerReady();
+          }
+        };
 
-       for (i = 0; i < fileArr.length; i++) {
+        for (i = 0; i < fileArr.length; i++) {
 
-         // add thumbnails bars
-         var imgFileArr = self.buildImgFileArr(fileArr[i]);
-         self.addThumbnailsBar(imgFileArr, checkIfViewerReady);
-       }
+          // add thumbnails bars
+          var imgFileArr = self.buildImgFileArr(fileArr[i]);
+          self.addThumbnailsBar(imgFileArr, checkIfViewerReady);
+        }
 
-       self.renderScene();
-     }
-   };
+        self.renderScene();
+      }
+    };
 
     /**
      * Handle the onCollabObjChanged event when the scene object has been modified by a remote collaborator.
