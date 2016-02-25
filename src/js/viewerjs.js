@@ -20,7 +20,7 @@ define(
   // jquery is special because it is AMD but doesn't return an object
   'jquery_ui'
 
-  ], function(util, render, rbox, toolbar, thbar, chat, collabwin) {
+  ],function(util, render, rbox, toolbar, thbar, chat, collabwin) {
 
     /**
      * Provide a namespace for the viewer module
@@ -424,10 +424,10 @@ define(
 
           // push fibers, meshes, volumes into nonDcmData
           nonDcmData.push({
-             'baseUrl': baseUrl,
-             'imgType': imgType,
-             'files': [file]
-           });
+           'baseUrl': baseUrl,
+           'imgType': imgType,
+           'files': [file]
+         });
         }
       }
 
@@ -496,18 +496,19 @@ define(
 
       // sort the built array for consistency among possible collaborators
       imgFileArr.sort(function(el1, el2) {
-         var val1 = el1.baseUrl + el1.files[0].name.replace(/.zip$/, '');
-         var val2 = el2.baseUrl + el2.files[0].name.replace(/.zip$/, '');
-         var values = [val1, val2].sort();
 
-         if (values[0] === values[1]) {
-           return 0;
-         } else if (values[0] === val1) {
-           return -1;
-         } else {
-           return 1;
-         }
-       });
+        var val1 = el1.baseUrl + el1.files[0].name.replace(/.zip$/, '');
+        var val2 = el2.baseUrl + el2.files[0].name.replace(/.zip$/, '');
+        var values = [val1, val2].sort();
+
+        if (values[0] === values[1]) {
+          return 0;
+        } else if (values[0] === val1) {
+          return -1;
+        } else {
+          return 1;
+        }
+      });
 
       // assign an integer id to each array elem
       var len = self.imgFileArr.length;
