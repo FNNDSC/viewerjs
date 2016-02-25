@@ -11,8 +11,7 @@ define(['viewerjs'], function(viewerjs) {
 
     var testDataDir = 'bower_components/mri_testdata/';
 
-    var fileObjArr = [{url: testDataDir + 'volumes/nii/s34654_df.nii', name: 's34654_df.nii',
-      remote: true}];
+    var fileObjArr = [{url: testDataDir + 'volumes/nii/s34654_df.nii'}];
 
     // append a container for the whole viewer
     var container = $('<div id="viewercontainer"></div>');
@@ -86,11 +85,15 @@ define(['viewerjs'], function(viewerjs) {
 
           var imgFileArr = view.buildImgFileArr(fileObjArr);
 
+          var fObj = fileObjArr[0];
+          fObj.name = 's34654_df.nii';
+          fObj.remote = true;
+
           expect(imgFileArr[0]).toEqual({
             id: 0,
             baseUrl: testDataDir + 'volumes/nii/',
             imgType: 'vol',
-            files: [fileObjArr[0]],
+            files: [fObj],
           });
         }
       );
