@@ -1,6 +1,10 @@
 /**
- * This module takes care of laying out all user interface components as well as implementing the
- * realtime collaboration through the collaborator object injected into viewerjs.Viewer constructor.
+ * This module takes care of laying out all user interface (UI) components as well as
+ * implementing realtime collaboration through the collaborator object injected into
+ * viewerjs.Viewer constructor. The UI has a load button that allows to read a directory
+ * tree (chrome) or multiple neuroimage files in the same directory (other browsers) for
+ * their visualization and collaboration. Alternatively, users can directly drag in and
+ * drop files/folders onto the viewer.
  */
 
 // define a new module
