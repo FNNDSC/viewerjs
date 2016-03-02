@@ -61,14 +61,8 @@ define(
       // renderers box object
       this.rBox = null;
 
-      // prefix string for the DOM ids used for the internal XTK renderers' containers
-      this.renderersIdPrefix = containerId + '_renderer';
-
       // thumbnails bars
       this.thBars = []; // can contain null elements
-
-      // prefix string for the DOM ids used for the thumbnails' containers.
-      this.thumbnailsIdPrefix = containerId + '_thumbnail';
 
       // array of objects containing the renderers box and thumbnails bars in their horizontal visual order
       this.componentsX = [];
@@ -164,6 +158,7 @@ define(
 
         beforeStop: function(evt, ui) {
 
+          var thBar;
           var parent = ui.placeholder.parent();
 
           if (self.trash.hasClass('highlight')) {
@@ -176,16 +171,14 @@ define(
               // find the trashed thumbnails bar's object
               if (self.thBars[j] && self.thBars[j].container[0] === ui.item[0]) {
 
-                var thBar = self.thBars[j];
+                thBar = self.thBars[j];
                 break;
               }
             }
 
-            var thumbnails = $('.view-thumbnail', ui.item);
+            thBar.thumbnails.each(function() {
 
-            thumbnails.each(function() {
-
-              var id = thBar.getThumbnailId(this.id);
+              var id = thBar.getThumbnailId(this);
               self.removeData(id);
             });
 
@@ -562,8 +555,7 @@ define(
         position: {
           bottom: 0,
           left: 0
-        },
-        renderersIdPrefix: self.renderersIdPrefix
+        }
       };
 
       // check if there is a cloud file manager available
@@ -589,11 +581,11 @@ define(
         var thHeight = $('.view-thumbnail').css('height');
 
         // corresponding thumbnail and renderer have the same integer id
-        var id = self.rBox.getRendererId(target.find('.view-renderer-content').attr('id'));
-        var thContId = self.getThumbnailsBarObject(id).getThumbnailContId(id);
+        var id = self.rBox.getRendererId(target[0]);
+        var thCont = self.getThumbnailsBarObject(id).getThumbnail(id);
 
         // the visually moving helper is a clone of the corresponding thumbnail
-        return $('#' + thContId).clone().css({
+        return $(thCont).clone().css({
           display: 'block',
           width: thWidth,
           height: thHeight});
@@ -610,7 +602,7 @@ define(
 
       this.rBox.onBeforeStop = function(evt, ui) {
 
-        var id = self.rBox.getRendererId(ui.item.find('.view-renderer-content').attr('id'));
+        var id = self.rBox.getRendererId(ui.item[0]);
 
         if (ui.placeholder.parent().parent()[0] === self.getThumbnailsBarObject(id).container[0]) {
 
@@ -688,7 +680,7 @@ define(
 
       var thBar = self.getThumbnailsBarObject(imgFileObj.id);
 
-      $('#' + thBar.getThumbnailContId(imgFileObj.id)).css({display: 'none'});
+      $(thBar.getThumbnail(imgFileObj.id)).css({display: 'none'});
 
       self.rBox.addRenderer(imgFileObj, 'Z', function(renderer) {
 
@@ -712,7 +704,7 @@ define(
         } else {
 
           // could not add renderer so restore the corresponding thumbnail
-          $('#' + thBar.getThumbnailContId(imgFileObj.id)).css({display: ''});
+          $(thBar.getThumbnail(imgFileObj.id)).css({display: ''});
         }
 
         if (callback) { callback(renderer); }
@@ -731,10 +723,10 @@ define(
       if (thBar) {
 
         // corresponding thumbnail and renderer have the same integer id
-        var thContId = thBar.getThumbnailContId(id);
+        var thCont = thBar.getThumbnail(id);
 
         // display the removed renderer's thumbnail
-        $('#' + thContId).css({display: 'block'});
+        $(thCont).css({display: 'block'});
       }
 
       // if there is now a single renderer then hide the Link views button and make it selected
@@ -1222,8 +1214,7 @@ define(
           top: self.rBox.container.css('top'), // thumbnails bar at the same vertical level as the renderers box
           left: '5px'
         },
-        layout: 'vertical',
-        thumbnailsIdPrefix: self.thumbnailsIdPrefix
+        layout: 'vertical'
       };
 
       // check if there is a cloud file manager available
@@ -1240,9 +1231,9 @@ define(
 
           // corresponding thumbnail and renderer have the same integer id
           var id = self.rBox.renderers[i].id;
-          var thContId = thBar.getThumbnailContId(id);
+          var thCont = thBar.getThumbnail(id);
 
-          $('#' + thContId).css({display: 'none'});
+          $(thCont).css({display: 'none'});
         }
 
         if (callback) { callback(); }
@@ -1276,7 +1267,7 @@ define(
       //
       thBar.onBeforeStop = function(evt, ui) {
 
-        var id = thBar.getThumbnailId(ui.item.attr('id'));
+        var id = thBar.getThumbnailId(ui.item[0]);
         var parent = ui.placeholder.parent();
 
         if (self.trash.hasClass('highlight')) {
@@ -1520,9 +1511,9 @@ define(
 
           if (renderers2DIds.indexOf(rObj.id) === -1) {
 
-            var thContId = self.getThumbnailsBarObject(rObj.id).getThumbnailContId(rObj.id);
+            var thCont = self.getThumbnailsBarObject(rObj.id).getThumbnail(rObj.id);
 
-            $('#' + thContId).css({display: 'block'});
+            $(thCont).css({display: 'block'});
 
             self.rBox.removeRenderer(rObj);
           }
@@ -1531,7 +1522,7 @@ define(
         // add 2D renderers to the local scene that were added to the collab scene
         renderers2DIds.forEach(function(id) {
 
-          $('#' + self.getThumbnailsBarObject(id).getThumbnailContId(id)).css({display: 'none'});
+          $(self.getThumbnailsBarObject(id).getThumbnail(id)).css({display: 'none'});
 
           self.addRenderer(self.getImgFileObject(id), updateRenderer);
         });
@@ -1752,10 +1743,12 @@ define(
         var nFiles = 0;
 
         for (var i = 0; i < self.imgFileArr.length; i++) {
-          ++nFiles;
 
-          if (self.imgFileArr[i].json) {
+          if (self.imgFileArr[i]) {
+
             ++nFiles;
+
+            if (self.imgFileArr[i].json) { ++nFiles; }
           }
         }
 
@@ -1818,30 +1811,33 @@ define(
           self.collab.fileManager.createPath(self.collab.dataFilesBaseDir, function() {
 
             // create a rendererjs.Renderer object to use its methods
-            var r = new render.Renderer({container: null, rendererId: ''}, self.collab);
+            var r = new render.Renderer({container: null}, self.collab);
 
             for (var i = 0; i < self.imgFileArr.length; i++) {
 
-              var imgFileObj = self.imgFileArr[i];
-              var thBarId = imgFileObj.thBarId;
-              var url;
+              if (self.imgFileArr[i]) {
 
-              if (imgFileObj.json) {
+                var imgFileObj = self.imgFileArr[i];
+                var thBarId = imgFileObj.thBarId;
+                var url;
 
-                url = imgFileObj.baseUrl + imgFileObj.json.name;
-                r.readFile(imgFileObj.json, 'readAsArrayBuffer', loadFile.bind(null, {url: url, thBarId: thBarId}));
-              }
+                if (imgFileObj.json) {
 
-              if (imgFileObj.files.length > 1) {
+                  url = imgFileObj.baseUrl + imgFileObj.json.name;
+                  r.readFile(imgFileObj.json, 'readAsArrayBuffer', loadFile.bind(null, {url: url, thBarId: thBarId}));
+                }
 
-                // if there are many files (dicoms) then compress them into a single .zip file before uploading
-                url = imgFileObj.baseUrl + imgFileObj.files[0].name + '.zip';
-                r.zipFiles(imgFileObj.files, loadFile.bind(null, {url: url, thBarId: thBarId}));
+                if (imgFileObj.files.length > 1) {
 
-              } else {
+                  // if there are many files (dicoms) then compress them into a single .zip file before uploading
+                  url = imgFileObj.baseUrl + imgFileObj.files[0].name + '.zip';
+                  r.zipFiles(imgFileObj.files, loadFile.bind(null, {url: url, thBarId: thBarId}));
 
-                url = imgFileObj.baseUrl + imgFileObj.files[0].name;
-                r.readFile(imgFileObj.files[0], 'readAsArrayBuffer', loadFile.bind(null, {url: url, thBarId: thBarId}));
+                } else {
+
+                  url = imgFileObj.baseUrl + imgFileObj.files[0].name;
+                  r.readFile(imgFileObj.files[0], 'readAsArrayBuffer', loadFile.bind(null, {url: url, thBarId: thBarId}));
+                }
               }
             }
           });

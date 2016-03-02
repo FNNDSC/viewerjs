@@ -192,7 +192,7 @@ define(['viewerjs'], function(viewerjs) {
         }
       );
 
-      it('viewerjs.Viewer.prototype.getThumbnailsBarObject(id) returns the' +
+      it('viewerjs.Viewer.prototype.getThumbnailsBarObject(id) returns the ' +
         'corresponding thumbnails bar object ',
 
         function() {
