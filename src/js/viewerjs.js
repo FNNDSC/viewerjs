@@ -62,7 +62,7 @@ define(
       this.rBox = null;
 
       // thumbnails bars
-      this.thBars = []; // can contain null elements
+      this.thBars = [];
 
       // array of objects containing the renderers box and thumbnails bars in their horizontal visual order
       this.componentsX = [];
@@ -79,7 +79,7 @@ define(
       //  The files array contains a single file for imgType different from 'dicom' or 'dicomzip'
       //  -thumbnail: Optional HTML5 File or custom file object (optional jpg file for a thumbnail image)
       //  -json: Optional HTML5 File or custom file object (optional json file with the mri info for imgType different from 'dicom')
-      this.imgFileArr = []; // can contain null elements
+      this.imgFileArr = [];
 
       //
       // collaborator object
@@ -144,7 +144,7 @@ define(
         cursor: 'move',
         containment: 'parent',
         distance: '150',
-        connectWith: '#' + self.container.attr('id') + ' .view-trash-sortable', // thumbnails bars can be trashed
+        connectWith: '#' + self.containerId + ' .view-trash-sortable', // thumbnails bars can be trashed
         dropOnEmpty: true,
 
         start: function() {
@@ -169,17 +169,20 @@ define(
             for (var j = 0; j < self.thBars.length; j++) {
 
               // find the trashed thumbnails bar's object
-              if (self.thBars[j] && self.thBars[j].container[0] === ui.item[0]) {
+              if (self.thBars[j].container[0] === ui.item[0]) {
 
                 thBar = self.thBars[j];
                 break;
               }
             }
 
-            thBar.thumbnails.each(function() {
+            thBar.thumbnails.forEach(function(th) {
 
-              var id = thBar.getThumbnailId(this);
-              self.removeData(id);
+              if (th) {
+
+                var id = thBar.getThumbnailId(th);
+                self.removeData(id);
+              }
             });
 
           } else if (parent[0] === self.container[0]) {
@@ -224,7 +227,7 @@ define(
       if (self.collab) { self.initCollabWindow(); }
 
       // set a dropzone
-      util.setDropzone(self.containerId, function(fObjArr) {
+      util.setDropzone(self.container[0], function(fObjArr) {
 
         self.addData(fObjArr);
       });
@@ -234,11 +237,13 @@ define(
      * Add new data to the viewer. A new thumbnails bar is added to the UI for the new data.
      *
      * @param {Array} array of file objects. Each object contains the following properties:
-     * -url:     String representing the file url
-     * -file:    HTML5 File object (optional but neccesary when the files are gotten through a
-     *           local filepicker or dropzone)
-     * -cloudId: String representing the file cloud id (optional but neccesary when the files
-     *           are gotten from a cloud storage like GDrive)
+     * -url:       String representing the file url
+     * -file:      HTML5 File object (optional but neccesary when the files are gotten through a
+     *             local filepicker or dropzone)
+     * -cloudId:   String representing the file cloud id (optional but neccesary when the files
+     *             are gotten from a cloud storage like GDrive)
+     * -imgFObjId: Original image file object id (optional but neccesary when the files
+     *             are gotten from a real-time collaboration session)
      * @param {Function} optional callback to be called when the viewer is ready.
      */
     viewerjs.Viewer.prototype.addData = function(fObjArr, callback) {
@@ -293,9 +298,9 @@ define(
 
             for (var j = 0; j < self.thBars.length; j++) {
 
-              if (self.thBars[j] && self.thBars[j].container[0] === thBarCont[0]) {
+              if (self.thBars[j].container[0] === thBarCont[0]) {
 
-                self.thBars[j] = null;
+                self.thBars.splice(j, 1);
                 break;
               }
             }
@@ -326,7 +331,15 @@ define(
 
           if (rArr.length) { self.rBox.removeRenderer(rArr[0]); }
 
-          self.imgFileArr[id] = null;
+          // remove the imgFileObj
+          for (var i = 0; i < self.imgFileArr.length; i++) {
+
+            if (self.imgFileArr[i].id === id) {
+
+              self.imgFileArr.splice(i, 1);
+              break;
+            }
+          }
         }
       }
     };
@@ -334,7 +347,14 @@ define(
     /**
      * Build an array of image file objects (viewer's main data structure).
      *
-     * @param {Array} array of file objects. Same as the one passed to the addData method.
+     * @param {Array} array of file objects. Each object contains the following properties:
+     * -url:       String representing the file url
+     * -file:      HTML5 File object (optional but neccesary when the files are gotten through a
+     *             local filepicker or dropzone)
+     * -cloudId:   String representing the file cloud id (optional but neccesary when the files
+     *             are gotten from a cloud storage like GDrive)
+     * -imgFObjId: Original image file object id (optional but neccesary when the files
+     *             are gotten from a real-time collaboration session)
      * @return {Array} array of image file objects, each object contains the following properties:
      *  -id: Integer, the object's id
      *  -baseUrl: String ‘directory/containing/the/files’
@@ -373,6 +393,7 @@ define(
 
           // get the HTML5 File object
           file = fileObj.file;
+
         } else {
 
           // build a dummy File object with a property remote
@@ -380,25 +401,23 @@ define(
                  url: path,
                  remote: true};
 
-          if (fileObj.cloudId) {
-            file.cloudId = fileObj.cloudId;
-          }
+          if (fileObj.cloudId) { file.cloudId = fileObj.cloudId; }
+
+          if (fileObj.imgFObjId) { file.imgFObjId = fileObj.imgFObjId; }
         }
 
         imgType = render.Renderer.imgType(file);
 
         if (imgType === 'dicom') {
 
-          if (!dicoms[baseUrl]) {
-            dicoms[baseUrl] = [];
-          }
+          if (!dicoms[baseUrl]) { dicoms[baseUrl] = []; }
+
           dicoms[baseUrl].push(file); // all dicoms with the same base url belong to the same volume
 
         } else if (imgType === 'dicomzip') {
 
-          if (!dicomZips[baseUrl]) {
-            dicomZips[baseUrl] = [];
-          }
+          if (!dicomZips[baseUrl]) { dicomZips[baseUrl] = [];}
+
           dicomZips[baseUrl].push(file); // all dicom zip files with the same base url belong to the same volume
 
         } else if (imgType === 'thumbnail') {
@@ -406,9 +425,13 @@ define(
           // save thumbnail file in an associative array
           // array keys are the full path up to the first dash in the file name or the last period
           dashIndex = path.indexOf('-', path.lastIndexOf('/'));
+
           if (dashIndex === -1) {
+
             thumbnails[path.substring(0, path.lastIndexOf('.'))] = file;
+
           } else {
+
             thumbnails[path.substring(0, dashIndex)] = file;
           }
 
@@ -446,6 +469,7 @@ define(
             } while ((++j < imgFileArr[i].files.length)  && (key !== name));
 
             if (key === name) {
+
               imgFileArr[i][filetype] = files[key];
               break;
             }
@@ -455,6 +479,7 @@ define(
 
       // add files to proper internal data structures
       for (var i = 0; i < fObjArr.length; i++) {
+
         addFile(fObjArr[i]);
       }
 
@@ -464,6 +489,7 @@ define(
 
       // push ordered DICOMs into imgFileArr
       for (var baseUrl in dicoms) {
+
         imgFileArr.push({
           'baseUrl': baseUrl,
           'imgType': 'dicom',
@@ -473,6 +499,7 @@ define(
 
       // push DICOM zip files into imgFileArr
       for (baseUrl in dicomZips) {
+
         imgFileArr.push({
           'baseUrl': baseUrl,
           'imgType': 'dicomzip',
@@ -482,6 +509,7 @@ define(
 
       // push non-DICOM data into imgFileArr
       for (i = 0; i < nonDcmData.length; i++) {
+
         imgFileArr.push(nonDcmData[i]);
       }
 
@@ -491,27 +519,31 @@ define(
       // add json files to imgFileArr
       assignUtilityFiles(jsons, 'json');
 
-      // sort the built array for consistency among possible collaborators
-      imgFileArr.sort(function(el1, el2) {
-
-        var val1 = el1.baseUrl + el1.files[0].name.replace(/.zip$/, '');
-        var val2 = el2.baseUrl + el2.files[0].name.replace(/.zip$/, '');
-        var values = [val1, val2].sort();
-
-        if (values[0] === values[1]) {
-          return 0;
-        } else if (values[0] === val1) {
-          return -1;
-        } else {
-          return 1;
-        }
-      });
-
       // assign an integer id to each array elem
-      var len = self.imgFileArr.length;
+      // if files came from a realtime collab session then use their original
+      // imgFileObj's id from the collab owner
+      if (typeof imgFileArr[0].files[0].imgFObjId === 'number') {
 
-      for (i = 0; i < imgFileArr.length; i++) {
-        imgFileArr[i].id = i + len;
+        for (i = 0; i < imgFileArr.length; i++) {
+
+          imgFileArr[i].id = imgFileArr[i].files[0].imgFObjId;
+        }
+
+      } else {
+
+        var maxId = -1;
+
+        for (i = 0; i < self.imgFileArr.length; i++) {
+
+          maxId = Math.max(maxId, self.imgFileArr[i].id);
+        }
+
+        ++maxId;
+
+        for (i = 0; i < imgFileArr.length; i++) {
+
+          imgFileArr[i].id = i + maxId;
+        }
       }
 
       return imgFileArr;
@@ -596,7 +628,7 @@ define(
         // thumbnails bars' scroll bars have to be removed to make the moving helper visible
         self.thBars.forEach(function(thBar) {
 
-          if (thBar) { thBar.container.css({overflow: 'visible'}); }
+          thBar.container.css({overflow: 'visible'});
         });
       };
 
@@ -622,7 +654,7 @@ define(
         // restore thumbnails bars' scroll bars
         self.thBars.forEach(function(thBar) {
 
-          if (thBar) { thBar.container.css({overflow: 'auto'}); }
+          thBar.container.css({overflow: 'auto'});
         });
       };
 
@@ -1226,7 +1258,7 @@ define(
 
       thBar.init(imgFileArr, function() {
 
-        // hide any thumbnail with a corresponding renderer (same integer id suffix) already added to the renderers box
+        // hide any thumbnail with a corresponding renderer (same integer id) already added to the renderers box
         for (var i = 0; i < self.rBox.renderers.length; i++) {
 
           // corresponding thumbnail and renderer have the same integer id
@@ -1254,7 +1286,7 @@ define(
       });
 
       // link the thumbnails bar with the renderers box
-      var viewerSelector = '#' + self.container.attr('id');
+      var viewerSelector = '#' + self.containerId;
       self.rBox.setComplementarySortableElems(viewerSelector + ' .view-thumbnailsbar-sortable');
       thBar.setComplementarySortableElems(viewerSelector + ' .view-renderers');
 
@@ -1309,9 +1341,19 @@ define(
       };
 
       // append a thumbnails bar id to each array elem
-      for (var i = 0; i < imgFileArr.length; i++) {
+      //
+      var thBarId = -1;
 
-        imgFileArr[i].thBarId = self.thBars.length;
+      for (var i = 0; i < self.thBars.length; i++) {
+
+        thBarId = Math.max(thBarId, self.thBars[i].id);
+      }
+
+      thBar.id = ++thBarId;
+
+      for (i = 0; i < imgFileArr.length; i++) {
+
+        imgFileArr[i].thBarId = thBarId;
       }
 
       // add the new data array to the viewer's main array
@@ -1335,21 +1377,12 @@ define(
      */
     viewerjs.Viewer.prototype.computeRBoxCSSWidth = function() {
 
-      var nTh = 0; // number of thumbnails bars in the viewer
-      var ix, rBoxCSSWidth;
-
-      for (var i = 0; i < this.thBars.length; i++) {
-
-        if (this.thBars[i]) {
-
-          nTh++;
-          ix = i; // save the index of a non-null thumbnails bar object
-        }
-      }
+      var nTh = this.thBars.length;
+      var rBoxCSSWidth;
 
       if (nTh) {
 
-        var thBarSpace = parseInt(this.thBars[ix].container.css('width')) + 10;
+        var thBarSpace = parseInt(this.thBars[0].container.css('width')) + 10;
         rBoxCSSWidth = 'calc(100% - ' + (thBarSpace * nTh) + 'px)';
 
       } else {
@@ -1401,7 +1434,7 @@ define(
     /**
      * Return image file object given its id.
      *
-     * @param {Number} Integer number between 0 and this.imgFileArr.length-1.
+     * @param {Number} Integer number for the image file object's id.
      * @return {Object} null or image file object with the following properties:
      *  -id: Integer id
      *  -baseUrl: String ‘directory/containing/the/files’
@@ -1417,18 +1450,20 @@ define(
      */
     viewerjs.Viewer.prototype.getImgFileObject = function(id) {
 
-      if (id < 0 || id >= this.imgFileArr.length) {
+      var arr = this.imgFileArr.filter(function(imgFileObj) {
 
-        return null;
-      }
+        return imgFileObj.id === id;
+      });
 
-      return this.imgFileArr[id];
+      if (arr.length) { return arr[0]; }
+
+      return null;
     };
 
     /**
      * Given an image file object id get the thumbnails bar object that contains the associated thumbnail image.
      *
-     * @param {Number} Integer number between 0 and this.imgFileArr.length-1.
+     * @param {Number} Integer number for the image file object's id.
      * @return {Object} thumbnails bar object or null.
      */
     viewerjs.Viewer.prototype.getThumbnailsBarObject = function(id) {
@@ -1437,7 +1472,12 @@ define(
 
       if (!imgFileObj) { return null; }
 
-      return this.thBars[imgFileObj.thBarId];
+      var arr = this.thBars.filter(function(thB) {
+
+        return thB.id === imgFileObj.thBarId;
+      });
+
+      return arr[0];
     };
 
     /**
@@ -1744,12 +1784,8 @@ define(
 
         for (var i = 0; i < self.imgFileArr.length; i++) {
 
-          if (self.imgFileArr[i]) {
-
-            ++nFiles;
-
-            if (self.imgFileArr[i].json) { ++nFiles; }
-          }
+          ++nFiles;
+          if (self.imgFileArr[i].json) { ++nFiles; }
         }
 
         return nFiles;
@@ -1765,7 +1801,12 @@ define(
 
           self.collab.fileManager.writeFile(self.collab.dataFilesBaseDir + '/' + name, data, function(fileResp) {
 
-            fObjArr.push({id: fileResp.id, url: info.url, thBarId: info.thBarId});
+            fObjArr.push({
+              id: fileResp.id,
+              url: info.url,
+              thBarId: info.thBarId,
+              imgFObjId: info.imgFObjId
+            });
 
             if (fObjArr.length === totalNumFiles) {
 
@@ -1815,29 +1856,30 @@ define(
 
             for (var i = 0; i < self.imgFileArr.length; i++) {
 
-              if (self.imgFileArr[i]) {
+              var imgFileObj = self.imgFileArr[i];
+              var thBarId = imgFileObj.thBarId;
+              var imgFObjId = imgFileObj.id;
+              var url;
 
-                var imgFileObj = self.imgFileArr[i];
-                var thBarId = imgFileObj.thBarId;
-                var url;
+              if (imgFileObj.json) {
 
-                if (imgFileObj.json) {
+                url = imgFileObj.baseUrl + imgFileObj.json.name;
+                r.readFile(imgFileObj.json, 'readAsArrayBuffer',
+                  loadFile.bind(null, {url: url, thBarId: thBarId, imgFObjId: imgFObjId}));
+              }
 
-                  url = imgFileObj.baseUrl + imgFileObj.json.name;
-                  r.readFile(imgFileObj.json, 'readAsArrayBuffer', loadFile.bind(null, {url: url, thBarId: thBarId}));
-                }
+              if (imgFileObj.files.length > 1) {
 
-                if (imgFileObj.files.length > 1) {
+                // if there are many files (dicoms) then compress them into a single .zip file before uploading
+                url = imgFileObj.baseUrl + imgFileObj.files[0].name + '.zip';
+                r.zipFiles(imgFileObj.files,
+                  loadFile.bind(null, {url: url, thBarId: thBarId, imgFObjId: imgFObjId}));
 
-                  // if there are many files (dicoms) then compress them into a single .zip file before uploading
-                  url = imgFileObj.baseUrl + imgFileObj.files[0].name + '.zip';
-                  r.zipFiles(imgFileObj.files, loadFile.bind(null, {url: url, thBarId: thBarId}));
+              } else {
 
-                } else {
-
-                  url = imgFileObj.baseUrl + imgFileObj.files[0].name;
-                  r.readFile(imgFileObj.files[0], 'readAsArrayBuffer', loadFile.bind(null, {url: url, thBarId: thBarId}));
-                }
+                url = imgFileObj.baseUrl + imgFileObj.files[0].name;
+                r.readFile(imgFileObj.files[0], 'readAsArrayBuffer',
+                  loadFile.bind(null, {url: url, thBarId: thBarId, imgFObjId: imgFObjId}));
               }
             }
           });
@@ -1886,7 +1928,11 @@ define(
             fileArr[fObjArr[i].thBarId] = [];
           }
 
-          fileArr[fObjArr[i].thBarId].push({url: fObjArr[i].url, cloudId: fObjArr[i].id});
+          fileArr[fObjArr[i].thBarId].push({
+            url: fObjArr[i].url,
+            cloudId: fObjArr[i].id,
+            imgFObjId: fObjArr[i].imgFObjId
+          });
         }
 
         // wipe the initial wait text in the collaborators's viewer container
@@ -1980,7 +2026,7 @@ define(
 
       for (var i = this.thBars.length - 1; i >= 0; i--) {
 
-        if (this.thBars[i]) { this.thBars[i].destroy(); }
+        this.thBars[i].destroy();
         this.thBars.splice(i, 1);
       }
 

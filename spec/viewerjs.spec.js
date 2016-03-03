@@ -164,8 +164,8 @@ define(['viewerjs'], function(viewerjs) {
 
           view.removeData(0); // remove imgFileObj with id=0
 
-          expect(view.imgFileArr[0]).toBeNull();
-          expect(view.thBars[0]).toBeNull();
+          expect(view.imgFileArr.length).toEqual(0);
+          expect(view.thBars.length).toEqual(0);
         }
       );
 
