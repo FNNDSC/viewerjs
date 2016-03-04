@@ -661,24 +661,38 @@ define(
 
       this.rBox.onRendererChange = function(evt) {
 
-        if ((evt.type === 'click') && $(evt.currentTarget).hasClass('view-renderer-titlebar-buttonpane-pin')) {
+        if ((evt.type === 'click')) {
 
           var selectedArr = this.getSelectedRenderers();
 
-          if (self.renderersLinked && selectedArr.length <= 1) {
+          var target = $(evt.currentTarget);
 
-            // at most one renderer is selected so change state to unlinked
-            self.handleToolBarButtonLinkClick();
+          if (target.hasClass('view-renderer-titlebar-buttonpane-pin')) {
 
-            if (selectedArr.length === 1) {
+            if (self.renderersLinked && selectedArr.length <= 1) {
 
-              selectedArr[0].select(); // reselect the only previously selected renderer
+              // at most one renderer is selected so change state to unlinked
+              self.handleToolBarButtonLinkClick();
+
+              if (selectedArr.length === 1) {
+
+                selectedArr[0].select(); // reselect the only previously selected renderer
+              }
+
+            } else if (!self.renderersLinked && selectedArr.length === this.renderers.length) {
+
+              // all renderers are selected so change state to linked
+              self.handleToolBarButtonLinkClick();
             }
+          }
 
-          } else if (!self.renderersLinked && selectedArr.length === this.renderers.length) {
+          if (target.hasClass('view-renderer-titlebar-buttonpane-maximize')) {
 
-            // all renderers are selected so change state to linked
-            self.handleToolBarButtonLinkClick();
+            if (!self.renderersLinked && selectedArr.length === this.renderers.length) {
+
+              // all renderers are selected so change state to linked
+              self.handleToolBarButtonLinkClick();
+            }
           }
         }
 
