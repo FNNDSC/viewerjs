@@ -78,7 +78,8 @@ define(
       //     -name: file name
       //  The files array contains a single file for imgType different from 'dicom' or 'dicomzip'
       //  -thumbnail: Optional HTML5 File or custom file object (optional jpg file for a thumbnail image)
-      //  -json: Optional HTML5 File or custom file object (optional json file with the mri info for imgType different from 'dicom')
+      //  -json: Optional HTML5 File or custom file object (optional json file with the mri info for imgType
+      //         different from 'dicom')
       this.imgFileArr = [];
 
       //
@@ -1959,8 +1960,11 @@ define(
         for (i = 0; i < fileArr.length; i++) {
 
           // add thumbnails bars
-          var imgFileArr = self.buildImgFileArr(fileArr[i]);
-          self.addThumbnailsBar(imgFileArr, checkIfViewerReady);
+          if (fileArr[i]) {
+
+            var imgFileArr = self.buildImgFileArr(fileArr[i]);
+            self.addThumbnailsBar(imgFileArr, checkIfViewerReady);
+          }
         }
 
         self.renderScene();
