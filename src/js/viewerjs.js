@@ -751,7 +751,7 @@ define(
         } else {
 
           // could not add renderer so restore the corresponding thumbnail
-          $(thBar.getThumbnail(imgFileObj.id)).css({display: ''});
+          $(thBar.getThumbnail(imgFileObj.id)).css({display: 'block'});
         }
 
         if (callback) { callback(renderer); }
@@ -1507,11 +1507,7 @@ define(
         var scene = self.getCollabScene();
         var renderers2DIds = [];
         var renderers2DProps = [];
-
-        if (self.renderersLinked !== scene.toolBar.renderersLinked) {
-
-          self.handleToolBarButtonLinkClick();
-        }
+        var numOfUpdatedRenderers = 0;
 
         //
         // render the renderers in the renderers box
@@ -1549,6 +1545,33 @@ define(
 
           // update the slice info HTML
           rObj.updateUISliceInfo();
+
+          // check if all renderers have been updated
+          if (++numOfUpdatedRenderers === renderers2DIds.length) {
+
+            // update the renderers' window state
+            self.rBox.renderers.forEach(function(rObj) {
+
+              var r2DProps = renderers2DProps[renderers2DIds.indexOf(rObj.id)];
+
+              if (rObj.selected !== r2DProps.selected) {
+
+                if (rObj.selected) {
+
+                  rObj.deselect();
+
+                } else {
+
+                  rObj.select();
+                }
+              }
+            });
+
+            if (self.renderersLinked !== scene.toolBar.renderersLinked) {
+
+              self.handleToolBarButtonLinkClick();
+            }
+          }
         };
 
         // get the collab scene's 2D renderer ids
@@ -1566,10 +1589,6 @@ define(
 
           if (renderers2DIds.indexOf(rObj.id) === -1) {
 
-            var thCont = self.getThumbnailsBarObject(rObj.id).getThumbnail(rObj.id);
-
-            $(thCont).css({display: 'block'});
-
             self.rBox.removeRenderer(rObj);
           }
         });
@@ -1577,27 +1596,7 @@ define(
         // add 2D renderers to the local scene that were added to the collab scene
         renderers2DIds.forEach(function(id) {
 
-          $(self.getThumbnailsBarObject(id).getThumbnail(id)).css({display: 'none'});
-
           self.addRenderer(self.getImgFileObject(id), updateRenderer);
-        });
-
-        // update the renderer's window state
-        self.rBox.renderers.forEach(function(rObj) {
-
-          var r2DProps = renderers2DProps[renderers2DIds.indexOf(rObj.id)];
-
-          if (rObj.selected !== r2DProps.selected) {
-
-            if (rObj.selected) {
-
-              rObj.deselect();
-
-            } else {
-
-              rObj.select();
-            }
-          }
         });
       }
     };
@@ -1705,6 +1704,9 @@ define(
           var roomIdInput = $('.view-collabwin-input input', self.collabWin)[0];
 
           if (roomIdInput.value) {
+
+            // wipe current visualization
+            self.cleanUI();
 
             // start the collaboration as an additional collaborator
             self.collab.joinRealtimeCollaboration(roomIdInput.value);
@@ -1902,10 +1904,6 @@ define(
         } else {
 
           // this is a new collaborator (not the collaboration owner)
-
-          // wipe current visualization
-          self.cleanUI();
-
           // insert initial wait text div to manage user expectatives
           self.container.append('<div class="view-initialwaittext">' + 'Please wait while loading the viewer...</div>');
 
