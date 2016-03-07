@@ -404,7 +404,7 @@ define(
 
           if (fileObj.cloudId) { file.cloudId = fileObj.cloudId; }
 
-          if (fileObj.imgFObjId) { file.imgFObjId = fileObj.imgFObjId; }
+          if (typeof fileObj.imgFObjId === 'number') { file.imgFObjId = fileObj.imgFObjId; }
         }
 
         imgType = render.Renderer.imgType(file);
@@ -742,7 +742,7 @@ define(
           // select the newly added renderer
           renderer.select();
 
-          if (self.rBox.numOfRenderers === 2) {
+          if (self.rBox.numOfRenderers >= 2) {
 
             // if there are now 2 renderers in the renderers box then show the Link views button
             self.toolBar.showButton('link');
@@ -1509,6 +1509,11 @@ define(
         var renderers2DProps = [];
         var numOfUpdatedRenderers = 0;
 
+        if (self.renderersLinked !== scene.toolBar.renderersLinked) {
+
+          self.handleToolBarButtonLinkClick();
+        }
+
         //
         // render the renderers in the renderers box
         //
@@ -1566,11 +1571,6 @@ define(
                 }
               }
             });
-
-            if (self.renderersLinked !== scene.toolBar.renderersLinked) {
-
-              self.handleToolBarButtonLinkClick();
-            }
           }
         };
 
@@ -1715,10 +1715,9 @@ define(
 
             // start as the collaboration owner
             self.collab.startRealtimeCollaboration(self.getLocalScene());
+            self.collabWin.dialog('close');
+            self.toolBar.disableButton('collab');
           }
-
-          self.collabWin.dialog('close');
-          self.toolBar.disableButton('collab');
         };
 
         self.collab.authorizeAndLoadApi(true, function(granted) {
@@ -1965,6 +1964,7 @@ define(
 
           if (++numOfLoadedThumbnailsBar === fileArr.length) {
 
+            self.renderScene();
             self.onViewerReady();
           }
         };
@@ -1978,8 +1978,6 @@ define(
             self.addThumbnailsBar(imgFileArr, checkIfViewerReady);
           }
         }
-
-        self.renderScene();
       }
     };
 
